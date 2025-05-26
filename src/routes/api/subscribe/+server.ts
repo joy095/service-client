@@ -7,24 +7,34 @@ import { v4 as uuidv4 } from 'uuid';
 import { sendConfirmationEmail } from '$lib/server/email';
 
 export const POST: RequestHandler = async ({ request }) => {
+    console.log('[API] Starting subscription request');
+
     try {
+        console.log('[API] Parsing request body...');
         const requestBody: SubscriptionRequestBody = await request.json();
         const { email } = requestBody;
+        console.log(`[API] Email received: ${email}`);
 
         if (!email) {
+            console.log('[API] No email provided');
             const errorResponse: ErrorResponse = { message: 'Email address is required.' };
             return json(errorResponse, { status: 400 });
         }
 
         const emailRegex: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
+            console.log('[API] Invalid email format');
             const errorResponse: ErrorResponse = { message: 'Please enter a valid email address format.' };
             return json(errorResponse, { status: 400 });
         }
 
+        console.log('[API] Starting database operations...');
+
         try {
             const token = uuidv4();
+            console.log(`[API] Generated token for ${email}`);
 
+            console.log('[API] Executing database query...');
             const result = await db.query(
                 `INSERT INTO subscribers(email, status, confirmation_token)
                  VALUES($1, 'pending', $2)
@@ -33,22 +43,24 @@ export const POST: RequestHandler = async ({ request }) => {
                     status = CASE
                                  WHEN subscribers.status = 'unsubscribed' THEN 'pending'
                                  ELSE subscribers.status
-                             END,
-                    updated_at = NOW() -- Explicitly update updated_at on conflict
+                             END
                  RETURNING id, status, email`,
                 [email, token]
             );
 
+            console.log(`[API] Database query completed. Row count: ${result.rowCount}`);
+
             if (result.rowCount && result.rowCount > 0) {
                 const subscriberStatus: SubscriberStatus = result.rows[0]?.status;
                 const subscriberEmail: string = result.rows[0]?.email;
+                console.log(`[API] Subscriber status: ${subscriberStatus} for ${subscriberEmail}`);
 
                 if (subscriberStatus === 'confirmed') {
-                    console.log(`Email already confirmed: ${subscriberEmail}`);
+                    console.log(`[API] Email already confirmed: ${subscriberEmail}`);
                     const successResponse: SubscriptionResponse = { message: 'You are already subscribed and confirmed!' };
                     return json(successResponse, { status: 200 });
                 } else {
-                    // This block will be executed if status is 'pending' (new or re-subscribed)
+                    console.log(`[API] Attempting to send confirmation email to: ${subscriberEmail}`);
                     try {
                         await sendConfirmationEmail({ to: subscriberEmail, token: token });
                         console.log(`Successfully processed subscription for (pending confirmation): ${subscriberEmail}`);
@@ -56,31 +68,36 @@ export const POST: RequestHandler = async ({ request }) => {
                         return json(successResponse, { status: 200 });
                     } catch (emailSendError: unknown) {
                         console.error('Failed to send confirmation email:', emailSendError);
-                        // Decide how to handle this:
-                        // 1. Return a success message but log the email error (if email is not critical)
-                        //    const successResponse: SubscriptionResponse = { message: 'Subscription processed, but failed to send confirmation email. Please check your email spam or contact support.' };
-                        //    return json(successResponse, { status: 200 });
-                        // 2. Return an error, as email confirmation is crucial for subscription completion.
-                        const errorResponse: ErrorResponse = { message: 'Failed to send confirmation email. Please try again or contact support.' };
-                        return json(errorResponse, { status: 500 });
+                        const successResponse: SubscriptionResponse = { message: 'Subscription saved! Please check your email or contact support if you don\'t receive confirmation.' };
+                        return json(successResponse, { status: 200 });
                     }
                 }
             } else {
-                console.error(`Failed to insert or update subscriber for: ${email}. Database query returned no rows.`);
+                console.error(`[API] Database query returned no rows for: ${email}`);
                 const errorResponse: ErrorResponse = { message: 'Failed to process subscription request. Please try again.' };
                 return json(errorResponse, { status: 500 });
             }
 
-        } catch (dbOrEmailError: unknown) {
-            const errorMessage = (dbOrEmailError instanceof Error) ? dbOrEmailError.message : 'An unknown database or email error occurred.';
-            console.error('Database or email sending error during subscription:', errorMessage);
-            const errorResponse: ErrorResponse = { message: 'Failed to subscribe. Please try again later.' };
+        } catch (dbError: unknown) {
+            console.error('[API] Database error:', dbError);
+            if (dbError instanceof Error) {
+                console.error('[API] Database error details:', {
+                    message: dbError.message,
+                    stack: dbError.stack
+                });
+            }
+            const errorResponse: ErrorResponse = { message: 'Database error occurred. Please try again later.' };
             return json(errorResponse, { status: 500 });
         }
 
     } catch (apiError: unknown) {
-        const errorMessage = (apiError instanceof Error) ? apiError.message : 'An unknown API processing error occurred.';
-        console.error('API processing error (parsing request, etc.):', errorMessage);
+        console.error('[API] Top-level API error:', apiError);
+        if (apiError instanceof Error) {
+            console.error('[API] API error details:', {
+                message: apiError.message,
+                stack: apiError.stack
+            });
+        }
         const errorResponse: ErrorResponse = { message: 'Internal server error occurred.' };
         return json(errorResponse, { status: 500 });
     }

@@ -1,13 +1,13 @@
-// src/lib/server/email.ts
 import nodemailer from 'nodemailer';
 
+// Keep your original environment variable access
 if (!import.meta.env.VITE_SMTP_USERNAME || !import.meta.env.VITE_SMTP_PASSWORD) {
-    console.error('GMAIL_USER or GMAIL_APP_PASSWORD environment variables are not set. Email sending will fail.');
+    console.error('SMTP credentials are not set. Email sending will fail');
 }
 
 const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
+    host: import.meta.env.VITE_SMTP_HOST,
+    port: import.meta.env.VITE_SMTP_PORT,
     secure: true,
     auth: {
         user: import.meta.env.VITE_SMTP_USERNAME,
@@ -17,19 +17,19 @@ const transporter = nodemailer.createTransport({
     debug: true,
 });
 
-const FROM_EMAIL = import.meta.env.VITE_SMTP_USERNAME; // Your Gmail address
+const FROM_EMAIL = import.meta.env.VITE_SMTP_USERNAME;
 
 export async function sendConfirmationEmail({ to, token }: { to: string; token: string }) {
     if (!import.meta.env.VITE_SMTP_USERNAME || !import.meta.env.VITE_SMTP_PASSWORD) {
-        console.error('Email sending skipped: Gmail credentials not configured.');
+        console.error('Email sending skipped: SMTP credentials not configured.');
         throw new Error('Email service not configured.');
     }
 
-    // Use PUBLIC_APP_BASE_URL from $env/static/public
+    // Use the same base URL approach as your original
     const confirmationLink = `${import.meta.env.VITE_BASE_URL}/confirm-subscription?token=${token}`;
 
     try {
-        console.log(`[Email Service] Attempting to send confirmation email to: ${to} using Gmail.`);
+        console.log(`[Email Service] Attempting to send confirmation email to: ${to}`);
         const info = await transporter.sendMail({
             from: FROM_EMAIL,
             to: to,
@@ -45,12 +45,12 @@ export async function sendConfirmationEmail({ to, token }: { to: string; token: 
             text: `Hello,\n\nThank you for subscribing to our mailing list!\n\nPlease click the link below to confirm your subscription:\n\n${confirmationLink}\n\nIf you did not subscribe to this mailing list, you can ignore this email.\n\nThank you,\nYour Team`,
         });
 
-        console.log('[Email Service] Email sent successfully via Gmail. Message ID:', info.messageId);
+        console.log('[Email Service] Email sent successfully. Message ID:', info.messageId);
         return info;
     } catch (error: any) {
-        console.error('[Email Service] Error sending email via Gmail:', error);
+        console.error('[Email Service] Error sending email:', error);
         if (error.response) {
-            console.error('[Email Service] Gmail SMTP Response:', error.response);
+            console.error('[Email Service] SMTP Response:', error.response);
         }
         throw error;
     }

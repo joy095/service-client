@@ -19,9 +19,9 @@ if (!databaseUrl) {
 const pool = new Pool({
     connectionString: databaseUrl,
     // Optional: Add SSL settings if connecting to a remote database like Neon, Supabase, etc.
-    ssl: {
-        rejectUnauthorized: false // Use with caution in production if you don't verify certs
-    }
+    // ssl: {
+    //     rejectUnauthorized: false // Use with caution in production if you don't verify certs
+    // }
 });
 
 // Test the database connection
