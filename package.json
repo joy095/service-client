@@ -20,6 +20,7 @@
 		"@eslint/compat": "^1.2.9",
 		"@eslint/js": "^9.27.0",
 		"@sveltejs/adapter-auto": "^6.0.1",
+		"@sveltejs/adapter-vercel": "^5.7.2",
 		"@sveltejs/kit": "^2.21.1",
 		"@sveltejs/vite-plugin-svelte": "^5.0.3",
 		"@tailwindcss/vite": "^4.1.7",
@@ -45,7 +46,6 @@
 		]
 	},
 	"dependencies": {
-		"@sveltejs/adapter-cloudflare": "^7.0.3",
 		"nodemailer": "^7.0.3",
 		"pg": "^8.16.0",
 		"uuid": "^11.1.0"
