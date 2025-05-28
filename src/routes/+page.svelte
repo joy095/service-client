@@ -3,6 +3,7 @@
 	// For a simple static page, it might not be necessary.
 	import { fly } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
+	const currentYear = new Date().getFullYear();
 </script>
 
 <svelte:head>
@@ -32,9 +33,33 @@
 		</div>
 	</section>
 
-	<footer class="homepage-footer">
-		<p>&copy; {new Date().getFullYear()} Your Company Name. All rights reserved.</p>
-		<p>Made with ❤️ in India.</p>
+	<footer class="mt-12 bg-gray-800 p-8 text-white">
+		<div
+			class="mx-auto flex max-w-6xl flex-col items-center justify-between text-center md:flex-row md:text-left"
+		>
+			<div class="mb-4 md:mb-0">
+				<p class="text-sm">&copy; {currentYear} Your Company Name. All rights reserved.</p>
+				<p class="text-xs text-gray-400">Made with ❤️ in India.</p>
+			</div>
+
+			<nav class="space-x-4">
+				<a href="/terms" class="text-sm text-gray-300 hover:text-white hover:underline"
+					>Terms and Conditions</a
+				>
+				<a href="/privacy" class="text-sm text-gray-300 hover:text-white hover:underline"
+					>Privacy Policy</a
+				>
+				<a href="/shipping" class="text-sm text-gray-300 hover:text-white hover:underline"
+					>Shipping Policy</a
+				>
+				<a href="/contact" class="text-sm text-gray-300 hover:text-white hover:underline"
+					>Contact Us</a
+				>
+				<a href="/cancellation" class="text-sm text-gray-300 hover:text-white hover:underline"
+					>Cancellation and Refunds</a
+				>
+			</nav>
+		</div>
 	</footer>
 </div>
 
