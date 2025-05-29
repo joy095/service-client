@@ -1,10 +1,5 @@
 // src/lib/types.ts
 
-// Interface for the request body when subscribing
-export interface SubscriptionRequestBody {
-    email: string;
-}
-
 // Interface for successful API responses
 export interface SubscriptionResponse {
     message: string;
@@ -25,4 +20,14 @@ export interface Subscriber {
     subscribed_at: Date;
     status: SubscriberStatus;
     confirmation_token: string | null; // Token can be null after confirmation
+}
+
+
+export interface SubscriptionRequestBody {
+    email: string;
+    name: string; // Make optional if it's not strictly required on the backend
+    phone?: string; // Optional
+    addressCity: string;
+    addressState: string;
+    message?: string; // Optional
 }

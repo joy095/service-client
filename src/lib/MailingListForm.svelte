@@ -3,21 +3,26 @@
 	import { fly } from 'svelte/transition';
 	import type { SubscriptionRequestBody, SubscriptionResponse, ErrorResponse } from './types';
 
+	let name: string = '';
 	let email: string = '';
-	let isValidEmail: boolean = true;
+	let phone: string = '';
+	let addressCity: string = '';
+	let addressState: string = '';
 	let message: string = '';
+	let formFeedback: string = ''; // Renamed from 'message' to avoid conflict
+	let isValidEmail: boolean = true;
 	let isSubmitting: boolean = false;
 	let submittedSuccessfully: boolean = false;
 
-	// Basic email validation regex
+	// Regex for basic email validation
 	const emailRegex: RegExp = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 	function validateEmail(): void {
 		isValidEmail = emailRegex.test(email);
 		if (!isValidEmail) {
-			message = 'Please enter a valid email address.';
+			formFeedback = 'Please enter a valid email address.';
 		} else {
-			message = ''; // Clear message if valid
+			formFeedback = ''; // Clear feedback if valid
 		}
 	}
 
@@ -29,13 +34,19 @@
 		}
 
 		isSubmitting = true;
-		message = ''; // Clear previous messages
+		formFeedback = ''; // Clear previous messages
 		submittedSuccessfully = false; // Reset success state
 
 		try {
-			const requestBody: SubscriptionRequestBody = { email };
+			const requestBody: SubscriptionRequestBody = {
+				name,
+				email,
+				phone: phone || undefined,
+				addressCity,
+				addressState,
+				message: message || undefined // 'message' here refers to the user's input from the textarea
+			};
 
-			// The endpoint path will be /api/subscribe
 			const response = await fetch('/api/subscribe', {
 				method: 'POST',
 				headers: {
@@ -47,166 +58,149 @@
 			if (response.ok) {
 				const data: SubscriptionResponse = await response.json();
 				submittedSuccessfully = true;
-				message = data.message || 'Thank you for subscribing!';
-				email = ''; // Clear the email input
+				formFeedback = data.message || 'Thank you for subscribing!';
+				// Clear all inputs on success
+				name = '';
+				email = '';
+				phone = '';
+				addressCity = '';
+				addressState = '';
+				message = ''; // Clear the message input as well
 			} else {
 				const errorData: ErrorResponse = await response.json();
 				submittedSuccessfully = false;
-				message = errorData.message || 'Something went wrong. Please try again.';
+				formFeedback = errorData.message || 'Something went wrong. Please try again.';
 			}
 		} catch (error) {
 			console.error('Submission error:', error);
 			submittedSuccessfully = false;
-			message = 'Network error. Please try again later.';
+			formFeedback = 'Network error. Please try again later.';
 		} finally {
 			isSubmitting = false;
 		}
 	}
 </script>
 
-<div class="mailing-list-container">
-	<h2>Join Our Mailing List!</h2>
-	<p>Stay up-to-date with our latest news and offers.</p>
+<div
+	class="mx-auto my-16 max-w-xl rounded-xl bg-white p-10 text-center font-sans text-gray-800 shadow-lg transition-shadow duration-300 hover:shadow-xl"
+>
+	<div class="mb-8">
+		<h2 class="mb-3 text-4xl font-bold tracking-tight text-blue-600">Join Our Newsletter</h2>
+		<p class="leading-relaxed text-gray-600">
+			Stay updated with our latest news and exclusive offers. We respect your privacy.
+		</p>
+	</div>
 
 	{#if submittedSuccessfully}
-		<div class="success-message" in:fly={{ y: -20, duration: 300, easing: quintOut }}>
-			{message}
+		<div
+			class="rounded-lg border border-green-300 bg-green-50 p-4 text-green-800"
+			transition:fly={{ y: -20, duration: 300, easing: quintOut }}
+		>
+			{formFeedback}
 		</div>
 	{:else}
-		<form on:submit|preventDefault={handleSubmit}>
-			<div class="form-group">
-				<label for="email">Email Address:</label>
+		<form on:submit|preventDefault={handleSubmit} class="space-y-6">
+			<div class="text-left">
+				<label for="name" class="mb-2 block text-lg font-semibold text-gray-700">Name</label>
+				<input
+					type="text"
+					id="name"
+					bind:value={name}
+					placeholder="Your Full Name"
+					required
+					class="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-200"
+				/>
+			</div>
+
+			<div class="text-left">
+				<label for="email" class="mb-2 block text-lg font-semibold text-gray-700"
+					>Email Address</label
+				>
 				<input
 					type="email"
 					id="email"
 					bind:value={email}
 					on:blur={validateEmail}
-					class:invalid={!isValidEmail && email.length > 0}
-					placeholder="your.email@example.com"
+					class:border-red-500={!isValidEmail && email.length > 0}
+					class:bg-red-50={!isValidEmail && email.length > 0}
+					placeholder="email@example.com"
 					required
+					class="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-200"
 				/>
 				{#if !isValidEmail && email.length > 0}
-					<p class="error-text" in:fly={{ y: -10, duration: 200 }}>
-						{message}
+					<p class="mt-1 text-sm text-red-600" transition:fly={{ y: -10, duration: 200 }}>
+						{formFeedback}
 					</p>
 				{/if}
 			</div>
 
-			<button type="submit" disabled={isSubmitting}>
+			<div class="text-left">
+				<label for="phone" class="mb-2 block text-lg font-semibold text-gray-700"
+					>Phone Number (Optional)</label
+				>
+				<input
+					type="tel"
+					id="phone"
+					bind:value={phone}
+					placeholder="+91-11-23456789"
+					class="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-200"
+				/>
+			</div>
+
+			<div class="text-left">
+				<label class="mb-2 block text-lg font-semibold text-gray-700">Address</label>
+				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+					<input
+						type="text"
+						id="addressState"
+						bind:value={addressState}
+						placeholder="State/Province"
+						required
+						class="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-200"
+					/>
+					<input
+						type="text"
+						id="addressCity"
+						bind:value={addressCity}
+						placeholder="City"
+						required
+						class="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-200"
+					/>
+				</div>
+			</div>
+
+			<div class="text-left">
+				<label for="message" class="mb-2 block text-lg font-semibold text-gray-700"
+					>Message (Optional)</label
+				>
+				<textarea
+					id="message"
+					bind:value={message}
+					placeholder="Share any thoughts or questions..."
+					rows="4"
+					class="w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-lg text-gray-900 placeholder-gray-500 transition-all duration-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-200"
+				></textarea>
+			</div>
+
+			<button
+				type="submit"
+				disabled={isSubmitting}
+				class="w-full rounded-lg bg-blue-600 px-6 py-3 text-xl font-bold text-white shadow-md transition-all duration-300 hover:bg-blue-700 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-gray-400 disabled:shadow-none"
+			>
 				{#if isSubmitting}
-					Subscribing...
+					Submitting...
 				{:else}
 					Subscribe
 				{/if}
 			</button>
 		</form>
-		{#if message && !isValidEmail}{:else if message}
-			<p class="info-message">{message}</p>
+		{#if formFeedback && !isValidEmail}{:else if formFeedback}
+			<p class="mt-6 text-base text-blue-600 italic">{formFeedback}</p>
 		{/if}
 	{/if}
 </div>
 
 <style>
-	/* Add your CSS styles here, as provided in the previous response */
-	.mailing-list-container {
-		max-width: 500px;
-		margin: 50px auto;
-		padding: 30px;
-		background-color: #ffffff;
-		border-radius: 8px;
-		box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-		text-align: center;
-		font-family: 'Arial', sans-serif;
-		color: #333;
-	}
-
-	h2 {
-		color: #007bff;
-		margin-bottom: 15px;
-		font-size: 2em;
-	}
-
-	p {
-		margin-bottom: 25px;
-		line-height: 1.6;
-	}
-
-	.form-group {
-		margin-bottom: 20px;
-		text-align: left;
-	}
-
-	label {
-		display: block;
-		margin-bottom: 8px;
-		font-weight: bold;
-		color: #555;
-	}
-
-	input[type='email'] {
-		width: calc(100% - 20px);
-		padding: 12px 10px;
-		border: 1px solid #ccc;
-		border-radius: 5px;
-		font-size: 1em;
-		transition:
-			border-color 0.2s ease-in-out,
-			box-shadow 0.2s ease-in-out;
-	}
-
-	input[type='email']:focus {
-		border-color: #007bff;
-		box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
-		outline: none;
-	}
-
-	input[type='email'].invalid {
-		border-color: #dc3545;
-	}
-
-	button {
-		background-color: #007bff;
-		color: white;
-		padding: 12px 25px;
-		border: none;
-		border-radius: 5px;
-		cursor: pointer;
-		font-size: 1.1em;
-		font-weight: bold;
-		transition:
-			background-color 0.3s ease,
-			transform 0.1s ease;
-	}
-
-	button:hover {
-		background-color: #0056b3;
-		transform: translateY(-2px);
-	}
-
-	button:disabled {
-		background-color: #cccccc;
-		cursor: not-allowed;
-		transform: none;
-	}
-
-	.error-text {
-		color: #dc3545;
-		font-size: 0.85em;
-		margin-top: 5px;
-	}
-
-	.success-message {
-		background-color: #d4edda;
-		color: #155724;
-		border: 1px solid #c3e6cb;
-		padding: 15px;
-		border-radius: 5px;
-		margin-top: 20px;
-	}
-
-	.info-message {
-		margin-top: 20px;
-		color: #007bff;
-		font-style: italic;
-	}
+	/* No custom CSS needed here as Tailwind handles everything! */
+	/* If you have specific custom fonts, you might still load them here or in a global CSS file. */
 </style>
