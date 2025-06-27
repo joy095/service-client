@@ -1,215 +1,155 @@
-<script lang="ts">
-	// You can add any TypeScript logic here if needed for your homepage.
-	// For a simple static page, it might not be necessary.
-	import { fly } from 'svelte/transition';
-	import { quintOut } from 'svelte/easing';
-	const currentYear = new Date().getFullYear();
+<script>
+	import PropertyCard from '$lib/components/PropertyCard.svelte';
+	import { properties, loadProperties, isLoading, error } from '$lib/stores/properties';
+	import { onMount } from 'svelte';
+
+	// Load properties when page mounts
+	onMount(() => {
+		loadProperties().catch((err) => {
+			console.error('Failed to load properties:', err);
+		});
+	});
+
+	// Function to handle retry loading
+	function retryLoad() {
+		loadProperties().catch((err) => {
+			console.error('Retry failed:', err);
+		});
+	}
 </script>
 
-<svelte:head>
-	<title>Welcome to Our Site!</title>
-	<meta name="description" content="Your friendly hub for amazing content and updates." />
-</svelte:head>
+<div class="page-container">
+	<h1>Find your perfect stay</h1>
+	<p class="subtitle">Discover unique homes and experiences around the world</p>
 
-<div class="homepage-container">
-	<header class="hero-section" in:fly={{ y: -50, duration: 800, easing: quintOut }}>
-		<h1>Welcome to Our Awesome Site!</h1>
-		<p>Your one-stop destination for everything you need to know and more.</p>
-		<a href="/mailing-list" class="cta-button">Join Our Mailing List!</a>
-	</header>
+	{#if $isLoading && $properties.length === 0}
+		<div class="loading-state">
+			<div class="spinner"></div>
+			<p>Loading properties...</p>
+		</div>
+	{:else if $error}
+		<div class="error-state">
+			<p class="error-message">Error loading properties: {$error}</p>
+			<button on:click={retryLoad} class="retry-button"> Try Again </button>
+		</div>
+	{:else if $properties.length === 0 && !$isLoading}
+		<div class="empty-state">
+			<p>No properties found</p>
+			<button on:click={retryLoad} class="retry-button"> Refresh </button>
+		</div>
+	{:else}
+		<div class="property-grid">
+			{#each $properties as property (property.id)}
+				<PropertyCard {property} />
+			{/each}
+		</div>
 
-	<section class="features-section">
-		<div class="feature-card" in:fly={{ x: -50, duration: 600, delay: 200 }}>
-			<h2>🚀 Fast & Modern</h2>
-			<p>Built with SvelteKit for a blazing-fast user experience.</p>
-		</div>
-		<div class="feature-card" in:fly={{ y: 50, duration: 600, delay: 400 }}>
-			<h2>📧 Stay Updated</h2>
-			<p>Subscribe to our mailing list for the latest news and offers.</p>
-		</div>
-		<div class="feature-card" in:fly={{ x: 50, duration: 600, delay: 600 }}>
-			<h2>✨ Simple & Clean</h2>
-			<p>A focus on usability and a sleek design.</p>
-		</div>
-	</section>
-
-	<footer class="mt-12 bg-gray-800 p-8 text-white">
-		<div
-			class="mx-auto flex max-w-6xl flex-col items-center justify-between text-center md:flex-row md:text-left"
-		>
-			<div class="mb-4 md:mb-0">
-				<p class="text-sm">&copy; {currentYear} Your Company Name. All rights reserved.</p>
-				<p class="text-xs text-gray-400">Made with ❤️ in India.</p>
+		{#if $isLoading}
+			<div class="loading-more">
+				<div class="small-spinner"></div>
+				<p>Loading more properties...</p>
 			</div>
-
-			<nav class="space-x-4">
-				<a href="/terms" class="text-sm text-gray-300 hover:text-white hover:underline"
-					>Terms and Conditions</a
-				>
-				<a href="/privacy" class="text-sm text-gray-300 hover:text-white hover:underline"
-					>Privacy Policy</a
-				>
-				<a href="/shipping" class="text-sm text-gray-300 hover:text-white hover:underline"
-					>Shipping Policy</a
-				>
-				<a href="/contact" class="text-sm text-gray-300 hover:text-white hover:underline"
-					>Contact Us</a
-				>
-				<a href="/cancellation" class="text-sm text-gray-300 hover:text-white hover:underline"
-					>Cancellation and Refunds</a
-				>
-			</nav>
-		</div>
-	</footer>
+		{/if}
+	{/if}
 </div>
 
 <style>
-	:global(body) {
-		margin: 0;
-		font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-		background-color: #f8f9fa;
-		color: #333;
-		line-height: 1.6;
+	.page-container {
+		max-width: 1400px;
+		margin: 0 auto;
+		padding: 1rem;
 	}
 
-	.homepage-container {
+	h1 {
+		font-size: 2rem;
+		margin-bottom: 0.5rem;
+		color: var(--text-primary);
+	}
+
+	.subtitle {
+		color: var(--text-secondary);
+		margin-bottom: 2rem;
+	}
+
+	.property-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		gap: 2rem;
+		margin: 2rem 0;
+	}
+
+	.loading-state,
+	.empty-state,
+	.error-state {
 		display: flex;
 		flex-direction: column;
-		min-height: 100vh;
 		align-items: center;
-		text-align: center;
-		padding: 20px;
-		box-sizing: border-box;
-	}
-
-	.hero-section {
-		background-color: #007bff;
-		color: white;
-		padding: 80px 20px;
-		width: 100%;
-		max-width: 1000px;
-		border-radius: 12px;
-		margin-bottom: 40px;
-		box-shadow: 0 8px 20px rgba(0, 123, 255, 0.2);
-	}
-
-	.hero-section h1 {
-		font-size: 3.5em;
-		margin-bottom: 15px;
-		line-height: 1.2;
-	}
-
-	.hero-section p {
-		font-size: 1.3em;
-		margin-bottom: 30px;
-		opacity: 0.9;
-	}
-
-	.cta-button {
-		display: inline-block;
-		background-color: #28a745; /* Green for CTA */
-		color: white;
-		padding: 15px 30px;
-		border-radius: 8px;
-		text-decoration: none;
-		font-size: 1.1em;
-		font-weight: bold;
-		transition:
-			background-color 0.3s ease,
-			transform 0.2s ease;
-		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-	}
-
-	.cta-button:hover {
-		background-color: #218838;
-		transform: translateY(-3px);
-	}
-
-	.features-section {
-		display: flex;
-		flex-wrap: wrap;
 		justify-content: center;
-		gap: 30px;
-		margin-bottom: 60px;
-		max-width: 1200px;
-	}
-
-	.feature-card {
-		background-color: white;
-		padding: 30px;
-		border-radius: 10px;
-		box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-		flex: 1;
-		min-width: 280px;
-		max-width: 350px;
+		min-height: 300px;
 		text-align: center;
-		transition: transform 0.3s ease;
+		gap: 1rem;
 	}
 
-	.feature-card:hover {
-		transform: translateY(-8px);
+	.loading-more {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		padding: 2rem;
+		color: var(--text-secondary);
 	}
 
-	.feature-card h2 {
-		color: #007bff;
-		font-size: 1.8em;
-		margin-bottom: 15px;
+	.spinner,
+	.small-spinner {
+		border: 3px solid rgba(0, 0, 0, 0.1);
+		border-radius: 50%;
+		border-top: 3px solid var(--primary-color);
+		width: 40px;
+		height: 40px;
+		animation: spin 1s linear infinite;
 	}
 
-	.feature-card p {
-		font-size: 1em;
-		color: #555;
+	.small-spinner {
+		width: 20px;
+		height: 20px;
+		border-width: 2px;
 	}
 
-	.homepage-footer {
-		width: 100%;
-		padding: 30px 20px;
-		background-color: #343a40;
-		color: #ccc;
-		font-size: 0.9em;
-		margin-top: auto; /* Pushes footer to the bottom */
-	}
-
-	.homepage-footer p {
-		margin: 5px 0;
-	}
-
-	/* Responsive adjustments */
-	@media (max-width: 768px) {
-		.hero-section {
-			padding: 60px 15px;
+	@keyframes spin {
+		0% {
+			transform: rotate(0deg);
 		}
-
-		.hero-section h1 {
-			font-size: 2.5em;
-		}
-
-		.hero-section p {
-			font-size: 1.1em;
-		}
-
-		.cta-button {
-			padding: 12px 25px;
-			font-size: 1em;
-		}
-
-		.features-section {
-			flex-direction: column;
-			align-items: center;
-		}
-
-		.feature-card {
-			min-width: unset;
-			width: 90%;
+		100% {
+			transform: rotate(360deg);
 		}
 	}
 
-	@media (max-width: 480px) {
-		.hero-section h1 {
-			font-size: 2em;
+	.error-message {
+		color: var(--error-color);
+		margin-bottom: 1rem;
+	}
+
+	.retry-button {
+		padding: 0.75rem 1.5rem;
+		background-color: var(--primary-color);
+		color: white;
+		border: none;
+		border-radius: 8px;
+		font-weight: 500;
+		cursor: pointer;
+		transition: background-color 0.2s;
+
+		&:hover {
+			background-color: var(--primary-dark);
 		}
-		.hero-section p {
-			font-size: 1em;
-		}
+	}
+
+	/* Add these to your global CSS or :global selector if using CSS modules */
+	:global(:root) {
+		--primary-color: #ff5a5f;
+		--primary-dark: #e04a50;
+		--text-primary: #222;
+		--text-secondary: #666;
+		--error-color: #d32f2f;
 	}
 </style>
