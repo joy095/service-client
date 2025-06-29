@@ -33,7 +33,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
             ...b,
             ObjectName: b.ObjectName || `https://picsum.photos/536/354?random=${b.id}`
         }));
-
+        console.log(businesses)
         return { businesses };
     } catch (error) {
         console.error(error);

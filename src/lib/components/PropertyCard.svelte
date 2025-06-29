@@ -12,6 +12,8 @@
 
 <a href={`/properties/${business.id}`} class="property-card">
 	<img src={business.ObjectName} alt={business.name} />
+	{console.log(business.ObjectName)}
+
 	<div class="details">
 		<div class="price-type">
 			<h3>{business.name}</h3>
