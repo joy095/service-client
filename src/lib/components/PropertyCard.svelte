@@ -1,24 +1,23 @@
-<script>
-	export let property;
+<script lang="ts">
+	export let business: {
+		id: string;
+		name: string;
+		category: string;
+		city: string;
+		state: string;
+		country: string;
+		ObjectName: string | null;
+	};
 </script>
 
-<a href={`/properties/${property.id}`} class="property-card">
-	<img src={property.image} alt={property.title} />
+<a href={`/properties/${business.id}`} class="property-card">
+	<img src={business.ObjectName} alt={business.name} />
 	<div class="details">
 		<div class="price-type">
-			<h3>{property.title}</h3>
-			<span class="price">${property.price}/night</span>
+			<h3>{business.name}</h3>
+			<span class="price">{business.category}</span>
 		</div>
-		<p class="location">{property.location}</p>
-		<div class="meta">
-			<span>{property.bedrooms} beds</span>
-			<span>{property.bathrooms} baths</span>
-			<span>{property.type}</span>
-		</div>
-		<div class="rating">
-			<span class="stars">{'★'.repeat(Math.floor(property.rating))}</span>
-			<span>{property.rating}</span>
-		</div>
+		<p class="location">{business.city}, {business.state}, {business.country}</p>
 	</div>
 </a>
 
