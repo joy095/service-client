@@ -1,6 +1,6 @@
 // src/routes/businesses/+page.server.ts
 import type { PageServerLoad } from './$types';
-const BASE_URL = 'https://r2-worker-proxy.joykarmakar987654321.workers.dev';
+const BASE_URL = 'https://r2-worker-proxy.joykarmakar987654321.workers.dev/';
 
 type Business = {
     id: string;
