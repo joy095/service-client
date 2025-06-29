@@ -8,7 +8,9 @@
 </script>
 
 <header>
-	<div class="logo">Airbnb Clone</div>
+	<a style="text-decoration: none;" href="/">
+		<div class="logo">Airbnb Clone</div>
+	</a>
 
 	<div class="search-bar">
 		<input
