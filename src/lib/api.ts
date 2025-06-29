@@ -1,4 +1,5 @@
-const BASE_URL = '/api';
+// Use the environment variable for the base URL
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 // Map backend categories to more descriptive property types for the frontend display.
 // Extend this object as you add more business categories in your backend.
@@ -92,10 +93,10 @@ function getRandomName() {
  * @param {number} offset - The number of properties to skip (for pagination).
  * @returns {Promise<object[]>} An array of transformed property objects.
  */
-export async function getProperties(limit = 50, offset = 0) { // Default limit 50 for lazy fetching
+export async function getProperties() { // Default limit 50 for lazy fetching
 	try {
 		// Fetch businesses from your Go backend API with limit and offset
-		const response = await fetch(`${BASE_URL}/businesses`);
+		const response = await fetch(`${BASE_URL}/businesses`); // Added limit and offset back
 
 		if (!response.ok) {
 			// Handle HTTP errors (e.g., 404, 500)
