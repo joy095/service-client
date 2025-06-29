@@ -1,4 +1,3 @@
-// src/routes/properties/[id]/+page.ts
 import type { PageServerLoad } from './$types';
 
 const BASE_URL = 'https://r2-worker-proxy.joykarmakar987654321.workers.dev/';
@@ -24,24 +23,55 @@ type Business = {
     ObjectName: string | null;
 };
 
+type Service = {
+    id: string;
+    businessId: string;
+    name: string;
+    description: string;
+    durationMinutes: number;
+    price: number;
+    imageId: string | null;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+    object_name: string | null;
+};
+
 export const load: PageServerLoad = async ({ fetch, params }) => {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/business/${params.id}`);
-    if (!res.ok) {
-        throw new Error(`Failed to load business with ID ${params.id}`);
-    }
+    console.log('Business ID:', params.id);
 
-    const data = await res.json();
-    const b: Business = data.business;
+    const businessRes = await fetch(`${import.meta.env.VITE_API_URL}/business/${params.id}`);
+    if (!businessRes.ok) throw new Error('Failed to load business');
 
-    const isFullUrl = b.ObjectName?.startsWith('http');
+    const serviceRes = await fetch(`${import.meta.env.VITE_API_URL}/service/${params.id}`);
+    if (!serviceRes.ok) throw new Error('Failed to load services');
+
+    const b = (await businessRes.json()).business;
+    const serviceJson = await serviceRes.json();
+
+    console.log(serviceRes)
+
+    const s = serviceJson.service ?? [];
+
     const business: Business = {
         ...b,
-        ObjectName: b.ObjectName
-            ? isFullUrl
-                ? b.ObjectName
-                : BASE_URL + b.ObjectName
-            : `https://picsum.photos/536/354?random=${b.id}`
+        ObjectName: b.ObjectName?.startsWith('http')
+            ? b.ObjectName
+            : b.ObjectName
+                ? BASE_URL + b.ObjectName
+                : `https://picsum.photos/536/354?random=${b.id}`
     };
 
-    return { business };
+    const services: Service[] = s.map((srv: Service) => ({
+        ...srv,
+        object_name: srv.object_name?.startsWith('http')
+            ? srv.object_name
+            : srv.object_name
+                ? BASE_URL + srv.object_name
+                : `https://picsum.photos/400/250?random=${srv.id}`
+    }));
+
+    console.log('Services:', services);
+
+    return { business, services };
 };
