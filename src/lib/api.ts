@@ -95,7 +95,7 @@ function getRandomName() {
 export async function getProperties(limit = 50, offset = 0) { // Default limit 50 for lazy fetching
 	try {
 		// Fetch businesses from your Go backend API with limit and offset
-		const response = await fetch(`${BASE_URL}/businesses?limit=${limit}&offset=${offset}`);
+		const response = await fetch(`${BASE_URL}/businesses`);
 
 		if (!response.ok) {
 			// Handle HTTP errors (e.g., 404, 500)
