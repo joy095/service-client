@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_URL;
+const BASE_URL = '/api';
 
 // Map backend categories to more descriptive property types for the frontend display.
 // Extend this object as you add more business categories in your backend.
