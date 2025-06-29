@@ -1,6 +1,8 @@
 // src/routes/properties/[id]/+page.ts
 import type { PageServerLoad } from './$types';
 
+const BASE_URL = 'https://r2-worker-proxy.joykarmakar987654321.workers.dev/';
+
 type Business = {
     id: string;
     name: string;
@@ -29,9 +31,16 @@ export const load: PageServerLoad = async ({ fetch, params }) => {
     }
 
     const data = await res.json();
+    const b: Business = data.business;
+
+    const isFullUrl = b.ObjectName?.startsWith('http');
     const business: Business = {
-        ...data.business,
-        ObjectName: data.business.ObjectName || `https://picsum.photos/800/500?random=${params.id}`
+        ...b,
+        ObjectName: b.ObjectName
+            ? isFullUrl
+                ? b.ObjectName
+                : BASE_URL + b.ObjectName
+            : `https://picsum.photos/536/354?random=${b.id}`
     };
 
     return { business };
