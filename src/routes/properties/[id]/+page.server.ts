@@ -1,5 +1,5 @@
 // src/routes/properties/[id]/+page.ts
-import type { PageLoad } from './$types';
+import type { PageServerLoad } from './$types';
 
 type Business = {
     id: string;
@@ -22,7 +22,7 @@ type Business = {
     ObjectName: string | null;
 };
 
-export const load: PageLoad = async ({ fetch, params }) => {
+export const load: PageServerLoad = async ({ fetch, params }) => {
     const res = await fetch(`${import.meta.env.VITE_API_URL}/business/${params.id}`);
     if (!res.ok) {
         throw new Error(`Failed to load business with ID ${params.id}`);

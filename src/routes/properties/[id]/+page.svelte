@@ -5,7 +5,7 @@
 
 <div class="container">
 	<div class="image-wrapper">
-		<img src={business.ObjectName} alt="Business Image" class="main-image" loading="lazy" />
+		<img src={business.ObjectName} alt={business.name} class="main-image" loading="lazy" />
 	</div>
 
 	<div class="info-card">

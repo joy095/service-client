@@ -63,24 +63,6 @@
 				margin-bottom: 0.5rem;
 				font-size: 0.9rem;
 			}
-
-			.meta {
-				display: flex;
-				gap: 0.75rem;
-				color: #666;
-				font-size: 0.85rem;
-				margin-bottom: 0.75rem;
-			}
-
-			.rating {
-				display: flex;
-				align-items: center;
-				gap: 0.25rem;
-
-				.stars {
-					color: #ff5a5f;
-				}
-			}
 		}
 	}
 </style>
