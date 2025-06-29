@@ -7,7 +7,7 @@ export default defineConfig({
 	server: {
 		proxy: {
 			'/api': {
-				target: 'https://single-identity-service.onrender.com',
+				target: 'http://localhost:8081',
 				changeOrigin: true,
 				secure: false,
 				ws: true,

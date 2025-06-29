@@ -95,21 +95,21 @@ function getRandomName() {
  */
 export async function getProperties() { // Default limit 50 for lazy fetching
 	try {
-		// Fetch businesses from your Go backend API with limit and offset
-		const response = await fetch(`${BASE_URL}/businesses`); // Added limit and offset back
+		// Fetch business from your Go backend API with limit and offset
+		const response = await fetch(`${BASE_URL}/business`); // Added limit and offset back
 
 		if (!response.ok) {
 			// Handle HTTP errors (e.g., 404, 500)
 			throw new Error(`HTTP error! status: ${response.status}`);
 		}
 
-		const data = await response.json(); // Expected format: { "businesses": [...] }
+		const data = await response.json(); // Expected format: { "business": [...] }
 
-		// Ensure data.businesses is an array, default to empty array if not present
-		const businesses = data.businesses || [];
+		// Ensure data.business is an array, default to empty array if not present
+		const business = data.business || [];
 
 		// Transform backend business objects into frontend property objects
-		return businesses.map((business) => ({
+		return business.map((business) => ({
 			id: business.id, // Use backend ID directly
 			title: business.name, // Use business name as the property title
 			location: `${business.city}, ${business.country}`, // Construct location from backend data
@@ -141,7 +141,7 @@ export async function getProperties() { // Default limit 50 for lazy fetching
 export async function getProperty(id) {
 	try {
 		// Fetch a single business from your Go backend API
-		const response = await fetch(`${BASE_URL}/businesses/${id}`);
+		const response = await fetch(`${BASE_URL}/business/${id}`);
 
 		if (!response.ok) {
 			throw new Error(`HTTP error! status: ${response.status}`);
