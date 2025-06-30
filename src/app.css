@@ -19,6 +19,12 @@
 	--box-shadow-airbnb: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* @layer base {
+	body {
+		@apply bg-secondary text-neutral;
+	}
+} */
+
 .primary {
 	color: var(--color-primary);
 }

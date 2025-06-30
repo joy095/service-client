@@ -38,7 +38,6 @@ type Service = {
 };
 
 export const load: PageServerLoad = async ({ fetch, params }) => {
-    console.log('Business ID:', params.id);
 
     const businessRes = await fetch(`${import.meta.env.VITE_API_URL}/business/${params.id}`);
     if (!businessRes.ok) throw new Error('Failed to load business');
@@ -49,7 +48,6 @@ export const load: PageServerLoad = async ({ fetch, params }) => {
     const b = (await businessRes.json()).business;
     const serviceJson = await serviceRes.json();
 
-    console.log(serviceRes)
 
     const s = serviceJson.service ?? [];
 
@@ -71,7 +69,6 @@ export const load: PageServerLoad = async ({ fetch, params }) => {
                 : `https://picsum.photos/400/250?random=${srv.id}`
     }));
 
-    console.log('Services:', services);
 
     return { business, services };
 };
