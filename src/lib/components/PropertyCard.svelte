@@ -7,10 +7,11 @@
 		state: string;
 		country: string;
 		ObjectName: string | null;
+		publicId: string;
 	};
 </script>
 
-<a href={`/properties/${business.id}`} class="property-card">
+<a href={`/business/${business.publicId}`} class="property-card">
 	<img src={business.ObjectName} alt={business.name} />
 
 	<div class="details">

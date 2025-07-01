@@ -1,27 +1,7 @@
 // src/routes/businesses/+page.server.ts
 import type { PageServerLoad } from './$types';
 const BASE_URL = 'https://r2-worker-proxy.joykarmakar987654321.workers.dev';
-
-type Business = {
-    id: string;
-    name: string;
-    category: string;
-    address: string;
-    city: string;
-    state: string;
-    country: string;
-    postalCode: string;
-    imageId: string | null;
-    location: {
-        latitude: number;
-        longitude: number;
-    };
-    createdAt: string;
-    updatedAt: string;
-    isActive: boolean;
-    ownerId: string;
-    ObjectName: string | null;
-};
+import type { Business } from '$lib/types';
 
 export const load: PageServerLoad = async ({ fetch }) => {
 
@@ -49,5 +29,6 @@ export const load: PageServerLoad = async ({ fetch }) => {
             businesses: []
         };
     }
+
 };
 
