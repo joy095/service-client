@@ -3,10 +3,8 @@
 	import * as Calendar from './index.js';
 	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js';
 	import type { ButtonVariant } from '../button/button.svelte';
-	import { getLocalTimeZone, isEqualMonth, today, type DateValue } from '@internationalized/date';
+	import { isEqualMonth, type DateValue } from '@internationalized/date';
 	import type { Snippet } from 'svelte';
-
-	const currentMonth = today(getLocalTimeZone()).month;
 
 	let {
 		ref = $bindable(null),
@@ -87,9 +85,9 @@ get along, so we shut typescript up by casting `value` to `never`.
 							{monthIndex}
 						/>
 					</Calendar.Header>
-					<Calendar.Grid class="gap-[1.125rem]">
+					<Calendar.Grid class="gap-4">
 						<Calendar.GridHead>
-							<Calendar.GridRow class="flex gap-[1.125rem] select-none">
+							<Calendar.GridRow class="flex gap-4 select-none">
 								{#each weekdays as weekday (weekday)}
 									<Calendar.HeadCell>
 										{weekday.slice(0, 2)}
@@ -97,9 +95,9 @@ get along, so we shut typescript up by casting `value` to `never`.
 								{/each}
 							</Calendar.GridRow>
 						</Calendar.GridHead>
-						<Calendar.GridBody class="flex flex-col gap-[1.125rem]">
+						<Calendar.GridBody class="flex flex-col gap-4">
 							{#each month.weeks as weekDates (weekDates)}
-								<Calendar.GridRow class="flex w-full gap-[1.125rem]">
+								<Calendar.GridRow class="flex w-full gap-4">
 									{#each weekDates as date (date)}
 										<Calendar.Cell {date} month={month.value}>
 											{#if day}

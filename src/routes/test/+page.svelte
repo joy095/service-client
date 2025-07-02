@@ -8,9 +8,9 @@
 </script>
 
 <section class="container mx-auto">
-	<div class="mx-auto mt-20 flex max-w-fit gap-10 rounded-md p-10 shadow-2xl">
+	<div class="mx-auto mt-20 flex max-w-fit gap-10 overflow-hidden rounded-md p-10 shadow-2xl">
 		<div class="max-w-[19rem]">
-			<div class="flex flex-col gap-10">
+			<div class="flex flex-col gap-8">
 				<div class="flex items-center gap-4">
 					<img class="h-8 object-cover" src="/test.jpg" alt="Logo of business" loading="lazy" />
 					<h3 class="text-2xl font-medium">Name of business</h3>
@@ -61,20 +61,22 @@
 			/>
 		</div>
 
-		<div class="time-wrap relative flex flex-col justify-end">
+		<div class="box-wrap relative"></div>
+
+		<div class="time-wrap relative mt-16 flex flex-col">
 			<span class="font-medium"> Thursday, July 8 </span>
 
-			<div class="mt-5 flex flex-col gap-3">
-				<div class="rounded-md border-2 border-blue-700 px-8 py-1.5 font-medium text-blue-700">
+			<div class="mt-8 flex flex-col gap-3">
+				<div class="rounded-md border-2 border-blue-600 px-10 py-1.5 font-medium text-blue-600">
 					11:00 AM
 				</div>
-				<div class="rounded-md border-2 border-blue-700 px-8 py-1.5 font-medium text-blue-700">
+				<div class="rounded-md border-2 border-blue-600 px-10 py-1.5 font-medium text-blue-600">
 					11:00 AM
 				</div>
-				<div class="rounded-md border-2 border-blue-700 px-8 py-1.5 font-medium text-blue-700">
+				<div class="rounded-md border-2 border-blue-600 px-10 py-1.5 font-medium text-blue-600">
 					11:00 AM
 				</div>
-				<div class="rounded-md border-2 border-blue-700 px-8 py-1.5 font-medium text-blue-700">
+				<div class="rounded-md border-2 border-blue-600 px-10 py-1.5 font-medium text-blue-600">
 					11:00 AM
 				</div>
 			</div>
@@ -83,11 +85,16 @@
 </section>
 
 <style>
-	.time-wrap::before {
-		content: '';
+	.box-wrap::after {
 		position: absolute;
-		height: 100%;
-		width: 1px;
-		background-color: gray;
+		content: '';
+		height: 130%;
+		width: 2px;
+		background-color: #d1d5dc;
+		top: -15%;
+		bottom: -15%;
+		right: 0;
+		left: 0;
+		margin: 0 auto;
 	}
 </style>
