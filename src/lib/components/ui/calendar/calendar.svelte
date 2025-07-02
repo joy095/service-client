@@ -3,8 +3,10 @@
 	import * as Calendar from './index.js';
 	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js';
 	import type { ButtonVariant } from '../button/button.svelte';
-	import { isEqualMonth, type DateValue } from '@internationalized/date';
+	import { getLocalTimeZone, isEqualMonth, today, type DateValue } from '@internationalized/date';
 	import type { Snippet } from 'svelte';
+
+	const currentMonth = today(getLocalTimeZone()).month;
 
 	let {
 		ref = $bindable(null),
@@ -61,8 +63,14 @@ get along, so we shut typescript up by casting `value` to `never`.
 	{#snippet children({ months, weekdays })}
 		<Calendar.Months>
 			<Calendar.Nav>
-				<Calendar.PrevButton variant={buttonVariant} class="cursor-pointer rounded-full" />
-				<Calendar.NextButton variant={buttonVariant} class="cursor-pointer rounded-full" />
+				<Calendar.PrevButton
+					variant={buttonVariant}
+					class="cursor-pointer rounded-full bg-blue-50 hover:bg-blue-100 disabled:bg-transparent"
+				/>
+				<Calendar.NextButton
+					variant={buttonVariant}
+					class="cursor-pointer rounded-full bg-blue-50 hover:bg-blue-100 disabled:bg-transparent"
+				/>
 			</Calendar.Nav>
 			{#each months as month, monthIndex (month)}
 				<Calendar.Month>
@@ -101,7 +109,7 @@ get along, so we shut typescript up by casting `value` to `never`.
 												})}
 											{:else}
 												<Calendar.Day
-													class="text-md h-10 w-10 cursor-pointer !rounded-full data-[available]:bg-blue-200 data-[available]:text-blue-600 data-[disabled]:pointer-events-none data-[disabled]:text-gray-600 data-[disabled]:opacity-50 data-[selected]:bg-blue-600 data-[unavailable]:text-gray-600"
+													class="text-md h-9 w-9 cursor-pointer !rounded-full bg-blue-50 font-semibold text-blue-600 hover:bg-blue-100 hover:text-blue-600 data-[disabled]:bg-transparent data-[disabled]:text-gray-600 data-[outside-month]:h-0 data-[outside-month]:w-0 data-[outside-month]:opacity-0 data-[selected]:bg-blue-600"
 												/>
 											{/if}
 										</Calendar.Cell>

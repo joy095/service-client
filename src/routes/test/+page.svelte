@@ -3,7 +3,8 @@
 	import { getLocalTimeZone, today, type DateValue } from '@internationalized/date';
 	import { Calendar } from '$lib/components/ui/calendar/index.js';
 
-	let value = today(getLocalTimeZone());
+	let value: DateValue | undefined = undefined;
+	let minValue = today(getLocalTimeZone());
 </script>
 
 <section class="container mx-auto">
@@ -56,6 +57,7 @@
 				bind:value
 				type="single"
 				isDateDisabled={(date: DateValue) => date.compare(today(getLocalTimeZone())) < 0}
+				{minValue}
 			/>
 		</div>
 
