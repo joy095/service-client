@@ -37,7 +37,5 @@ export const load: PageServerLoad = async ({ fetch, params }) => {
                 : `https://picsum.photos/400/250?random=${srv.id}`
     }));
 
-    console.log("services", services)
-
     return { business, services };
 };

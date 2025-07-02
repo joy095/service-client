@@ -24,14 +24,6 @@
 </div>
 
 <style>
-	:global(body) {
-		margin: 0;
-		font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-		background-color: #f0f2f5; /* Light background */
-		color: #333;
-		line-height: 1.6;
-	}
-
 	.error-container {
 		display: flex;
 		justify-content: center;

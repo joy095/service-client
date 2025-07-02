@@ -53,13 +53,4 @@
 			transform: rotate(360deg);
 		}
 	}
-
-	/* Add these to your global CSS or :global selector if using CSS modules */
-	:global(:root) {
-		--primary-color: #ff5a5f;
-		--primary-dark: #e04a50;
-		--text-primary: #222;
-		--text-secondary: #666;
-		--error-color: #d32f2f;
-	}
 </style>

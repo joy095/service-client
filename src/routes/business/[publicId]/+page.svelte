@@ -55,7 +55,12 @@
 					in:slide={{ duration: 600, delay: Number(service.id) * 100, easing: cubicOut }}
 				>
 					<div class="service-image-wrapper">
-						<img loading="lazy" src={service.object_name} alt={service.name} class="service-image" />
+						<img
+							loading="lazy"
+							src={service.object_name}
+							alt={service.name}
+							class="service-image"
+						/>
 						<div class="service-overlay">
 							<button class="cta-button">Book Now</button>
 						</div>
@@ -193,7 +198,7 @@
 
 	.services-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(320px, 0.33fr));
 		gap: 2.5rem;
 	}
 
