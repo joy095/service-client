@@ -62,7 +62,9 @@
 							class="service-image"
 						/>
 						<div class="service-overlay">
-							<button class="cta-button">Book Now</button>
+							<a href="/booking/{business.publicId}?service={service.id}" class="cta-button"
+								>Book Now</a
+							>
 						</div>
 					</div>
 					<div class="service-info">

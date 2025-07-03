@@ -33,3 +33,14 @@ export type Service = {
     updatedAt: string;
     object_name: string;
 };
+
+export type WorkingHour = {
+    id: string;
+    businessId: string;
+    dayOfWeek: string;
+    openTime: string;
+    closeTime: string;
+    isClosed: boolean;
+    createdAt: string;
+    updatedAt: string;
+};

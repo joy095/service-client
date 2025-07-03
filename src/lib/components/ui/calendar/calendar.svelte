@@ -72,7 +72,7 @@ get along, so we shut typescript up by casting `value` to `never`.
 			</Calendar.Nav>
 			{#each months as month, monthIndex (month)}
 				<Calendar.Month>
-					<Calendar.Header>
+					<Calendar.Header class="font-normal">
 						<Calendar.Caption
 							{captionLayout}
 							months={monthsProp}

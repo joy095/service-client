@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ fetch, params }) => {
     const businessRaw = businessData.business;
 
     // Use the internal UUID to fetch services
-    const serviceRes = await fetch(`${API_BASE}/service/${businessRaw.id}`);
+    const serviceRes = await fetch(`${API_BASE}/services/${businessRaw.id}`);
     if (!serviceRes.ok) throw new Error('Failed to load services');
     const serviceData = await serviceRes.json();
 
