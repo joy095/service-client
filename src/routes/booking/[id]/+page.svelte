@@ -10,6 +10,10 @@
 	let value: DateValue | undefined = undefined;
 	let minValue = today(getLocalTimeZone());
 
+	const closedDays = workingHours
+		.filter((d: WorkingHour) => d.isClosed)
+		.map((d: WorkingHour) => d.dayOfWeek); // e.g. ["Sunday", "Monday"]
+
 	function formatDateValue(dateValue: DateValue): string {
 		const date = new Date(dateValue.toString());
 		return new Intl.DateTimeFormat('en-US', {
@@ -50,8 +54,13 @@
 	$: if (value) {
 		const day = getDayOfWeek(value);
 		const dayHours = workingHours.find((d: WorkingHour) => d.dayOfWeek === day);
-		if (dayHours && !dayHours.isClosed) {
-			selectedSlots = generateTimeSlots(dayHours.openTime, dayHours.closeTime);
+
+		if (dayHours && !dayHours.isClosed && services?.durationMinutes) {
+			selectedSlots = generateTimeSlots(
+				dayHours.openTime,
+				dayHours.closeTime,
+				services.durationMinutes
+			);
 		} else {
 			selectedSlots = [];
 		}
@@ -86,7 +95,13 @@
 
 							<div class="flex gap-3">
 								<Icon icon="icon-park-outline:time" class="h-6 w-6" />
-								<span class="text-sm font-medium">{services.durationMinutes} min</span>
+								<span class="text-sm font-medium"
+									>{#if services.durationMinutes >= 60}
+										{Math.floor(services.durationMinutes / 60)}h {services.durationMinutes % 60}m
+									{:else}
+										{services.durationMinutes}m
+									{/if}</span
+								>
 							</div>
 						</div>
 
@@ -112,14 +127,34 @@
 			<Calendar
 				bind:value
 				type="single"
-				isDateDisabled={(date: DateValue) => date.compare(today(getLocalTimeZone())) < 0}
 				{minValue}
+				isDateDisabled={(date: DateValue) => {
+					const dayIndex = new Date(date.toDate(getLocalTimeZone())).getDay(); // 0 (Sun) - 6 (Sat)
+					const dayNames = [
+						'Sunday',
+						'Monday',
+						'Tuesday',
+						'Wednesday',
+						'Thursday',
+						'Friday',
+						'Saturday'
+					];
+					const dayName = dayNames[dayIndex];
+
+					const isPast = date.compare(today(getLocalTimeZone())) < 0;
+					const isClosed = closedDays.includes(dayName);
+
+					return isPast || isClosed;
+				}}
 			/>
 		</div>
 
 		{#if value}
 			<div class="box-wrap relative"></div>
-			<div class="time-slot relative mt-16 flex flex-col" class:hidden={!value}>
+			<div
+				class="time-slot relative mt-16 flex flex-col overflow-y-auto transition-all duration-150"
+				class:hidden={!value}
+			>
 				<span class="text-lg font-semibold text-zinc-800 dark:text-white">
 					{formatDateValue(value)}
 				</span>
