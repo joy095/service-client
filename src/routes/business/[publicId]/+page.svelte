@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
+	import Map from '$lib/components/Map.svelte';
 
 	export let data;
 	const { business, services } = data;
@@ -29,7 +30,7 @@
 			<div class="details-grid">
 				<div class="detail-item">
 					<span class="label">Location</span>
-					<span>{business.location.latitude}, {business.location.longitude}</span>
+					<span>{business.location?.latitude}, {business.location?.longitude}</span>
 				</div>
 				<div class="detail-item">
 					<span class="label">Postal Code</span>
@@ -72,13 +73,27 @@
 						<p class="description">{service.description}</p>
 						<div class="meta">
 							<span class="price">₹{service.price}</span>
-							<span class="duration">{service.durationMinutes} min</span>
+							<span class="duration">
+								{#if service.durationMinutes >= 60}
+									{Math.floor(service.durationMinutes / 60)}h {service.durationMinutes % 60}m
+								{:else}
+									{service.durationMinutes}m
+								{/if}
+							</span>
 						</div>
 					</div>
 				</div>
 			{/each}
 		</div>
 	</section>
+
+	<!-- Map -->
+	<Map
+		className="mt-10 overflow-hidden rounded-md"
+		storeLat={business.location.latitude}
+		storeLng={business.location.longitude}
+		zoom={15}
+	/>
 </div>
 
 <style>

@@ -1,4 +1,4 @@
-export type Business = {
+export interface Business {
     id: string;
     name: string;
     category: string;
@@ -20,7 +20,7 @@ export type Business = {
     publicId: string;
 };
 
-export type Service = {
+export interface Service {
     id: string;
     businessId: string;
     name: string;
@@ -34,7 +34,7 @@ export type Service = {
     object_name: string;
 };
 
-export type WorkingHour = {
+export interface WorkingHour {
     id: string;
     businessId: string;
     dayOfWeek: string;
@@ -44,3 +44,8 @@ export type WorkingHour = {
     createdAt: string;
     updatedAt: string;
 };
+
+export interface Location {
+    latitude: number;
+    longitude: number;
+}
