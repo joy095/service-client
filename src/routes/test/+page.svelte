@@ -8,7 +8,7 @@
 </script>
 
 <section class="container mx-auto">
-	<div class="mx-auto mt-20 flex max-w-fit gap-10 overflow-hidden rounded-md p-10 shadow-2xl">
+	<div class="mx-auto mt-20 flex max-w-fit gap-8 overflow-hidden rounded-md p-8 shadow-2xl">
 		<div class="max-w-[19rem]">
 			<div class="flex flex-col gap-8">
 				<div class="flex items-center gap-4">
@@ -63,20 +63,23 @@
 
 		<div class="box-wrap relative"></div>
 
-		<div class="time-wrap relative mt-16 flex flex-col">
+		<div class="time-wrap time-slot relative mt-16 flex flex-col">
 			<span class="font-medium"> Thursday, July 8 </span>
 
 			<div class="mt-8 flex flex-col gap-3">
-				<div class="rounded-md border-2 border-blue-600 px-10 py-1.5 font-medium text-blue-600">
+				<div
+					class="timeslot cursor-pointer rounded-md border-blue-600 px-10 py-1.5 font-medium text-blue-600"
+				>
 					11:00 AM
 				</div>
-				<div class="rounded-md border-2 border-blue-600 px-10 py-1.5 font-medium text-blue-600">
+				<div
+					class="timeslot cursor-pointer rounded-md border-blue-600 px-10 py-1.5 font-medium text-blue-600"
+				>
 					11:00 AM
 				</div>
-				<div class="rounded-md border-2 border-blue-600 px-10 py-1.5 font-medium text-blue-600">
-					11:00 AM
-				</div>
-				<div class="rounded-md border-2 border-blue-600 px-10 py-1.5 font-medium text-blue-600">
+				<div
+					class="timeslot cursor-pointer rounded-md border-blue-600 px-10 py-1.5 font-medium text-blue-600"
+				>
 					11:00 AM
 				</div>
 			</div>
@@ -96,5 +99,19 @@
 		right: 0;
 		left: 0;
 		margin: 0 auto;
+	}
+
+	/* .time-slot,
+	.box-wrap {
+		display: none;
+	} */
+
+	.timeslot {
+		border: 1px solid;
+		box-sizing: border-box;
+
+		&:hover {
+			box-shadow: inset 0 0 0 1px;
+		}
 	}
 </style>
