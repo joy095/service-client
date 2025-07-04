@@ -88,12 +88,15 @@
 	</section>
 
 	<!-- Map -->
-	<Map
-		className="mt-10 overflow-hidden rounded-md"
-		storeLat={business.location.latitude}
-		storeLng={business.location.longitude}
-		zoom={15}
-	/>
+	{#if business.location.latitude && business.location.longitude !== 0}
+		<Map
+			className="mt-10 overflow-hidden rounded-md !z-0"
+			storeLat={business.location.latitude}
+			storeLng={business.location.longitude}
+			businessName={business.name}
+			zoom={15}
+		/>
+	{/if}
 </div>
 
 <style>

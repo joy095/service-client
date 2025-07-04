@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
-	import type { Map, LatLngExpression, LatLngBounds, Marker } from 'leaflet';
+	import type { Map, LatLngExpression, LatLngBounds } from 'leaflet';
 
 	// Define props with TypeScript
-	let { storeLat, storeLng, zoom, className } = $props();
+	let { storeLat, storeLng, zoom, businessName, className } = $props();
 
 	let mapContainer: HTMLElement | undefined;
 	let map: Map | undefined;
@@ -40,7 +40,7 @@
 				'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 		}).addTo(map);
 
-		L.marker([storeLat, storeLng]).addTo(map).bindPopup('Store Location').openPopup();
+		L.marker([storeLat, storeLng]).addTo(map).bindPopup(businessName).openPopup();
 
 		try {
 			const position = await new Promise<GeolocationPosition>((resolve, reject) => {
