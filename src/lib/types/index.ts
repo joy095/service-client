@@ -8,10 +8,8 @@ export interface Business {
     country: string;
     postalCode: string;
     imageId: string | null;
-    location: {
-        latitude: number;
-        longitude: number;
-    };
+    Latitude: number;
+    Longitude: number;
     createdAt: string;
     updatedAt: string;
     isActive: boolean;
@@ -49,3 +47,16 @@ export interface Location {
     latitude: number;
     longitude: number;
 }
+
+export interface User {
+    email: string;
+    firstName: string;
+    id: string;
+    lastName: string;
+}
+
+export interface AuthState {
+    isAuthenticated: boolean;
+    user: User | null;
+}
+

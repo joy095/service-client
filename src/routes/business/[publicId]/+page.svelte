@@ -30,7 +30,7 @@
 			<div class="details-grid">
 				<div class="detail-item">
 					<span class="label">Location</span>
-					<span>{business.location?.latitude}, {business.location?.longitude}</span>
+					<span>{business?.Latitude}, {business?.Longitude}</span>
 				</div>
 				<div class="detail-item">
 					<span class="label">Postal Code</span>
@@ -88,11 +88,11 @@
 	</section>
 
 	<!-- Map -->
-	{#if business.location.latitude && business.location.longitude !== 0}
+	{#if business.Latitude && business.Longitude !== 0}
 		<Map
 			className="mt-10 overflow-hidden rounded-md !z-0"
-			storeLat={business.location.latitude}
-			storeLng={business.location.longitude}
+			storeLat={business.Latitude}
+			storeLng={business.Longitude}
 			businessName={business.name}
 			zoom={15}
 		/>

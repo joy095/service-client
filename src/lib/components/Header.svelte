@@ -1,28 +1,42 @@
 <script lang="ts">
-	import Form from './Form.svelte';
-	import Search from './Search.svelte';
-	import Icon from '@iconify/svelte';
+	import { authStore, logout } from '$lib/store/authStore';
 	import { isFormOpen } from '$lib/store';
 	import { get } from 'svelte/store';
-	import { onDestroy, onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
+	import { browser } from '$app/environment';
+	import Icon from '@iconify/svelte';
+	import Search from './Search.svelte';
+	import Form from './Form.svelte';
+	import type { AuthState } from '$lib/types';
+
+	// Subscribe reactively
+	let auth: AuthState = {
+		isAuthenticated: false,
+		user: null
+	};
+	const unsubscribe = authStore.subscribe((val) => {
+		auth = val;
+	});
 
 	let isMenuOpen = false;
-	let menuRef: HTMLDivElement;
+	let menuRef: HTMLDivElement | null = null;
 
 	function handleClickOutside(event: MouseEvent) {
-		if (isMenuOpen && menuRef && !menuRef.contains(event.target as Node)) {
+		const target = event.target as Node;
+		if (isMenuOpen && menuRef && !menuRef.contains(target)) {
 			isMenuOpen = false;
 		}
 	}
 
 	onMount(() => {
-		if (typeof window !== 'undefined') {
+		if (browser) {
 			document.addEventListener('click', handleClickOutside);
 		}
 	});
 
 	onDestroy(() => {
-		if (typeof window !== 'undefined') {
+		unsubscribe(); // unsubscribe from store
+		if (browser) {
 			document.removeEventListener('click', handleClickOutside);
 		}
 	});
@@ -43,23 +57,31 @@
 			<div class:toggled={isMenuOpen} class="menu-container">
 				<a class="flex items-center gap-2" href="/">
 					<Icon icon="material-symbols:help-outline-rounded" width="24" height="24" />
-					Help center</a
-				>
+					Help center
+				</a>
 
-				<button> Became a host </button>
-				<button on:click={() => isFormOpen.set(!get(isFormOpen))}> Log in or sign up </button>
+				<!-- Conditional rendering based on auth -->
+				{#if $authStore.isAuthenticated}
+					<a href="/profile" class="flex items-center gap-2">
+						<Icon icon="mdi:account-circle" width="24" height="24" />
+						Profile
+					</a>
+					<button on:click={logout}>Logout</button>
+				{:else}
+					<button>Become a host</button>
+					<button on:click={() => isFormOpen.set(!get(isFormOpen))}> Log in or sign up </button>
+				{/if}
 			</div>
 		</div>
 	</div>
+
 	<div class="flex justify-center">
 		<Search />
 	</div>
 </nav>
 
 {#if $isFormOpen}
-	<div>
-		<Form />
-	</div>
+	<Form />
 {/if}
 
 <style>
