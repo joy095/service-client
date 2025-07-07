@@ -94,7 +94,7 @@
 			storeLat={business.Latitude}
 			storeLng={business.Longitude}
 			businessName={business.name}
-			zoom={15}
+			zoom={20}
 		/>
 	{/if}
 </div>

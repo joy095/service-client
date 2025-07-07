@@ -45,19 +45,24 @@
 			</button>
 
 			<div class:toggled={isMenuOpen} class="menu-container">
-				<a class="flex items-center gap-2" href="/">
+				<a class="divide flex items-center gap-2" href="/">
 					<Icon icon="material-symbols:help-outline-rounded" width="24" height="24" />
 					Help center
 				</a>
 
+				<a href="/become-a-professional" class="divide">Become a professional</a>
+
 				{#if $isAuthenticated}
-					<a href="/profile" class="flex items-center gap-2">
-						<Icon icon="mdi:account-circle" width="24" height="24" />
-						Profile
-					</a>
+					<div class="divide flex flex-col">
+						<a href="/profile" class=" flex items-center gap-2">
+							<Icon icon="mdi:account-circle" width="24" height="24" />
+							Profile
+						</a>
+
+						<a href="/settings"> Account settings </a>
+					</div>
 					<button on:click={logout}>Logout</button>
 				{:else}
-					<button>Become a host</button>
 					<button on:click={() => isFormOpen.set(!get(isFormOpen))}>Log in or sign up</button>
 				{/if}
 			</div>
@@ -124,12 +129,27 @@
 
 		display: flex;
 		flex-direction: column;
-		gap: 0.7rem;
+		gap: 0.8rem;
+	}
+
+	.divide {
+		position: relative;
+		&::after {
+			position: absolute;
+			content: '';
+			left: 0;
+			right: 0;
+			bottom: -8px;
+			width: 85%;
+			margin: 0 auto;
+			height: 1px;
+			background: hsl(0 0% 90%);
+		}
 	}
 
 	.menu-container button,
 	.menu-container a {
-		padding: 0.3rem 1rem;
+		padding: 0.5rem 1rem;
 		border: none;
 		background: none;
 		color: #333;
@@ -141,22 +161,6 @@
 		position: relative;
 		font-size: 0.9rem;
 
-		&::after {
-			position: absolute;
-			content: '';
-			left: 0;
-			right: 0;
-			bottom: -5px;
-			width: 85%;
-			margin: 0 auto;
-			height: 1px;
-			background: hsl(0 0% 90%);
-		}
-
-		&:last-child::after {
-			display: none;
-		}
-
 		&:hover {
 			background-color: #f0f0f0;
 		}
@@ -165,6 +169,6 @@
 	.menu-container.toggled {
 		opacity: 1;
 		height: auto;
-		width: 10rem;
+		width: 12rem;
 	}
 </style>

@@ -6,8 +6,6 @@
 	};
 
 	const user = data.user;
-
-	console.log('User data in profile page component:', user);
 </script>
 
 {#if user}
