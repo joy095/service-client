@@ -1,37 +1,35 @@
 // src/lib/store/authStore.ts
-import { writable } from 'svelte/store';
-import type { User, AuthState } from '../types';
+import { writable, derived } from 'svelte/store';
+import type { User } from '$lib/types';
 
-// Initial state
+export type AuthState = {
+    user: User | null;
+};
+
 const initialAuthState: AuthState = {
-    isAuthenticated: false,
     user: null
 };
 
-// Writable store with initial value
 const authStore = writable<AuthState>(initialAuthState);
 
-// Login: set authenticated user
+// Derived: boolean true/false for reactivity in templates
+const isAuthenticated = derived(authStore, ($authStore) => !!$authStore.user);
+
+// Set user
 function login(userData: User) {
-    authStore.set({
-        isAuthenticated: true,
-        user: userData
-    });
+    authStore.set({ user: userData });
 }
 
-// Logout: clear everything
+// Clear user
 function logout() {
     authStore.set(initialAuthState);
 }
 
-// Sync user from server (e.g., from +layout.server.ts or +layout.ts)
+// Initialize from SSR data or refreshed token
 function initializeFromServer(user: User | null) {
-    if (user) {
-        login(user);
-    } else {
-        logout();
-    }
+    if (user) login(user);
+    else logout();
 }
 
 // Export everything
-export { authStore, login, logout, initializeFromServer };
+export { login, logout, initializeFromServer, isAuthenticated };

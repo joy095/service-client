@@ -4,14 +4,15 @@
 	import '../app.css';
 	import { initializeFromServer } from '$lib/store/authStore';
 	import type { User } from '$lib/types';
+	import { tryRefreshToken } from '$lib/utils/refreshToken';
 
 	export let data: { user: User | null };
 
 	onMount(() => {
-		try {
+		if (data.user) {
 			initializeFromServer(data.user);
-		} catch (error) {
-			console.error('Failed to initialize auth from server:', error);
+		} else {
+			tryRefreshToken(); // this fires only on client
 		}
 	});
 </script>

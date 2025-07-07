@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { authStore, logout } from '$lib/store/authStore';
 	import { isFormOpen } from '$lib/store';
 	import { get } from 'svelte/store';
 	import { onMount, onDestroy } from 'svelte';
@@ -7,16 +6,8 @@
 	import Icon from '@iconify/svelte';
 	import Search from './Search.svelte';
 	import Form from './Form.svelte';
-	import type { AuthState } from '$lib/types';
-
-	// Subscribe reactively
-	let auth: AuthState = {
-		isAuthenticated: false,
-		user: null
-	};
-	const unsubscribe = authStore.subscribe((val) => {
-		auth = val;
-	});
+	import { logout } from '$lib/auth/logout';
+	import { isAuthenticated } from '$lib/store/authStore';
 
 	let isMenuOpen = false;
 	let menuRef: HTMLDivElement | null = null;
@@ -35,7 +26,6 @@
 	});
 
 	onDestroy(() => {
-		unsubscribe(); // unsubscribe from store
 		if (browser) {
 			document.removeEventListener('click', handleClickOutside);
 		}
@@ -60,8 +50,7 @@
 					Help center
 				</a>
 
-				<!-- Conditional rendering based on auth -->
-				{#if $authStore.isAuthenticated}
+				{#if $isAuthenticated}
 					<a href="/profile" class="flex items-center gap-2">
 						<Icon icon="mdi:account-circle" width="24" height="24" />
 						Profile
@@ -69,7 +58,7 @@
 					<button on:click={logout}>Logout</button>
 				{:else}
 					<button>Become a host</button>
-					<button on:click={() => isFormOpen.set(!get(isFormOpen))}> Log in or sign up </button>
+					<button on:click={() => isFormOpen.set(!get(isFormOpen))}>Log in or sign up</button>
 				{/if}
 			</div>
 		</div>
@@ -91,7 +80,7 @@
 		box-shadow: 0 2px 5px rgba(207, 207, 207, 0.2);
 		position: sticky;
 		top: 0;
-		z-index: 1000;
+		z-index: 50;
 		color: white;
 	}
 
