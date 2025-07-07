@@ -4,10 +4,12 @@ import type { User } from '$lib/types';
 
 export type AuthState = {
     user: User | null;
+    isAuthenticated: boolean,
 };
 
 const initialAuthState: AuthState = {
-    user: null
+    user: null,
+    isAuthenticated: false,
 };
 
 const authStore = writable<AuthState>(initialAuthState);
@@ -17,7 +19,7 @@ const isAuthenticated = derived(authStore, ($authStore) => !!$authStore.user);
 
 // Set user
 function login(userData: User) {
-    authStore.set({ user: userData });
+    authStore.set({ user: userData, isAuthenticated: true });
 }
 
 // Clear user

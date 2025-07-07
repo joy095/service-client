@@ -10,9 +10,11 @@
 
 	onMount(() => {
 		if (data.user) {
+			console.log('Initializing auth store with user from server:', data.user);
 			initializeFromServer(data.user);
 		} else {
-			tryRefreshToken(); // this fires only on client
+			console.log('No user from server, attempting client-side token refresh...');
+			tryRefreshToken();
 		}
 	});
 </script>
