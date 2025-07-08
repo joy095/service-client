@@ -50,9 +50,9 @@
 					Help center
 				</a>
 
-				<a href="/become-a-professional" class="divide">Become a professional</a>
-
 				{#if $isAuthenticated}
+					<a href="/become-a-professional" class="divide">Become a professional</a>
+
 					<div class="divide flex flex-col">
 						<a href="/profile" class=" flex items-center gap-2">
 							<Icon icon="mdi:account-circle" width="24" height="24" />
@@ -63,6 +63,8 @@
 					</div>
 					<button on:click={logout}>Logout</button>
 				{:else}
+					<a href="/login" class="divide">Become a professional</a>
+
 					<button on:click={() => isFormOpen.set(!get(isFormOpen))}>Log in or sign up</button>
 				{/if}
 			</div>

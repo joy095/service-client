@@ -1,754 +1,683 @@
 <script lang="ts">
+	import { fade, slide, fly } from 'svelte/transition';
+	import { quintOut } from 'svelte/easing';
 	import { enhance } from '$app/forms';
-	import { fade, slide } from 'svelte/transition';
-	import { createEventDispatcher } from 'svelte';
-	import { onMount } from 'svelte';
+	import type { ActionData } from './$types';
 
-	const dispatch = createEventDispatcher();
+	import MapPicker from '$lib/components/MapPicker.svelte';
 
+	export let form: ActionData;
+
+	interface ReceivedLocationDetails {
+		latitude: number;
+		longitude: number;
+		address?: string;
+		road?: string;
+		house_number?: string;
+		city?: string;
+		state?: string;
+		country?: string;
+		postalCode?: string;
+	}
+
+	// Form data
 	let formData = {
 		name: '',
 		category: '',
+		about: '',
+		latitude: '',
+		longitude: '',
 		address: '',
 		city: '',
 		state: '',
 		country: '',
 		postalCode: '',
-		taxId: '',
-		about: '',
-		latitude: '',
-		longitude: '',
-		isActive: true
+		road: '',
+		house_number: ''
+	};
+
+	const categoryFields = {
+		Barbershops: [
+			{
+				name: 'specialties',
+				label: 'Specialties',
+				type: 'text',
+				placeholder: 'e.g., Beard trimming, Hair styling'
+			},
+			{
+				name: 'services',
+				label: 'Services Offered',
+				type: 'textarea',
+				placeholder: 'List your services...'
+			},
+			{ name: 'experience', label: 'Years of Experience', type: 'number', placeholder: 'Years' }
+		],
+		'Hair Salons': [
+			{
+				name: 'hairTypes',
+				label: 'Hair Types Specialized',
+				type: 'text',
+				placeholder: 'e.g., Curly, Straight, Textured'
+			},
+			{
+				name: 'treatments',
+				label: 'Treatments Available',
+				type: 'textarea',
+				placeholder: 'Chemical treatments, styling, etc.'
+			},
+			{ name: 'priceRange', label: 'Price Range', type: 'text', placeholder: 'e.g., ₹500 - ₹2000' }
+		],
+		'Spa Salons': [
+			{
+				name: 'treatments',
+				label: 'Spa Treatments',
+				type: 'textarea',
+				placeholder: 'Massage, facials, body treatments...'
+			},
+			{
+				name: 'facilities',
+				label: 'Facilities',
+				type: 'text',
+				placeholder: 'Sauna, steam room, pools...'
+			},
+			{
+				name: 'packages',
+				label: 'Spa Packages',
+				type: 'textarea',
+				placeholder: 'Describe your packages...'
+			}
+		],
+		'Nail Salons': [
+			{
+				name: 'services',
+				label: 'Nail Services',
+				type: 'textarea',
+				placeholder: 'Manicure, pedicure, nail art...'
+			},
+			{
+				name: 'brands',
+				label: 'Nail Polish Brands',
+				type: 'text',
+				placeholder: 'OPI, Essie, Chanel...'
+			},
+			{
+				name: 'techniques',
+				label: 'Special Techniques',
+				type: 'text',
+				placeholder: 'Gel, acrylic, dip powder...'
+			}
+		],
+		Salons: [
+			{
+				name: 'services',
+				label: 'All Services',
+				type: 'textarea',
+				placeholder: 'Full range of beauty services...'
+			},
+			{ name: 'staff', label: 'Number of Staff', type: 'number', placeholder: 'Staff count' },
+			{
+				name: 'awards',
+				label: 'Awards & Recognition',
+				type: 'text',
+				placeholder: 'Any awards or certifications...'
+			}
+		],
+		'Make up artist': [
+			{
+				name: 'specialties',
+				label: 'Makeup Specialties',
+				type: 'text',
+				placeholder: 'Bridal, editorial, special effects...'
+			},
+			{
+				name: 'brands',
+				label: 'Preferred Brands',
+				type: 'text',
+				placeholder: 'MAC, NARS, Charlotte Tilbury...'
+			},
+			{
+				name: 'portfolio',
+				label: 'Portfolio Link',
+				type: 'url',
+				placeholder: 'https://your-portfolio.com'
+			}
+		]
 	};
 
 	let errors = {
 		name: '',
 		category: '',
-		address: '',
+		location: '',
 		city: '',
 		state: '',
 		country: '',
-		postalCode: '',
-		taxId: '',
-		latitude: '',
-		longitude: ''
+		postalCode: ''
 	};
 
+	let currentStep = 1;
+	let dynamicFields: Record<string, string> = {};
+	let mapError: string | null = null;
 	let isSubmitting = false;
-	let formProgress = 0;
-	let showSuccessMessage = false;
 
-	const categories = ['Technology', 'Retail', 'Finance', 'Healthcare', 'Education', 'Other'];
+	const categories = [
+		'Barbershops',
+		'Hair Salons',
+		'Spa Salons',
+		'Nail Salons',
+		'Salons',
+		'Make up artist'
+	];
 
-	// Client-side validation
-	function validateField(field: keyof typeof formData) {
-		switch (field) {
-			case 'name':
-				errors.name = formData.name.trim() ? '' : 'Name is required';
-				break;
-			case 'category':
-				errors.category = formData.category ? '' : 'Please select a category';
-				break;
-			case 'address':
-				errors.address = formData.address.trim() ? '' : 'Address is required';
-				break;
-			case 'city':
-				errors.city = formData.city.trim() ? '' : 'City is required';
-				break;
-			case 'state':
-				errors.state = formData.state.trim() ? '' : 'State is required';
-				break;
-			case 'country':
-				errors.country = formData.country.trim() ? '' : 'Country is required';
-				break;
-			case 'postalCode':
-				errors.postalCode = formData.postalCode.trim() ? '' : 'Postal code is required';
-				break;
-			case 'latitude':
-				errors.latitude =
-					formData.latitude && !isNaN(Number(formData.latitude)) ? '' : 'Valid latitude required';
-				break;
-			case 'longitude':
-				errors.longitude =
-					formData.longitude && !isNaN(Number(formData.longitude))
-						? ''
-						: 'Valid longitude required';
-				break;
-		}
-		updateProgress();
-	}
+	const validateStep = (step: number) => {
+		let isValid = true;
+		errors = {
+			name: '',
+			category: '',
+			location: '',
+			city: '',
+			state: '',
+			country: '',
+			postalCode: ''
+		};
 
-	// Calculate form completion progress
-	function updateProgress() {
-		const totalFields = Object.keys(formData).length - 1; // Exclude isActive
-		const filledFields = Object.entries(formData).filter(
-			([key, value]) => key !== 'isActive' && value !== '' && value !== false
-		).length;
-		formProgress = Math.round((filledFields / totalFields) * 100);
-	}
-
-	// Handle form submission
-	async function handleSubmit() {
-		// Validate all fields
-		Object.keys(formData).forEach((key) => {
-			if (key !== 'about' && key !== 'taxId' && key !== 'isActive') {
-				validateField(key as keyof typeof formData);
+		if (step === 1) {
+			if (!formData.name.trim()) {
+				errors.name = 'Business name is required.';
+				isValid = false;
 			}
-		});
-
-		if (Object.values(errors).every((error) => !error)) {
-			isSubmitting = true;
-			// Simulate API call
-			await new Promise((resolve) => setTimeout(resolve, 2000));
-			dispatch('submit', formData);
-			isSubmitting = false;
-			showSuccessMessage = true;
-			setTimeout(() => (showSuccessMessage = false), 3000); // Hide message after 3 seconds
+			if (!formData.category) {
+				errors.category = 'Please select a category.';
+				isValid = false;
+			}
+		} else if (step === 2) {
+			if (!formData.latitude || !formData.longitude) {
+				errors.location = 'Please select a location on the map to set coordinates.';
+				isValid = false;
+			}
+			if (!formData.address.trim()) {
+				errors.location =
+					(errors.location ? errors.location + ' Additionally, ' : '') +
+					'Detailed address information could not be retrieved. Please select a more precise location or try searching again.';
+				isValid = false;
+			}
+		} else if (step === 3) {
+			if (!formData.name.trim()) {
+				errors.name = 'Business name is required.';
+				isValid = false;
+			}
+			if (!formData.category) {
+				errors.category = 'Please select a category.';
+				isValid = false;
+			}
+			if (!formData.latitude || !formData.longitude) {
+				errors.location = 'Location coordinates are required.';
+				isValid = false;
+			}
+			if (!formData.address.trim()) {
+				errors.location = 'Address is required.';
+				isValid = false;
+			}
+			if (!formData.city.trim()) {
+				errors.city = 'City is required.';
+				isValid = false;
+			}
+			if (!formData.state.trim()) {
+				errors.state = 'State is required.';
+				isValid = false;
+			}
+			if (!formData.country.trim()) {
+				errors.country = 'Country is required.';
+				isValid = false;
+			}
+			if (!formData.postalCode.trim()) {
+				errors.postalCode = 'Postal code is required.';
+				isValid = false;
+			}
 		}
+		return isValid;
+	};
+
+	const nextStep = () => {
+		if (validateStep(currentStep)) {
+			currentStep++;
+			mapError = null;
+		}
+	};
+
+	const prevStep = () => {
+		currentStep--;
+		errors = {
+			name: '',
+			category: '',
+			location: '',
+			city: '',
+			state: '',
+			country: '',
+			postalCode: ''
+		};
+		mapError = null;
+	};
+
+	function handleLocationSelected(event: CustomEvent<ReceivedLocationDetails>) {
+		const { latitude, longitude, address, road, house_number, city, state, country, postalCode } =
+			event.detail;
+		formData.latitude = latitude.toString();
+		formData.longitude = longitude.toString();
+		formData.address = address || 'Not provided';
+		formData.road = road || '';
+		formData.house_number = house_number || '';
+		formData.city = city || 'Not provided';
+		formData.state = state || 'Not provided';
+		formData.country = country || 'Not provided';
+		formData.postalCode = postalCode || 'Not provided';
+		errors.location = '';
+		errors.city = '';
+		errors.state = '';
+		errors.country = '';
+		errors.postalCode = '';
+		mapError = null;
 	}
 
-	// Initial progress update on mount
-	onMount(() => {
-		updateProgress();
-	});
+	function handleLocationError(event: CustomEvent<string>) {
+		mapError = event.detail;
+		errors.location = event.detail;
+	}
+
+	$: if (formData.category) {
+		dynamicFields = {};
+		const fields = categoryFields[formData.category as keyof typeof categoryFields] || [];
+		fields.forEach((field: { name: string }) => {
+			(dynamicFields as Record<string, string>)[field.name] = '';
+		});
+	}
+
+	const editLocation = () => {
+		currentStep = 2;
+		mapError = null;
+	};
 </script>
 
 <svelte:head>
-	<!-- Load Inter font -->
 	<link
 		href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
 		rel="stylesheet"
 	/>
-	<!-- Tailwind CSS -->
-	<script src="https://cdn.tailwindcss.com"></script>
-	<style>
-		body {
-			font-family: 'Inter', sans-serif;
-		}
-		.animate-blob {
-			animation: blob 10s infinite;
-		}
-		.animation-delay-2000 {
-			animation-delay: 2s;
-		}
-		.animation-delay-4000 {
-			animation-delay: 4s;
-		}
-		.animation-delay-6000 {
-			animation-delay: 6s;
-		}
-		.animation-delay-8000 {
-			animation-delay: 8s;
-		}
-
-		@keyframes blob {
-			0% {
-				transform: translate(0px, 0px) scale(1);
-			}
-			33% {
-				transform: translate(30px, -50px) scale(1.2);
-			}
-			66% {
-				transform: translate(-20px, 20px) scale(0.8);
-			}
-			100% {
-				transform: translate(0px, 0px) scale(1);
-			}
-		}
-
-		/* Custom focus glow for inputs */
-		input:focus,
-		select:focus,
-		textarea:focus {
-			outline: none;
-			box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.3); /* indigo-500 with opacity */
-			border-color: transparent; /* Remove default border on focus */
-		}
-
-		/* Custom styling for select dropdown arrow */
-		select {
-			-webkit-appearance: none;
-			-moz-appearance: none;
-			appearance: none;
-			background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='currentColor'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'%3E%3C/path%3E%3C/svg%3E");
-			background-repeat: no-repeat;
-			background-position: right 0.75rem center;
-			background-size: 1.5em 1.5em;
-			padding-right: 2.5rem; /* Make space for the custom arrow */
-		}
-	</style>
 </svelte:head>
 
-<div
-	class="font-inter relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-gray-900 via-purple-900 to-indigo-900 p-4"
->
-	<!-- Animated background particles -->
-	<div class="pointer-events-none absolute inset-0">
-		<div
-			class="animate-blob absolute -top-20 -left-20 h-96 w-96 rounded-full bg-indigo-500 opacity-10 mix-blend-screen blur-3xl filter"
-		></div>
-		<div
-			class="animate-blob animation-delay-2000 absolute top-1/4 right-1/4 h-80 w-80 rounded-full bg-purple-500 opacity-10 mix-blend-screen blur-3xl filter"
-		></div>
-		<div
-			class="animate-blob animation-delay-4000 absolute bottom-1/3 left-1/3 h-72 w-72 rounded-full bg-pink-500 opacity-10 mix-blend-screen blur-3xl filter"
-		></div>
-		<div
-			class="animate-blob animation-delay-6000 absolute -right-10 -bottom-10 h-100 w-100 rounded-full bg-blue-500 opacity-10 mix-blend-screen blur-3xl filter"
-		></div>
-		<div
-			class="animate-blob animation-delay-8000 absolute top-1/2 left-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-green-500 opacity-10 mix-blend-screen blur-3xl filter"
-		></div>
-	</div>
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4 py-12">
+	<div class="mx-auto max-w-4xl">
+		<div class="mb-12 text-center">
+			<h1
+				class="mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-4xl font-bold text-transparent md:text-5xl"
+			>
+				Create Your Service
+			</h1>
+			<p class="text-lg text-gray-600">Set up your business profile in just a few steps</p>
+		</div>
 
-	<div
-		in:fade={{ duration: 600 }}
-		out:slide
-		class="relative z-10 w-full max-w-3xl rounded-3xl border border-white/20 bg-white/5 p-10 shadow-2xl backdrop-blur-xl transition-all duration-500 hover:shadow-purple-500/30"
-	>
-		<!-- Progress Bar -->
-		<div class="mb-8">
-			<div class="relative pt-1">
-				<div class="mb-2 flex items-center justify-between">
-					<div>
-						<span
-							class="inline-block rounded-full bg-gradient-to-r from-indigo-400 to-purple-400 px-3 py-1 text-xs font-semibold text-white uppercase shadow-md"
+		<div class="z-10 mb-12 flex items-center justify-center">
+			<div class="flex items-center space-x-8">
+				{#each [1, 2, 3] as step}
+					<div class="flex flex-col items-center">
+						<div
+							class="flex h-12 w-12 items-center justify-center rounded-full text-lg font-semibold text-white transition-all duration-300 {currentStep >=
+							step
+								? 'bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg'
+								: 'bg-gray-300'} {currentStep === step ? 'scale-110 shadow-xl' : ''}"
 						>
-							Progress: {formProgress}%
+							{step}
+						</div>
+						<span
+							class="mt-2 text-sm font-medium {currentStep >= step
+								? 'text-blue-600'
+								: 'text-gray-400'}"
+						>
+							{step === 1 ? 'Basic Info' : step === 2 ? 'Location' : 'Review'}
 						</span>
 					</div>
-				</div>
-				<div class="mb-4 flex h-2 overflow-hidden rounded-full bg-gray-700 text-xs shadow-inner">
-					<div
-						style="width: {formProgress}%"
-						class="flex flex-col justify-center rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-center text-white shadow-lg transition-all duration-500 ease-out"
-					></div>
-				</div>
+				{/each}
 			</div>
 		</div>
 
-		<h1
-			class="mb-8 bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-center text-4xl font-extrabold text-transparent md:text-5xl"
-		>
-			Create Your Premium Account
-		</h1>
+		<div class="glass-effect rounded-2xl p-8 shadow-2xl md:p-12">
+			<form
+				method="POST"
+				use:enhance={() => {
+					isSubmitting = true;
+					return async ({ result, update }) => {
+						isSubmitting = false;
+						await update();
+					};
+				}}
+				class="space-y-6"
+			>
+				<!-- Hidden inputs for formData fields to ensure they're sent with the form -->
+				{#each Object.entries(formData) as [key, value]}
+					<input type="hidden" name={key} {value} />
+				{/each}
+				<!-- Hidden inputs for dynamic fields -->
+				{#each Object.entries(dynamicFields) as [key, value]}
+					<input type="hidden" name={key} {value} />
+				{/each}
 
-		<form use:enhance class="space-y-6" on:submit|preventDefault={handleSubmit}>
-			<!-- Name -->
-			<div class="group relative">
-				<label
-					for="name"
-					class="block text-sm font-medium text-gray-300 transition-all duration-200 group-focus-within:text-indigo-400"
-					>Name</label
-				>
-				<div class="relative mt-1">
-					<input
-						type="text"
-						id="name"
-						bind:value={formData.name}
-						on:blur={() => validateField('name')}
-						class="peer block w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 text-white placeholder-transparent transition-all duration-300 focus:border-transparent focus:ring-2 focus:ring-indigo-400"
-						placeholder="Enter your name"
-						required
-					/>
-					<label
-						for="name"
-						class="absolute -top-2.5 left-4 text-xs text-gray-400 transition-all duration-200
-                               peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400
-                               peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-indigo-400"
-					>
-						Enter your name
-					</label>
-				</div>
-				{#if errors.name}
-					<p transition:slide class="mt-1 flex items-center text-xs text-red-400">
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="mr-1 h-4 w-4"
-							viewBox="0 0 20 20"
-							fill="currentColor"
-						>
-							<path
-								fill-rule="evenodd"
-								d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-								clip-rule="evenodd"
-							/>
-						</svg>
-						{errors.name}
-					</p>
-				{/if}
-			</div>
-
-			<!-- Category -->
-			<div class="group relative">
-				<label
-					for="category"
-					class="block text-sm font-medium text-gray-300 transition-all duration-200 group-focus-within:text-indigo-400"
-					>Category</label
-				>
-				<div class="relative mt-1">
-					<select
-						id="category"
-						bind:value={formData.category}
-						on:blur={() => validateField('category')}
-						class="peer block w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 text-white transition-all duration-300 focus:border-transparent focus:ring-2 focus:ring-indigo-400"
-						required
-					>
-						<option value="" disabled selected class="bg-gray-800 text-gray-400"
-							>Select a category</option
-						>
-						{#each categories as category}
-							<option value={category} class="bg-gray-800 text-white">{category}</option>
-						{/each}
-					</select>
-					<label
-						for="category"
-						class="absolute -top-2.5 left-4 text-xs text-gray-400 transition-all duration-200
-                               peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400
-                               peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-indigo-400"
-					>
-						Select a category
-					</label>
-				</div>
-				{#if errors.category}
-					<p transition:slide class="mt-1 flex items-center text-xs text-red-400">
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="mr-1 h-4 w-4"
-							viewBox="0 0 20 20"
-							fill="currentColor"
-						>
-							<path
-								fill-rule="evenodd"
-								d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-								clip-rule="evenodd"
-							/>
-						</svg>
-						{errors.category}
-					</p>
-				{/if}
-			</div>
-
-			<!-- Address -->
-			<div class="group relative">
-				<label
-					for="address"
-					class="block text-sm font-medium text-gray-300 transition-all duration-200 group-focus-within:text-indigo-400"
-					>Address</label
-				>
-				<div class="relative mt-1">
-					<input
-						type="text"
-						id="address"
-						bind:value={formData.address}
-						on:blur={() => validateField('address')}
-						class="peer block w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 text-white placeholder-transparent transition-all duration-300 focus:border-transparent focus:ring-2 focus:ring-indigo-400"
-						placeholder="Enter your address"
-						required
-					/>
-					<label
-						for="address"
-						class="absolute -top-2.5 left-4 text-xs text-gray-400 transition-all duration-200
-                               peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400
-                               peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-indigo-400"
-					>
-						Enter your address
-					</label>
-				</div>
-				{#if errors.address}
-					<p transition:slide class="mt-1 flex items-center text-xs text-red-400">
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="mr-1 h-4 w-4"
-							viewBox="0 0 20 20"
-							fill="currentColor"
-						>
-							<path
-								fill-rule="evenodd"
-								d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-								clip-rule="evenodd"
-							/>
-						</svg>
-						{errors.address}
-					</p>
-				{/if}
-			</div>
-
-			<!-- City, State, Country Grid -->
-			<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-				<div class="group relative">
-					<label
-						for="city"
-						class="block text-sm font-medium text-gray-300 transition-all duration-200 group-focus-within:text-indigo-400"
-						>City</label
-					>
-					<div class="relative mt-1">
-						<input
-							type="text"
-							id="city"
-							bind:value={formData.city}
-							on:blur={() => validateField('city')}
-							class="peer block w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 text-white placeholder-transparent transition-all duration-300 focus:border-transparent focus:ring-2 focus:ring-indigo-400"
-							placeholder="City"
-							required
-						/>
-						<label
-							for="city"
-							class="absolute -top-2.5 left-4 text-xs text-gray-400 transition-all duration-200
-                                   peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400
-                                   peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-indigo-400"
-						>
-							City
-						</label>
-					</div>
-					{#if errors.city}
-						<p transition:slide class="mt-1 flex items-center text-xs text-red-400">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								class="mr-1 h-4 w-4"
-								viewBox="0 0 20 20"
-								fill="currentColor"
-							>
-								<path
-									fill-rule="evenodd"
-									d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-									clip-rule="evenodd"
-								/>
-							</svg>
-							{errors.city}
-						</p>
-					{/if}
-				</div>
-				<div class="group relative">
-					<label
-						for="state"
-						class="block text-sm font-medium text-gray-300 transition-all duration-200 group-focus-within:text-indigo-400"
-						>State</label
-					>
-					<div class="relative mt-1">
-						<input
-							type="text"
-							id="state"
-							bind:value={formData.state}
-							on:blur={() => validateField('state')}
-							class="peer block w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 text-white placeholder-transparent transition-all duration-300 focus:border-transparent focus:ring-2 focus:ring-indigo-400"
-							placeholder="State"
-							required
-						/>
-						<label
-							for="state"
-							class="absolute -top-2.5 left-4 text-xs text-gray-400 transition-all duration-200
-                                   peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400
-                                   peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-indigo-400"
-						>
-							State
-						</label>
-					</div>
-					{#if errors.state}
-						<p transition:slide class="mt-1 flex items-center text-xs text-red-400">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								class="mr-1 h-4 w-4"
-								viewBox="0 0 20 20"
-								fill="currentColor"
-							>
-								<path
-									fill-rule="evenodd"
-									d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-									clip-rule="evenodd"
-								/>
-							</svg>
-							{errors.state}
-						</p>
-					{/if}
-				</div>
-				<div class="group relative">
-					<label
-						for="country"
-						class="block text-sm font-medium text-gray-300 transition-all duration-200 group-focus-within:text-indigo-400"
-						>Country</label
-					>
-					<div class="relative mt-1">
-						<input
-							type="text"
-							id="country"
-							bind:value={formData.country}
-							on:blur={() => validateField('country')}
-							class="peer block w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 text-white placeholder-transparent transition-all duration-300 focus:border-transparent focus:ring-2 focus:ring-indigo-400"
-							placeholder="Country"
-							required
-						/>
-						<label
-							for="country"
-							class="absolute -top-2.5 left-4 text-xs text-gray-400 transition-all duration-200
-                                   peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400
-                                   peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-indigo-400"
-						>
-							Country
-						</label>
-					</div>
-					{#if errors.country}
-						<p transition:slide class="mt-1 flex items-center text-xs text-red-400">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								class="mr-1 h-4 w-4"
-								viewBox="0 0 20 20"
-								fill="currentColor"
-							>
-								<path
-									fill-rule="evenodd"
-									d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-									clip-rule="evenodd"
-								/>
-							</svg>
-							{errors.country}
-						</p>
-					{/if}
-				</div>
-			</div>
-
-			<!-- Postal Code and Tax ID -->
-			<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-				<div class="group relative">
-					<label
-						for="postalCode"
-						class="block text-sm font-medium text-gray-300 transition-all duration-200 group-focus-within:text-indigo-400"
-						>Postal Code</label
-					>
-					<div class="relative mt-1">
-						<input
-							type="text"
-							id="postalCode"
-							bind:value={formData.postalCode}
-							on:blur={() => validateField('postalCode')}
-							class="peer block w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 text-white placeholder-transparent transition-all duration-300 focus:border-transparent focus:ring-2 focus:ring-indigo-400"
-							placeholder="Postal Code"
-							required
-						/>
-						<label
-							for="postalCode"
-							class="absolute -top-2.5 left-4 text-xs text-gray-400 transition-all duration-200
-                                   peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400
-                                   peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-indigo-400"
-						>
-							Postal Code
-						</label>
-					</div>
-					{#if errors.postalCode}
-						<p transition:slide class="mt-1 flex items-center text-xs text-red-400">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								class="mr-1 h-4 w-4"
-								viewBox="0 0 20 20"
-								fill="currentColor"
-							>
-								<path
-									fill-rule="evenodd"
-									d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-									clip-rule="evenodd"
-								/>
-							</svg>
-							{errors.postalCode}
-						</p>
-					{/if}
-				</div>
-				<div class="group relative">
-					<label
-						for="taxId"
-						class="block text-sm font-medium text-gray-300 transition-all duration-200 group-focus-within:text-indigo-400"
-						>Tax ID (Optional)</label
-					>
-					<div class="relative mt-1">
-						<input
-							type="text"
-							id="taxId"
-							bind:value={formData.taxId}
-							class="peer block w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 text-white placeholder-transparent transition-all duration-300 focus:border-transparent focus:ring-2 focus:ring-indigo-400"
-							placeholder="Tax ID (optional)"
-						/>
-						<label
-							for="taxId"
-							class="absolute -top-2.5 left-4 text-xs text-gray-400 transition-all duration-200
-                                   peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400
-                                   peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-indigo-400"
-						>
-							Tax ID (optional)
-						</label>
-					</div>
-				</div>
-			</div>
-
-			<!-- About -->
-			<div class="group relative">
-				<label
-					for="about"
-					class="block text-sm font-medium text-gray-300 transition-all duration-200 group-focus-within:text-indigo-400"
-					>About</label
-				>
-				<div class="relative mt-1">
-					<textarea
-						id="about"
-						bind:value={formData.about}
-						rows="4"
-						class="peer block w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 text-white placeholder-transparent transition-all duration-300 focus:border-transparent focus:ring-2 focus:ring-indigo-400"
-						placeholder="Tell us about yourself or your organization"
-					></textarea>
-					<label
-						for="about"
-						class="absolute -top-2.5 left-4 text-xs text-gray-400 transition-all duration-200
-                               peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400
-                               peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-indigo-400"
-					>
-						Tell us about yourself or your organization
-					</label>
-				</div>
-			</div>
-
-			<!-- Latitude and Longitude -->
-			<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-				<div class="group relative">
-					<label
-						for="latitude"
-						class="block text-sm font-medium text-gray-300 transition-all duration-200 group-focus-within:text-indigo-400"
-						>Latitude</label
-					>
-					<div class="relative mt-1">
-						<input
-							type="number"
-							id="latitude"
-							bind:value={formData.latitude}
-							on:blur={() => validateField('latitude')}
-							step="any"
-							class="peer block w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 text-white placeholder-transparent transition-all duration-300 focus:border-transparent focus:ring-2 focus:ring-indigo-400"
-							placeholder="Latitude"
-						/>
-						<label
-							for="latitude"
-							class="absolute -top-2.5 left-4 text-xs text-gray-400 transition-all duration-200
-                                   peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400
-                                   peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-indigo-400"
-						>
-							Latitude
-						</label>
-					</div>
-					{#if errors.latitude}
-						<p transition:slide class="mt-1 flex items-center text-xs text-red-400">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								class="mr-1 h-4 w-4"
-								viewBox="0 0 20 20"
-								fill="currentColor"
-							>
-								<path
-									fill-rule="evenodd"
-									d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-									clip-rule="evenodd"
-								/>
-							</svg>
-							{errors.latitude}
-						</p>
-					{/if}
-				</div>
-				<div class="group relative">
-					<label
-						for="longitude"
-						class="block text-sm font-medium text-gray-300 transition-all duration-200 group-focus-within:text-indigo-400"
-						>Longitude</label
-					>
-					<div class="relative mt-1">
-						<input
-							type="number"
-							id="longitude"
-							bind:value={formData.longitude}
-							on:blur={() => validateField('longitude')}
-							step="any"
-							class="peer block w-full rounded-lg border border-gray-600 bg-gray-800/50 px-4 py-3 text-white placeholder-transparent transition-all duration-300 focus:border-transparent focus:ring-2 focus:ring-indigo-400"
-							placeholder="Longitude"
-						/>
-						<label
-							for="longitude"
-							class="absolute -top-2.5 left-4 text-xs text-gray-400 transition-all duration-200
-                                   peer-placeholder-shown:top-3 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400
-                                   peer-focus:-top-2.5 peer-focus:text-xs peer-focus:text-indigo-400"
-						>
-							Longitude
-						</label>
-					</div>
-					{#if errors.longitude}
-						<p transition:slide class="mt-1 flex items-center text-xs text-red-400">
-							<svg
-								xmlns="http://www.w3.org/2000/svg"
-								class="mr-1 h-4 w-4"
-								viewBox="0 0 20 20"
-								fill="currentColor"
-							>
-								<path
-									fill-rule="evenodd"
-									d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-									clip-rule="evenodd"
-								/>
-							</svg>
-							{errors.longitude}
-						</p>
-					{/if}
-				</div>
-			</div>
-
-			<!-- Is Active Toggle -->
-			<div class="flex items-center justify-between py-2">
-				<span class="text-sm font-medium text-gray-300">Account Active</span>
-				<label class="relative inline-flex cursor-pointer items-center">
-					<input
-						type="checkbox"
-						id="isActive"
-						bind:checked={formData.isActive}
-						class="peer sr-only"
-					/>
+				{#if currentStep === 1}
 					<div
-						class="peer h-6 w-11 rounded-full bg-gray-700 peer-checked:bg-indigo-600 peer-focus:ring-2 peer-focus:ring-indigo-400 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-500 after:bg-white after:transition-all after:content-[''] peer-checked:after:translate-x-full peer-checked:after:border-white"
-					></div>
-				</label>
-			</div>
+						in:fly={{ x: 300, duration: 500, easing: quintOut }}
+						out:fly={{ x: -300, duration: 300 }}
+					>
+						<h2 class="mb-6 text-center text-2xl font-bold text-gray-800">Basic Information</h2>
 
-			<!-- Submit Button -->
-			<div class="flex justify-end pt-4">
-				<button
-					type="submit"
-					disabled={isSubmitting}
-					class="relative overflow-hidden rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-3 font-medium text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-indigo-700 hover:to-purple-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-				>
-					{#if isSubmitting}
-						<span class="flex items-center">
-							<svg
-								class="mr-3 -ml-1 h-5 w-5 animate-spin text-white"
-								xmlns="http://www.w3.org/2000/svg"
-								fill="none"
-								viewBox="0 0 24 24"
-							>
-								<circle
-									class="opacity-25"
-									cx="12"
-									cy="12"
-									r="10"
-									stroke="currentColor"
-									stroke-width="4"
-								></circle>
-								<path
-									class="opacity-75"
-									fill="currentColor"
-									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-								></path>
-							</svg>
-							Creating...
-						</span>
+						<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+							<div class="md:col-span-2">
+								<label class="mb-2 block text-sm font-semibold text-gray-700" for="business-name"
+									>Business Name</label
+								>
+								<input
+									id="business-name"
+									type="text"
+									bind:value={formData.name}
+									name="name"
+									placeholder="Enter your business name"
+									class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+									class:border-red-500={errors.name}
+									required
+								/>
+								{#if errors.name}
+									<p class="mt-1 text-sm text-red-500">{errors.name}</p>
+								{/if}
+							</div>
+
+							<div class="md:col-span-2">
+								<label class="mb-2 block text-sm font-semibold text-gray-700" for="category-select"
+									>Category</label
+								>
+								<select
+									id="category-select"
+									bind:value={formData.category}
+									name="category"
+									class="input-focus w-full appearance-none rounded-xl border-2 border-gray-200 bg-white px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+									class:border-red-500={errors.category}
+									required
+								>
+									<option value="">Select a category</option>
+									{#each categories as category}
+										<option value={category}>{category}</option>
+									{/each}
+								</select>
+								{#if errors.category}
+									<p class="mt-1 text-sm text-red-500">{errors.category}</p>
+								{/if}
+							</div>
+
+							{#if formData.category && categoryFields[formData.category as keyof typeof categoryFields]}
+								{#each categoryFields[formData.category as keyof typeof categoryFields] as field}
+									<div class="md:col-span-2" in:slide={{ duration: 300 }}>
+										<label
+											class="mb-2 block text-sm font-semibold text-gray-700"
+											for="{field.name}-input">{field.label}</label
+										>
+										{#if field.type === 'textarea'}
+											<textarea
+												id="{field.name}-input"
+												name={field.name}
+												bind:value={dynamicFields[field.name as keyof typeof dynamicFields]}
+												placeholder={field.placeholder}
+												rows="3"
+												class="input-focus w-full resize-none rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+											></textarea>
+										{:else}
+											<input
+												id="{field.name}-input"
+												type={field.type}
+												name={field.name}
+												bind:value={dynamicFields[field.name as keyof typeof dynamicFields]}
+												placeholder={field.placeholder}
+												class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+											/>
+										{/if}
+									</div>
+								{/each}
+							{/if}
+
+							<div class="md:col-span-2">
+								<label class="mb-2 block text-sm font-semibold text-gray-700" for="about-textarea"
+									>About Your Business</label
+								>
+								<textarea
+									id="about-textarea"
+									name="about"
+									bind:value={formData.about}
+									placeholder="Tell us about your business..."
+									rows="4"
+									class="input-focus w-full resize-none rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+								></textarea>
+							</div>
+						</div>
+					</div>
+				{/if}
+
+				{#if currentStep === 2}
+					<div
+						in:fly={{ x: 300, duration: 500, easing: quintOut }}
+						out:fly={{ x: -300, duration: 300 }}
+					>
+						<h2 class="mb-6 text-center text-2xl font-bold text-gray-800">
+							Set Your Location on Map
+						</h2>
+
+						<MapPicker
+							initialLat={parseFloat(formData.latitude) || undefined}
+							initialLng={parseFloat(formData.longitude) || undefined}
+							error={errors.location || mapError}
+							on:locationSelected={handleLocationSelected}
+							on:locationError={handleLocationError}
+						/>
+
+						{#if errors.location}
+							<p class="mt-2 text-center text-sm text-red-500">{errors.location}</p>
+						{/if}
+					</div>
+				{/if}
+
+				{#if currentStep === 3}
+					<div
+						in:fly={{ x: 300, duration: 500, easing: quintOut }}
+						out:fly={{ x: -300, duration: 300 }}
+					>
+						<h2 class="mb-6 text-center text-2xl font-bold text-gray-800">
+							Review Your Information
+						</h2>
+
+						{#if errors.city || errors.state || errors.country || errors.postalCode}
+							<div class="mb-6 rounded-lg bg-yellow-100 p-4 text-yellow-700">
+								<p class="font-medium">Please complete the following required fields:</p>
+								<ul class="mt-2 list-disc pl-5 text-sm">
+									{#if errors.city}
+										<li>
+											{errors.city}
+											<a href="#" on:click={editLocation} class="underline">Edit Location</a>
+										</li>
+									{/if}
+									{#if errors.state}
+										<li>
+											{errors.state}
+											<a href="#" on:click={editLocation} class="underline">Edit Location</a>
+										</li>
+									{/if}
+									{#if errors.country}
+										<li>
+											{errors.country}
+											<a href="#" on:click={editLocation} class="underline">Edit Location</a>
+										</li>
+									{/if}
+									{#if errors.postalCode}
+										<li>
+											{errors.postalCode}
+											<a href="#" on:click={editLocation} class="underline">Edit Location</a>
+										</li>
+									{/if}
+								</ul>
+							</div>
+						{/if}
+
+						<div class="space-y-6">
+							<div class="rounded-xl bg-gray-50 p-6">
+								<h3 class="mb-4 font-semibold text-gray-800">Basic Information</h3>
+								<div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
+									<div>
+										<span class="font-medium">Business Name:</span>
+										{formData.name || 'N/A'}
+									</div>
+									<div><span class="font-medium">Category:</span> {formData.category || 'N/A'}</div>
+								</div>
+								{#if formData.about}
+									<div class="mt-4">
+										<span class="font-medium">About:</span>
+										{formData.about}
+									</div>
+								{/if}
+							</div>
+
+							{#if Object.keys(dynamicFields).length > 0}
+								<div class="rounded-xl bg-blue-50 p-6">
+									<h3 class="mb-4 font-semibold text-gray-800">Additional Information</h3>
+									<div class="space-y-2 text-sm">
+										{#each Object.entries(dynamicFields) as [key, value]}
+											{#if value}
+												<div>
+													<span class="font-medium capitalize"
+														>{key.replace(/([A-Z])/g, ' $1').trim()}:</span
+													>
+													{value}
+												</div>
+											{/if}
+										{/each}
+									</div>
+								</div>
+							{/if}
+
+							<div class="rounded-xl bg-green-50 p-6">
+								<h3 class="mb-4 font-semibold text-gray-800">Location Details</h3>
+								<div class="text-sm">
+									<div>
+										<span class="font-medium">Location Set:</span>
+										{formData.latitude && formData.longitude ? 'Yes' : 'No'}
+									</div>
+									<div>
+										<span class="font-medium">Full Address:</span>
+										{formData.address || 'Not provided'}
+									</div>
+									{#if formData.road}
+										<div><span class="font-medium">Road:</span> {formData.road}</div>
+									{/if}
+									{#if formData.house_number}
+										<div>
+											<span class="font-medium">House Number:</span>
+											{formData.house_number}
+										</div>
+									{/if}
+									<div>
+										<span class="font-medium">City:</span>
+										{formData.city || 'Not provided'}
+										{#if errors.city}
+											<span class="text-red-500"> (Required)</span>
+										{/if}
+									</div>
+									<div>
+										<span class="font-medium">State:</span>
+										{formData.state || 'Not provided'}
+										{#if errors.state}
+											<span class="text-red-500"> (Required)</span>
+										{/if}
+									</div>
+									<div>
+										<span class="font-medium">Country:</span>
+										{formData.country || 'Not provided'}
+										{#if errors.country}
+											<span class="text-red-500"> (Required)</span>
+										{/if}
+									</div>
+									<div>
+										<span class="font-medium">Postal Code:</span>
+										{formData.postalCode || 'Not provided'}
+										{#if errors.postalCode}
+											<span class="text-red-500"> (Required)</span>
+										{/if}
+									</div>
+								</div>
+								<button
+									type="button"
+									on:click={editLocation}
+									class="mt-4 rounded-xl bg-blue-500 px-6 py-2 font-medium text-white transition-colors duration-300 hover:bg-blue-600"
+								>
+									Edit Location
+								</button>
+							</div>
+						</div>
+					</div>
+				{/if}
+
+				<div class="flex justify-between pt-8">
+					<button
+						type="button"
+						on:click={prevStep}
+						class="rounded-xl bg-gray-200 px-6 py-3 font-medium text-gray-700 transition-colors duration-300 hover:bg-gray-300 {currentStep ===
+						1
+							? 'invisible'
+							: ''}"
+					>
+						← Previous
+					</button>
+
+					{#if currentStep < 3}
+						<button
+							type="button"
+							on:click={nextStep}
+							class="rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-3 font-medium text-white shadow-lg transition-all duration-300 hover:from-blue-600 hover:to-purple-600"
+						>
+							Next →
+						</button>
 					{:else}
-						Create Account
+						<button
+							type="submit"
+							disabled={isSubmitting ||
+								errors.city ||
+								errors.state ||
+								errors.country ||
+								errors.postalCode}
+							class="flex items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-green-500 px-8 py-3 font-bold text-white shadow-lg transition-all duration-300 hover:from-teal-600 hover:to-green-600 disabled:opacity-50"
+						>
+							{#if isSubmitting}
+								<svg
+									class="mr-3 -ml-1 h-5 w-5 animate-spin text-white"
+									xmlns="http://www.w3.org/2000/svg"
+									fill="none"
+									viewBox="0 0 24 24"
+								>
+									<circle
+										class="opacity-25"
+										cx="12"
+										cy="12"
+										r="10"
+										stroke="currentColor"
+										stroke-width="4"
+									></circle>
+									<path
+										class="opacity-75"
+										fill="currentColor"
+										d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+									></path>
+								</svg>
+								Submitting...
+							{:else}
+								Submit Form
+							{/if}
+						</button>
 					{/if}
-				</button>
-			</div>
+				</div>
+			</form>
 
-			<!-- Success Message -->
-			{#if showSuccessMessage}
+			{#if form?.success}
 				<div
 					transition:fade={{ duration: 300 }}
 					class="mt-4 flex items-center justify-center rounded-lg bg-green-500/20 p-4 text-green-300"
@@ -767,9 +696,57 @@
 							d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
 						/>
 					</svg>
-					Account created successfully!
+					{form.message || 'Account created successfully!'}
+				</div>
+			{:else if form?.error}
+				<div
+					transition:fade={{ duration: 300 }}
+					class="mt-4 flex items-center justify-center rounded-lg bg-red-500/20 p-4 text-red-300"
+				>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						class="mr-2 h-6 w-6"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					</svg>
+					{form.error}
 				</div>
 			{/if}
-		</form>
+		</div>
 	</div>
 </div>
+
+<style>
+	.glass-effect {
+		background: rgba(255, 255, 255, 0.95);
+		backdrop-filter: blur(20px);
+		border: 1px solid rgba(255, 255, 255, 0.3);
+	}
+
+	@keyframes float {
+		0%,
+		100% {
+			transform: translateY(0px);
+		}
+		50% {
+			transform: translateY(-10px);
+		}
+	}
+
+	.input-focus {
+		transition: all 0.3s ease;
+	}
+
+	.input-focus:focus {
+		transform: translateY(-2px);
+		box-shadow: 0 10px 25px rgba(102, 126, 234, 0.15);
+	}
+</style>
