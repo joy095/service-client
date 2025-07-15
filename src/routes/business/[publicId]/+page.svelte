@@ -89,12 +89,20 @@
 
 	<!-- Map -->
 	{#if business.Latitude && business.Longitude !== 0}
-		<Map
+		<!-- <Map
 			className="mt-10 overflow-hidden rounded-md !z-0"
 			storeLat={business.Latitude}
 			storeLng={business.Longitude}
 			businessName={business.name}
-			zoom={20}
+			zoom={16}
+		/> -->
+
+		<iframe
+			src={`https://maps.google.com/maps?q=${business.Latitude},${business.Longitude} (${encodeURIComponent(business.name)})&z=16&output=embed`}
+			class="mt-10 h-[30rem] w-full rounded-md rounded-md"
+			style="border:0;"
+			loading="lazy"
+			referrerpolicy="no-referrer-when-downgrade"
 		/>
 	{/if}
 </div>

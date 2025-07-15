@@ -3,7 +3,7 @@
 	export let data: { businesses: any[] };
 </script>
 
-<div class="page-container">
+<div class="page-container container mx-auto">
 	<h1>Find your perfect stay</h1>
 	<p class="subtitle">Discover unique homes and experiences around the world</p>
 
@@ -22,7 +22,6 @@
 
 <style>
 	.page-container {
-		max-width: 1400px;
 		margin: 0 auto;
 		padding: 1rem;
 	}

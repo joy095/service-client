@@ -33,7 +33,7 @@
 </script>
 
 <nav class="navbar">
-	<div class="nav-container">
+	<div class="nav-container container mx-auto">
 		<a href="/" class="logo">PremiumApp</a>
 
 		<div class="relative" bind:this={menuRef}>
@@ -92,8 +92,6 @@
 	}
 
 	.nav-container {
-		max-width: 1200px;
-		margin: 0 auto;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;

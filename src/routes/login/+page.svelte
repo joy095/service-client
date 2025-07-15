@@ -3,7 +3,7 @@
 	import { fade } from 'svelte/transition';
 	import { isFormOpen } from '$lib/store';
 	import { login as authLogin } from '$lib/store/authStore';
-	import { invalidateAll } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 
 	let email = '';
 	let password = '';
@@ -127,6 +127,7 @@
 				authLogin(data.user);
 				isFormOpen.set(false);
 				await invalidateAll();
+				await goto('/');
 			} else if (step === 'forgot-email') {
 				const res = await fetch(`${import.meta.env.VITE_API_URL}/forgot-password`, {
 					method: 'POST',

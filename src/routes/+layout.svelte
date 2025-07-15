@@ -5,6 +5,7 @@
 	import { initializeFromServer } from '$lib/store/authStore';
 	import type { User } from '$lib/types';
 	import { tryRefreshToken } from '$lib/utils/refreshToken';
+	import Footer from '$lib/components/Footer.svelte';
 
 	export let data: { user: User | null };
 
@@ -22,9 +23,7 @@
 	<main>
 		<slot />
 	</main>
-	<footer>
-		<!-- Footer content -->
-	</footer>
+	<Footer />
 </div>
 
 <style>

@@ -3,7 +3,6 @@
 	import { quintOut } from 'svelte/easing';
 	import { enhance } from '$app/forms';
 	import type { ActionData } from './$types';
-
 	import MapPicker from '$lib/components/MapPicker.svelte';
 
 	export let form: ActionData;
@@ -20,11 +19,30 @@
 		postalCode?: string;
 	}
 
+	const categoryFields = {
+		Barbershops: [
+			{ name: 'specialty', label: 'Specialty', placeholder: 'E.g. Fades, Beard Trim' },
+			{ name: 'experienceYears', label: 'Years of Experience', placeholder: 'E.g. 5' }
+		],
+		'Spa Salons': [
+			{ name: 'services', label: 'Spa Services', placeholder: 'E.g. Massage, Facial' }
+		],
+		'Hair Salons': [
+			{ name: 'stylistNames', label: 'Stylist Names', placeholder: 'Comma separated' }
+		],
+		Salons: [{ name: 'brandsUsed', label: 'Brands Used', placeholder: "E.g. L'Oréal, Wella" }],
+		'Nail Salons': [
+			{ name: 'nailTechnicianCert', label: 'Technician Certification', placeholder: 'Yes/No' }
+		],
+		'Make up artist': [
+			{ name: 'eventTypes', label: 'Event Types', placeholder: 'E.g. Wedding, Party' }
+		]
+	};
+
 	// Form data
 	let formData = {
 		name: '',
 		category: '',
-		about: '',
 		latitude: '',
 		longitude: '',
 		address: '',
@@ -34,114 +52,6 @@
 		postalCode: '',
 		road: '',
 		house_number: ''
-	};
-
-	const categoryFields = {
-		Barbershops: [
-			{
-				name: 'specialties',
-				label: 'Specialties',
-				type: 'text',
-				placeholder: 'e.g., Beard trimming, Hair styling'
-			},
-			{
-				name: 'services',
-				label: 'Services Offered',
-				type: 'textarea',
-				placeholder: 'List your services...'
-			},
-			{ name: 'experience', label: 'Years of Experience', type: 'number', placeholder: 'Years' }
-		],
-		'Hair Salons': [
-			{
-				name: 'hairTypes',
-				label: 'Hair Types Specialized',
-				type: 'text',
-				placeholder: 'e.g., Curly, Straight, Textured'
-			},
-			{
-				name: 'treatments',
-				label: 'Treatments Available',
-				type: 'textarea',
-				placeholder: 'Chemical treatments, styling, etc.'
-			},
-			{ name: 'priceRange', label: 'Price Range', type: 'text', placeholder: 'e.g., ₹500 - ₹2000' }
-		],
-		'Spa Salons': [
-			{
-				name: 'treatments',
-				label: 'Spa Treatments',
-				type: 'textarea',
-				placeholder: 'Massage, facials, body treatments...'
-			},
-			{
-				name: 'facilities',
-				label: 'Facilities',
-				type: 'text',
-				placeholder: 'Sauna, steam room, pools...'
-			},
-			{
-				name: 'packages',
-				label: 'Spa Packages',
-				type: 'textarea',
-				placeholder: 'Describe your packages...'
-			}
-		],
-		'Nail Salons': [
-			{
-				name: 'services',
-				label: 'Nail Services',
-				type: 'textarea',
-				placeholder: 'Manicure, pedicure, nail art...'
-			},
-			{
-				name: 'brands',
-				label: 'Nail Polish Brands',
-				type: 'text',
-				placeholder: 'OPI, Essie, Chanel...'
-			},
-			{
-				name: 'techniques',
-				label: 'Special Techniques',
-				type: 'text',
-				placeholder: 'Gel, acrylic, dip powder...'
-			}
-		],
-		Salons: [
-			{
-				name: 'services',
-				label: 'All Services',
-				type: 'textarea',
-				placeholder: 'Full range of beauty services...'
-			},
-			{ name: 'staff', label: 'Number of Staff', type: 'number', placeholder: 'Staff count' },
-			{
-				name: 'awards',
-				label: 'Awards & Recognition',
-				type: 'text',
-				placeholder: 'Any awards or certifications...'
-			}
-		],
-		'Make up artist': [
-			{
-				name: 'specialties',
-				label: 'Makeup Specialties',
-				type: 'text',
-				placeholder: 'Bridal, editorial, special effects...'
-			},
-			{
-				name: 'brands',
-				label: 'Preferred Brands',
-				type: 'text',
-				placeholder: 'MAC, NARS, Charlotte Tilbury...'
-			},
-			{
-				name: 'portfolio',
-				label: 'Portfolio Link',
-				type: 'url',
-				placeholder: 'https://your-portfolio.com'
-			}
-		]
 	};
 
 	let errors = {
@@ -177,11 +87,12 @@
 			city: '',
 			state: '',
 			country: '',
-			postalCode: ''
+			postalCode: '',
+			address: ''
 		};
 
 		if (step === 1) {
-			if (!formData.name.trim()) {
+			if (!formData.name?.trim()) {
 				errors.name = 'Business name is required.';
 				isValid = false;
 			}
@@ -194,14 +105,12 @@
 				errors.location = 'Please select a location on the map to set coordinates.';
 				isValid = false;
 			}
-			if (!formData.address.trim()) {
-				errors.location =
-					(errors.location ? errors.location + ' Additionally, ' : '') +
-					'Detailed address information could not be retrieved. Please select a more precise location or try searching again.';
+			if (!formData.address?.trim()) {
+				errors.address = 'Detailed address information is required.';
 				isValid = false;
 			}
 		} else if (step === 3) {
-			if (!formData.name.trim()) {
+			if (!formData.name?.trim()) {
 				errors.name = 'Business name is required.';
 				isValid = false;
 			}
@@ -213,23 +122,23 @@
 				errors.location = 'Location coordinates are required.';
 				isValid = false;
 			}
-			if (!formData.address.trim()) {
-				errors.location = 'Address is required.';
+			if (!formData.address?.trim()) {
+				errors.address = 'Address is required.';
 				isValid = false;
 			}
-			if (!formData.city.trim()) {
+			if (!formData.city?.trim()) {
 				errors.city = 'City is required.';
 				isValid = false;
 			}
-			if (!formData.state.trim()) {
+			if (!formData.state?.trim()) {
 				errors.state = 'State is required.';
 				isValid = false;
 			}
-			if (!formData.country.trim()) {
+			if (!formData.country?.trim()) {
 				errors.country = 'Country is required.';
 				isValid = false;
 			}
-			if (!formData.postalCode.trim()) {
+			if (!formData.postalCode?.trim()) {
 				errors.postalCode = 'Postal code is required.';
 				isValid = false;
 			}
@@ -287,14 +196,9 @@
 		dynamicFields = {};
 		const fields = categoryFields[formData.category as keyof typeof categoryFields] || [];
 		fields.forEach((field: { name: string }) => {
-			(dynamicFields as Record<string, string>)[field.name] = '';
+			dynamicFields[field.name] = '';
 		});
 	}
-
-	const editLocation = () => {
-		currentStep = 2;
-		mapError = null;
-	};
 </script>
 
 <svelte:head>
@@ -344,22 +248,13 @@
 				method="POST"
 				use:enhance={() => {
 					isSubmitting = true;
-					return async ({ result, update }) => {
+					return async ({ formData, update }) => {
 						isSubmitting = false;
 						await update();
 					};
 				}}
 				class="space-y-6"
 			>
-				<!-- Hidden inputs for formData fields to ensure they're sent with the form -->
-				{#each Object.entries(formData) as [key, value]}
-					<input type="hidden" name={key} {value} />
-				{/each}
-				<!-- Hidden inputs for dynamic fields -->
-				{#each Object.entries(dynamicFields) as [key, value]}
-					<input type="hidden" name={key} {value} />
-				{/each}
-
 				{#if currentStep === 1}
 					<div
 						in:fly={{ x: 300, duration: 500, easing: quintOut }}
@@ -408,50 +303,6 @@
 									<p class="mt-1 text-sm text-red-500">{errors.category}</p>
 								{/if}
 							</div>
-
-							{#if formData.category && categoryFields[formData.category as keyof typeof categoryFields]}
-								{#each categoryFields[formData.category as keyof typeof categoryFields] as field}
-									<div class="md:col-span-2" in:slide={{ duration: 300 }}>
-										<label
-											class="mb-2 block text-sm font-semibold text-gray-700"
-											for="{field.name}-input">{field.label}</label
-										>
-										{#if field.type === 'textarea'}
-											<textarea
-												id="{field.name}-input"
-												name={field.name}
-												bind:value={dynamicFields[field.name as keyof typeof dynamicFields]}
-												placeholder={field.placeholder}
-												rows="3"
-												class="input-focus w-full resize-none rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
-											></textarea>
-										{:else}
-											<input
-												id="{field.name}-input"
-												type={field.type}
-												name={field.name}
-												bind:value={dynamicFields[field.name as keyof typeof dynamicFields]}
-												placeholder={field.placeholder}
-												class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
-											/>
-										{/if}
-									</div>
-								{/each}
-							{/if}
-
-							<div class="md:col-span-2">
-								<label class="mb-2 block text-sm font-semibold text-gray-700" for="about-textarea"
-									>About Your Business</label
-								>
-								<textarea
-									id="about-textarea"
-									name="about"
-									bind:value={formData.about}
-									placeholder="Tell us about your business..."
-									rows="4"
-									class="input-focus w-full resize-none rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
-								></textarea>
-							</div>
 						</div>
 					</div>
 				{/if}
@@ -480,6 +331,26 @@
 				{/if}
 
 				{#if currentStep === 3}
+					<!-- Hidden inputs to preserve step 1 & 2 values -->
+					<input type="hidden" name="name" value={formData.name} />
+					<input type="hidden" name="category" value={formData.category} />
+					<input type="hidden" name="latitude" value={formData.latitude} />
+					<input type="hidden" name="longitude" value={formData.longitude} />
+					<input type="hidden" name="address" value={formData.address} />
+					<input type="hidden" name="road" value={formData.road} />
+					<input type="hidden" name="house_number" value={formData.house_number} />
+					<input type="hidden" name="city" value={formData.city} />
+					<input type="hidden" name="state" value={formData.state} />
+					<input type="hidden" name="country" value={formData.country} />
+					<input type="hidden" name="postalCode" value={formData.postalCode} />
+
+					<!-- Hidden inputs for dynamic fields -->
+					{#each Object.entries(dynamicFields) as [key, value]}
+						<input type="hidden" name={key} {value} />
+					{/each}
+				{/if}
+
+				{#if currentStep === 3}
 					<div
 						in:fly={{ x: 300, duration: 500, easing: quintOut }}
 						out:fly={{ x: -300, duration: 300 }}
@@ -493,28 +364,16 @@
 								<p class="font-medium">Please complete the following required fields:</p>
 								<ul class="mt-2 list-disc pl-5 text-sm">
 									{#if errors.city}
-										<li>
-											{errors.city}
-											<a href="#" on:click={editLocation} class="underline">Edit Location</a>
-										</li>
+										<li>{errors.city}</li>
 									{/if}
 									{#if errors.state}
-										<li>
-											{errors.state}
-											<a href="#" on:click={editLocation} class="underline">Edit Location</a>
-										</li>
+										<li>{errors.state}</li>
 									{/if}
 									{#if errors.country}
-										<li>
-											{errors.country}
-											<a href="#" on:click={editLocation} class="underline">Edit Location</a>
-										</li>
+										<li>{errors.country}</li>
 									{/if}
 									{#if errors.postalCode}
-										<li>
-											{errors.postalCode}
-											<a href="#" on:click={editLocation} class="underline">Edit Location</a>
-										</li>
+										<li>{errors.postalCode}</li>
 									{/if}
 								</ul>
 							</div>
@@ -530,12 +389,6 @@
 									</div>
 									<div><span class="font-medium">Category:</span> {formData.category || 'N/A'}</div>
 								</div>
-								{#if formData.about}
-									<div class="mt-4">
-										<span class="font-medium">About:</span>
-										{formData.about}
-									</div>
-								{/if}
 							</div>
 
 							{#if Object.keys(dynamicFields).length > 0}
@@ -558,14 +411,40 @@
 
 							<div class="rounded-xl bg-green-50 p-6">
 								<h3 class="mb-4 font-semibold text-gray-800">Location Details</h3>
-								<div class="text-sm">
+								<div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
 									<div>
 										<span class="font-medium">Location Set:</span>
 										{formData.latitude && formData.longitude ? 'Yes' : 'No'}
 									</div>
+									<div class="md:col-span-2">
+										<label class="mb-2 block text-sm font-semibold text-gray-700" for="address"
+											>Full Address</label
+										>
+										<input
+											id="address"
+											type="text"
+											bind:value={formData.address}
+											name="address"
+											placeholder="Enter full address"
+											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+											class:border-red-500={errors.address}
+										/>
+										{#if errors.address}
+											<p class="mt-1 text-sm text-red-500">{errors.address}</p>
+										{/if}
+									</div>
 									<div>
-										<span class="font-medium">Full Address:</span>
-										{formData.address || 'Not provided'}
+										<label class="mb-2 block text-sm font-semibold text-gray-700" for="road"
+											>Road</label
+										>
+										<input
+											id="road"
+											type="text"
+											bind:value={formData.road}
+											name="road"
+											placeholder="Enter road name"
+											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+										/>
 									</div>
 									{#if formData.road}
 										<div><span class="font-medium">Road:</span> {formData.road}</div>
@@ -577,41 +456,74 @@
 										</div>
 									{/if}
 									<div>
-										<span class="font-medium">City:</span>
-										{formData.city || 'Not provided'}
+										<label class="mb-2 block text-sm font-semibold text-gray-700" for="city"
+											>City</label
+										>
+										<input
+											id="city"
+											type="text"
+											bind:value={formData.city}
+											name="city"
+											placeholder="Enter city"
+											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+											class:border-red-500={errors.city}
+										/>
 										{#if errors.city}
-											<span class="text-red-500"> (Required)</span>
+											<p class="mt-1 text-sm text-red-500">{errors.city}</p>
 										{/if}
 									</div>
 									<div>
-										<span class="font-medium">State:</span>
-										{formData.state || 'Not provided'}
+										<label class="mb-2 block text-sm font-semibold text-gray-700" for="state"
+											>State</label
+										>
+										<input
+											id="state"
+											type="text"
+											bind:value={formData.state}
+											name="state"
+											placeholder="Enter state"
+											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+											class:border-red-500={errors.state}
+										/>
 										{#if errors.state}
-											<span class="text-red-500"> (Required)</span>
+											<p class="mt-1 text-sm text-red-500">{errors.state}</p>
 										{/if}
 									</div>
 									<div>
-										<span class="font-medium">Country:</span>
-										{formData.country || 'Not provided'}
+										<label class="mb-2 block text-sm font-semibold text-gray-700" for="country"
+											>Country</label
+										>
+										<input
+											id="country"
+											type="text"
+											bind:value={formData.country}
+											name="country"
+											placeholder="Enter country"
+											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+											class:border-red-500={errors.country}
+										/>
 										{#if errors.country}
-											<span class="text-red-500"> (Required)</span>
+											<p class="mt-1 text-sm text-red-500">{errors.country}</p>
 										{/if}
 									</div>
 									<div>
-										<span class="font-medium">Postal Code:</span>
-										{formData.postalCode || 'Not provided'}
+										<label class="mb-2 block text-sm font-semibold text-gray-700" for="postalCode"
+											>Postal Code</label
+										>
+										<input
+											id="postalCode"
+											type="text"
+											bind:value={formData.postalCode}
+											name="postalCode"
+											placeholder="Enter postal code"
+											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+											class:border-red-500={errors.postalCode}
+										/>
 										{#if errors.postalCode}
-											<span class="text-red-500"> (Required)</span>
+											<p class="mt-1 text-sm text-red-500">{errors.postalCode}</p>
 										{/if}
 									</div>
 								</div>
-								<button
-									type="button"
-									on:click={editLocation}
-									class="mt-4 rounded-xl bg-blue-500 px-6 py-2 font-medium text-white transition-colors duration-300 hover:bg-blue-600"
-								>
-									Edit Location
-								</button>
 							</div>
 						</div>
 					</div>
@@ -641,10 +553,14 @@
 						<button
 							type="submit"
 							disabled={isSubmitting ||
+								errors.name ||
+								errors.category ||
+								errors.location ||
 								errors.city ||
 								errors.state ||
 								errors.country ||
-								errors.postalCode}
+								errors.postalCode ||
+								errors.address}
 							class="flex items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-green-500 px-8 py-3 font-bold text-white shadow-lg transition-all duration-300 hover:from-teal-600 hover:to-green-600 disabled:opacity-50"
 						>
 							{#if isSubmitting}
