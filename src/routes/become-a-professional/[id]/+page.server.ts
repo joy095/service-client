@@ -1,21 +1,32 @@
 import { fail } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
-import type { Actions, RequestEvent } from './edit/$types';
+import type { Actions, RequestEvent } from './$types';
+import { userPendingBusiness } from '$lib/store';
+import { get } from 'svelte/store';
 
 export const actions: Actions = {
     default: async ({ request, cookies }: RequestEvent) => {
         const data = await request.formData();
 
-        const name = data.get('name')?.toString();
-        const category = data.get('category')?.toString();
-        const latitude = data.get('latitude')?.toString();
-        const longitude = data.get('longitude')?.toString();
-        const address = data.get('address')?.toString();
-        const city = data.get('city')?.toString();
-        const state = data.get('state')?.toString();
-        const country = data.get('country')?.toString();
-        const postalCode = data.get('postalCode')?.toString();
-        const about = data.get('about')?.toString() || '';
+        // Get current business data from store
+        const pendingBusiness = get(userPendingBusiness);
+        const public_id = pendingBusiness?.public_id;
+
+        if (!public_id) {
+            return fail(400, { error: 'Missing business ID', success: false });
+        }
+
+        // Get form data or fall back to store values
+        const name = data.get('name')?.toString() || pendingBusiness?.name || '';
+        const category = data.get('category')?.toString() || pendingBusiness?.category || '';
+        const latitude = data.get('latitude')?.toString() || pendingBusiness?.latitude?.toString() || '';
+        const longitude = data.get('longitude')?.toString() || pendingBusiness?.longitude?.toString() || '';
+        const address = data.get('address')?.toString() || pendingBusiness?.address || '';
+        const city = data.get('city')?.toString() || pendingBusiness?.city || '';
+        const state = data.get('state')?.toString() || pendingBusiness?.state || '';
+        const country = data.get('country')?.toString() || pendingBusiness?.country || '';
+        const postalCode = data.get('postalCode')?.toString() || pendingBusiness?.postalCode || '';
+        const about = data.get('about')?.toString() || pendingBusiness?.about || '';
 
         if (!name || !category || !latitude || !longitude || !address || !city || !state || !country || !postalCode) {
             return fail(400, { error: 'Missing required fields', success: false });
@@ -39,13 +50,15 @@ export const actions: Actions = {
             formData.append('postalCode', postalCode);
             formData.append('about', about);
 
-            const response = await fetch(`${env.API_URL}/business`, {
-                method: 'POST',
+            // Using PUT method for update
+            const response = await fetch(`${env.API_URL}/business/${public_id}`, {
+                method: 'PUT',
                 headers: {
+                    'Content-Type': 'application/json',
                     Cookie: `access_token=${accessToken}`
                 },
                 credentials: 'include',
-                body: formData
+                body: JSON.stringify(Object.fromEntries(formData))
             });
 
             if (!response.ok) {
@@ -59,7 +72,7 @@ export const actions: Actions = {
 
             return {
                 success: true,
-                message: 'Business created successfully'
+                message: 'Business updated successfully'
             };
         } catch (err) {
             console.error('Fetch error:', err);

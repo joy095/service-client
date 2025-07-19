@@ -201,13 +201,6 @@
 	}
 </script>
 
-<svelte:head>
-	<link
-		href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-		rel="stylesheet"
-	/>
-</svelte:head>
-
 <div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4 py-12">
 	<div class="mx-auto max-w-4xl">
 		<div class="mb-12 text-center">

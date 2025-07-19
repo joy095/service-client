@@ -22,7 +22,6 @@
 			</div>
 			<div>
 				<h1 class="text-3xl font-bold text-gray-900">{user.firstName} {user.lastName}</h1>
-				<p class="mt-2 text-gray-600">{user.email}</p>
 			</div>
 		</div>
 
@@ -32,15 +31,6 @@
 				This is where you could add more detailed bio information, which would come from your `User`
 				type and the API response.
 			</p>
-		</div>
-
-		<div class="mt-12 text-center">
-			<a
-				href="/contact"
-				class="inline-block rounded-full bg-pink-600 px-6 py-3 font-semibold text-white transition-colors hover:bg-pink-700"
-			>
-				Contact {user.firstName}
-			</a>
 		</div>
 
 		<!-- Businesses -->

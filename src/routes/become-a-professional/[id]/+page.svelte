@@ -209,16 +209,15 @@
 
 	// Set initial form data from the store if available
 	onMount(() => {
-		const unsubscribe = userPendingBusiness.subscribe((value: unknown) => {
-			const typedValue = value as { category?: string; [key: string]: any };
-			if (typedValue) {
-				formData = { ...formData, ...typedValue };
+		const unsubscribe = userPendingBusiness.subscribe((value) => {
+			if (value) {
+				formData = { ...formData, ...value };
 				// Also set dynamic fields if category is already set in the store
-				if (typedValue.category) {
-					const fields = categoryFields[typedValue.category as keyof typeof categoryFields] || [];
+				if (value.category) {
+					const fields = categoryFields[value.category as keyof typeof categoryFields] || [];
 					fields.forEach((field: { name: string }) => {
-						if (typedValue[field.name] !== undefined) {
-							dynamicFields[field.name] = typedValue[field.name] || '';
+						if (value[field.name as keyof typeof value] !== undefined) {
+							dynamicFields[field.name] = value[field.name as keyof typeof value];
 						} else {
 							dynamicFields[field.name] = '';
 						}
