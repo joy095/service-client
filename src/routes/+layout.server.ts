@@ -3,7 +3,7 @@ import type { PageServerLoad } from './$types';
 import type { User } from '$lib/types';
 import { env } from '$env/dynamic/private';
 
-export const load: PageServerLoad = async ({ fetch, cookies }) => {
+export const load: PageServerLoad = async ({ fetch, cookies }: { fetch: typeof globalThis.fetch, cookies: { get: (key: string) => string | undefined } }) => {
     try {
         const accessToken = cookies.get('access_token');
         if (!accessToken) {

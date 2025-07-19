@@ -1,8 +1,10 @@
 <script lang="ts">
-	import type { User } from '$lib/types';
+	import PendingBusinessCard from '$lib/components/PendingBusinessCard.svelte';
+	import type { User, Business } from '$lib/types';
 
 	export let data: {
 		user: User | null;
+		businesses: Business[];
 	};
 
 	const user = data.user;
@@ -14,7 +16,7 @@
 			class="flex flex-col items-center space-y-6 md:flex-row md:items-start md:space-y-0 md:space-x-8"
 		>
 			<div
-				class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 font-bold tracking-[-2px] text-gray-700"
+				class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 font-bold text-gray-700"
 			>
 				{user.firstName?.charAt(0).toUpperCase()}{user.lastName?.charAt(0).toUpperCase()}
 			</div>
@@ -40,6 +42,13 @@
 				Contact {user.firstName}
 			</a>
 		</div>
+
+		<!-- Businesses -->
+		<div class="property-grid">
+			{#each data.businesses as business (business.id)}
+				<PendingBusinessCard {business} />
+			{/each}
+		</div>
 	</div>
 {:else}
 	<div class="py-20 text-center">
@@ -52,3 +61,12 @@
 		</a>
 	</div>
 {/if}
+
+<style>
+	.property-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		gap: 2rem;
+		margin: 2rem 0;
+	}
+</style>

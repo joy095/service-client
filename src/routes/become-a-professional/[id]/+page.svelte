@@ -4,6 +4,13 @@
 	import { enhance } from '$app/forms';
 	import type { ActionData } from './$types';
 	import MapPicker from '$lib/components/MapPicker.svelte';
+	import { userPendingBusiness } from '$lib/store';
+	import { onMount } from 'svelte';
+
+	console.log(
+		'userPendingBusiness',
+		userPendingBusiness.subscribe((value) => console.log('userPendingBusiness', value))
+	);
 
 	export let form: ActionData;
 
@@ -199,6 +206,29 @@
 			dynamicFields[field.name] = '';
 		});
 	}
+
+	// Set initial form data from the store if available
+	onMount(() => {
+		const unsubscribe = userPendingBusiness.subscribe((value: unknown) => {
+			const typedValue = value as { category?: string; [key: string]: any };
+			if (typedValue) {
+				formData = { ...formData, ...typedValue };
+				// Also set dynamic fields if category is already set in the store
+				if (typedValue.category) {
+					const fields = categoryFields[typedValue.category as keyof typeof categoryFields] || [];
+					fields.forEach((field: { name: string }) => {
+						if (typedValue[field.name] !== undefined) {
+							dynamicFields[field.name] = typedValue[field.name] || '';
+						} else {
+							dynamicFields[field.name] = '';
+						}
+					});
+				}
+			}
+		});
+		// Unsubscribe when the component is unmounted to prevent memory leaks
+		return unsubscribe;
+	});
 </script>
 
 <svelte:head>

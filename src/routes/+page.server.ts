@@ -4,7 +4,7 @@ const BASE_URL = 'https://r2-worker-proxy.joykarmakar987654321.workers.dev';
 import type { Business } from '$lib/types';
 import { env } from '$env/dynamic/private';
 
-export const load: PageServerLoad = async ({ fetch }) => {
+export const load: PageServerLoad = async ({ fetch }: { fetch: typeof globalThis.fetch }) => {
 
     try {
         const res = await fetch(`${env.API_URL}/business`);
