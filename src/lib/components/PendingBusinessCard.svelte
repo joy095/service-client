@@ -45,7 +45,6 @@
 				throw new Error(errorData.message || 'Failed to delete business');
 			}
 
-			console.log('Business deleted successfully:', business.publicId);
 			showPopup = false; // Close the popup
 			showConfirmDelete = false; // Reset confirmation state
 
@@ -75,7 +74,6 @@
 	}
 </script>
 
-<!-- Button wrapping the property card -->
 <button on:click={togglePopup}>
 	<div class="property-card">
 		<div class="relative">
@@ -98,7 +96,6 @@
 	</div>
 </button>
 
-<!-- Popup Modal -->
 {#if showPopup}
 	<div class="popup-overlay" transition:fade={{ duration: 200 }} on:click={togglePopup}>
 		<div
@@ -112,7 +109,6 @@
 			>
 				<Icon class="h-5 w-5 text-black" icon="material-symbols:close-rounded" />
 			</button>
-			<!-- Popup Image -->
 			<img src={business.ObjectName} alt={business.name} class="popup-image" />
 
 			<div class="mb-3 text-center">
@@ -122,7 +118,6 @@
 				<p class="location">{business.city}, {business.state}, {business.country}</p>
 			</div>
 
-			<!-- Action Buttons or Confirmation -->
 			<div class="popup-actions">
 				{#if showConfirmDelete}
 					<p class="mb-2 text-center text-xl font-semibold">Remove this listing?</p>

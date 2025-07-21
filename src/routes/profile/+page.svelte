@@ -1,6 +1,6 @@
-<!-- src/routes/profile/+page.svelte -->
 <script lang="ts">
 	import PendingBusinessCard from '$lib/components/PendingBusinessCard.svelte';
+	import { userPendingBusiness } from '$lib/store';
 	import { initializeFromServer } from '$lib/store/authStore';
 	import type { User, Business } from '$lib/types';
 	import { tryRefreshToken } from '$lib/utils/refreshToken';
@@ -11,11 +11,10 @@
 		businesses: Business[];
 	};
 
-	// Reactivity for businesses array to allow updates
-	let businesses = data.businesses;
-
-	// Log the initial businesses data
-	console.log('Initial businesses data:', businesses);
+	// Make 'businesses' a reactive variable so Svelte can update the UI when it changes.
+	// It's initialized with the data from the server load function.
+	let businesses: Business[] = data.businesses;
+	userPendingBusiness.set(businesses);
 
 	const user = data.user;
 
@@ -27,20 +26,21 @@
 		}
 	});
 
-	// Function to refetch businesses after one is deleted
-	async function refreshBusinesses() {
-		try {
-			const res = await fetch('/api/business/by-user'); // Assuming this endpoint fetches all businesses for the user
-			if (res.ok) {
-				const newData = await res.json();
-				businesses = newData.businesses; // Update the local 'businesses' variable
-				console.log('Businesses refreshed:', businesses);
-			} else {
-				console.error('Failed to refetch businesses after deletion.');
-			}
-		} catch (error) {
-			console.error('Error refetching businesses:', error);
-		}
+	/**
+	 * Function to update the list of businesses after a deletion.
+	 * This is called when the 'businessDeleted' event is received from PendingBusinessCard.
+	 */
+	function handleBusinessDeletion(event: CustomEvent<{ publicId: string }>) {
+		const deletedPublicId = event.detail.publicId;
+
+		// Filter out the deleted business directly from the local 'businesses' array
+		businesses = businesses.filter((b) => b.publicId !== deletedPublicId);
+
+		// Update the global store as well to keep it in sync
+		userPendingBusiness.set(businesses);
+
+		// No need to refetch all businesses if the deletion was successful on the backend
+		// and you're just updating the local UI.
 	}
 </script>
 
@@ -61,19 +61,13 @@
 
 		<div class="mt-12">
 			<h2 class="text-2xl font-semibold text-gray-900">About {user.firstName}</h2>
-			<p class="mt-4 text-gray-700">
-				This is where you could add more detailed bio information, which would come from your `User`
-				type and the API response.
-			</p>
 		</div>
 
-		<!-- Businesses -->
 		<div class="property-grid">
-			{#each businesses as business (business.id)}
-				<!-- Listen for the custom 'businessDeleted' event from the child component -->
-				<PendingBusinessCard {business} on:businessDeleted={refreshBusinesses} />
+			{#each businesses as business (business.publicId)}
+				<PendingBusinessCard {business} on:businessDeleted={handleBusinessDeletion} />
 			{:else}
-				<p class="col-span-full text-center text-gray-500">No pending businesses found.</p>
+				<p>No pending businesses to display.</p>
 			{/each}
 		</div>
 	</div>

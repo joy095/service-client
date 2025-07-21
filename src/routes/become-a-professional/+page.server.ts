@@ -37,20 +37,6 @@ export const actions: Actions = {
         }
 
         try {
-            // Log the parsed data for debugging
-            console.log("Sending data:", {
-                name,
-                category,
-                latitude,
-                longitude,
-                address,
-                city,
-                state,
-                country,
-                postalCode,
-                about
-            });
-
             const response = await fetch(`${env.API_URL}/business`, {
                 method: 'POST',
                 headers: {

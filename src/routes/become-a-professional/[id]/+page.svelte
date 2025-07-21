@@ -7,11 +7,6 @@
 	import { userPendingBusiness } from '$lib/store';
 	import { onMount } from 'svelte';
 
-	console.log(
-		'userPendingBusiness',
-		userPendingBusiness.subscribe((value) => console.log('userPendingBusiness', value))
-	);
-
 	export let form: ActionData;
 
 	interface ReceivedLocationDetails {
@@ -25,26 +20,6 @@
 		country?: string;
 		postalCode?: string;
 	}
-
-	const categoryFields = {
-		Barbershops: [
-			{ name: 'specialty', label: 'Specialty', placeholder: 'E.g. Fades, Beard Trim' },
-			{ name: 'experienceYears', label: 'Years of Experience', placeholder: 'E.g. 5' }
-		],
-		'Spa Salons': [
-			{ name: 'services', label: 'Spa Services', placeholder: 'E.g. Massage, Facial' }
-		],
-		'Hair Salons': [
-			{ name: 'stylistNames', label: 'Stylist Names', placeholder: 'Comma separated' }
-		],
-		Salons: [{ name: 'brandsUsed', label: 'Brands Used', placeholder: "E.g. L'Oréal, Wella" }],
-		'Nail Salons': [
-			{ name: 'nailTechnicianCert', label: 'Technician Certification', placeholder: 'Yes/No' }
-		],
-		'Make up artist': [
-			{ name: 'eventTypes', label: 'Event Types', placeholder: 'E.g. Wedding, Party' }
-		]
-	};
 
 	// Form data
 	let formData = {
@@ -68,7 +43,8 @@
 		city: '',
 		state: '',
 		country: '',
-		postalCode: ''
+		postalCode: '',
+		address: ''
 	};
 
 	let currentStep = 1;
@@ -169,7 +145,8 @@
 			city: '',
 			state: '',
 			country: '',
-			postalCode: ''
+			postalCode: '',
+			address: ''
 		};
 		mapError = null;
 	};
@@ -199,30 +176,11 @@
 		errors.location = event.detail;
 	}
 
-	$: if (formData.category) {
-		dynamicFields = {};
-		const fields = categoryFields[formData.category as keyof typeof categoryFields] || [];
-		fields.forEach((field: { name: string }) => {
-			dynamicFields[field.name] = '';
-		});
-	}
-
 	// Set initial form data from the store if available
 	onMount(() => {
 		const unsubscribe = userPendingBusiness.subscribe((value) => {
 			if (value) {
 				formData = { ...formData, ...value };
-				// Also set dynamic fields if category is already set in the store
-				if (value.category) {
-					const fields = categoryFields[value.category as keyof typeof categoryFields] || [];
-					fields.forEach((field: { name: string }) => {
-						if (value[field.name as keyof typeof value] !== undefined) {
-							dynamicFields[field.name] = value[field.name as keyof typeof value];
-						} else {
-							dynamicFields[field.name] = '';
-						}
-					});
-				}
 			}
 		});
 		// Unsubscribe when the component is unmounted to prevent memory leaks

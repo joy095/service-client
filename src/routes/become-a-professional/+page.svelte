@@ -214,8 +214,7 @@
 				method="POST"
 				use:enhance={() => {
 					isSubmitting = true;
-					return async ({ formData: formDataToSubmit, update }) => {
-						console.log('Form Data:', Object.fromEntries(formDataToSubmit));
+					return async ({ formData, update }) => {
 						isSubmitting = false;
 						await update();
 					};
