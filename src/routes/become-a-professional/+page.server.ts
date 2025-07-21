@@ -8,52 +8,77 @@ export const actions: Actions = {
 
         const name = data.get('name')?.toString();
         const category = data.get('category')?.toString();
-        const latitude = data.get('latitude')?.toString();
-        const longitude = data.get('longitude')?.toString();
-        const address = data.get('address')?.toString();
-        const city = data.get('city')?.toString();
-        const state = data.get('state')?.toString();
-        const country = data.get('country')?.toString();
-        const postalCode = data.get('postalCode')?.toString();
+        const latitude = parseFloat(data.get('latitude')?.toString() || '');
+        const longitude = parseFloat(data.get('longitude')?.toString() || '');
+        // Assuming only the first element of these arrays is needed based on your FormData example
+        const city = data.getAll('city')[0]?.toString();
+        const state = data.getAll('state')[0]?.toString();
+        const country = data.getAll('country')[0]?.toString();
+        const postalCode = data.getAll('postalCode')[0]?.toString();
+        const address = data.getAll('address')[0]?.toString();
         const about = data.get('about')?.toString() || '';
 
-        if (!name || !category || !latitude || !longitude || !address || !city || !state || !country || !postalCode) {
-            return fail(400, { error: 'Missing required fields', success: false });
+        if (!name || !category || isNaN(latitude) || isNaN(longitude) ||
+            !address || !city || !state || !country || !postalCode) {
+            return fail(400, {
+                error: 'Missing required fields',
+                success: false,
+                message: 'Please fill all required fields'
+            });
         }
 
         const accessToken = cookies.get('access_token');
         if (!accessToken) {
-            return fail(401, { error: 'Not authenticated', success: false });
+            return fail(401, {
+                error: 'Not authenticated',
+                success: false,
+                message: 'Please login to continue'
+            });
         }
 
         try {
-            const formData = new FormData();
-            formData.append('name', name);
-            formData.append('category', category);
-            formData.append('latitude', latitude);
-            formData.append('longitude', longitude);
-            formData.append('address', address);
-            formData.append('city', city);
-            formData.append('state', state);
-            formData.append('country', country);
-            formData.append('postalCode', postalCode);
-            formData.append('about', about);
+            // Log the parsed data for debugging
+            console.log("Sending data:", {
+                name,
+                category,
+                latitude,
+                longitude,
+                address,
+                city,
+                state,
+                country,
+                postalCode,
+                about
+            });
 
             const response = await fetch(`${env.API_URL}/business`, {
                 method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     Cookie: `access_token=${accessToken}`
                 },
                 credentials: 'include',
-                body: formData
+                body: JSON.stringify({
+                    name,
+                    category,
+                    latitude,
+                    longitude,
+                    address,
+                    city,
+                    state,
+                    country,
+                    postalCode,
+                    about
+                })
             });
 
+            const responseData = await response.json();
+
             if (!response.ok) {
-                const errorBody = await response.json();
-                console.error('API Error:', errorBody);
                 return fail(response.status, {
-                    error: errorBody.error || 'Unknown error',
-                    success: false
+                    error: responseData.error || 'Unknown error',
+                    success: false,
+                    message: responseData.message || 'Failed to create business'
                 });
             }
 
@@ -65,7 +90,8 @@ export const actions: Actions = {
             console.error('Fetch error:', err);
             return fail(500, {
                 error: 'Could not connect to server',
-                success: false
+                success: false,
+                message: 'Server connection failed'
             });
         }
     }

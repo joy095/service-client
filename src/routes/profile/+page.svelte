@@ -1,6 +1,9 @@
 <script lang="ts">
 	import PendingBusinessCard from '$lib/components/PendingBusinessCard.svelte';
+	import { initializeFromServer } from '$lib/store/authStore';
 	import type { User, Business } from '$lib/types';
+	import { tryRefreshToken } from '$lib/utils/refreshToken';
+	import { onMount } from 'svelte';
 
 	export let data: {
 		user: User | null;
@@ -8,6 +11,14 @@
 	};
 
 	const user = data.user;
+
+	onMount(() => {
+		if (data.user) {
+			initializeFromServer(data.user);
+		} else {
+			tryRefreshToken();
+		}
+	});
 </script>
 
 {#if user}

@@ -19,26 +19,6 @@
 		postalCode?: string;
 	}
 
-	const categoryFields = {
-		Barbershops: [
-			{ name: 'specialty', label: 'Specialty', placeholder: 'E.g. Fades, Beard Trim' },
-			{ name: 'experienceYears', label: 'Years of Experience', placeholder: 'E.g. 5' }
-		],
-		'Spa Salons': [
-			{ name: 'services', label: 'Spa Services', placeholder: 'E.g. Massage, Facial' }
-		],
-		'Hair Salons': [
-			{ name: 'stylistNames', label: 'Stylist Names', placeholder: 'Comma separated' }
-		],
-		Salons: [{ name: 'brandsUsed', label: 'Brands Used', placeholder: "E.g. L'Oréal, Wella" }],
-		'Nail Salons': [
-			{ name: 'nailTechnicianCert', label: 'Technician Certification', placeholder: 'Yes/No' }
-		],
-		'Make up artist': [
-			{ name: 'eventTypes', label: 'Event Types', placeholder: 'E.g. Wedding, Party' }
-		]
-	};
-
 	// Form data
 	let formData = {
 		name: '',
@@ -61,11 +41,11 @@
 		city: '',
 		state: '',
 		country: '',
-		postalCode: ''
+		postalCode: '',
+		address: ''
 	};
 
 	let currentStep = 1;
-	let dynamicFields: Record<string, string> = {};
 	let mapError: string | null = null;
 	let isSubmitting = false;
 
@@ -162,7 +142,8 @@
 			city: '',
 			state: '',
 			country: '',
-			postalCode: ''
+			postalCode: '',
+			address: ''
 		};
 		mapError = null;
 	};
@@ -190,14 +171,6 @@
 	function handleLocationError(event: CustomEvent<string>) {
 		mapError = event.detail;
 		errors.location = event.detail;
-	}
-
-	$: if (formData.category) {
-		dynamicFields = {};
-		const fields = categoryFields[formData.category as keyof typeof categoryFields] || [];
-		fields.forEach((field: { name: string }) => {
-			dynamicFields[field.name] = '';
-		});
 	}
 </script>
 
@@ -241,7 +214,8 @@
 				method="POST"
 				use:enhance={() => {
 					isSubmitting = true;
-					return async ({ formData, update }) => {
+					return async ({ formData: formDataToSubmit, update }) => {
+						console.log('Form Data:', Object.fromEntries(formDataToSubmit));
 						isSubmitting = false;
 						await update();
 					};
@@ -267,7 +241,7 @@
 									name="name"
 									placeholder="Enter your business name"
 									class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
-									class:border-red-500={errors.name}
+									class:border-red-500={!!errors.name}
 									required
 								/>
 								{#if errors.name}
@@ -284,7 +258,7 @@
 									bind:value={formData.category}
 									name="category"
 									class="input-focus w-full appearance-none rounded-xl border-2 border-gray-200 bg-white px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
-									class:border-red-500={errors.category}
+									class:border-red-500={!!errors.category}
 									required
 								>
 									<option value="">Select a category</option>
@@ -336,11 +310,6 @@
 					<input type="hidden" name="state" value={formData.state} />
 					<input type="hidden" name="country" value={formData.country} />
 					<input type="hidden" name="postalCode" value={formData.postalCode} />
-
-					<!-- Hidden inputs for dynamic fields -->
-					{#each Object.entries(dynamicFields) as [key, value]}
-						<input type="hidden" name={key} {value} />
-					{/each}
 				{/if}
 
 				{#if currentStep === 3}
@@ -384,24 +353,6 @@
 								</div>
 							</div>
 
-							{#if Object.keys(dynamicFields).length > 0}
-								<div class="rounded-xl bg-blue-50 p-6">
-									<h3 class="mb-4 font-semibold text-gray-800">Additional Information</h3>
-									<div class="space-y-2 text-sm">
-										{#each Object.entries(dynamicFields) as [key, value]}
-											{#if value}
-												<div>
-													<span class="font-medium capitalize"
-														>{key.replace(/([A-Z])/g, ' $1').trim()}:</span
-													>
-													{value}
-												</div>
-											{/if}
-										{/each}
-									</div>
-								</div>
-							{/if}
-
 							<div class="rounded-xl bg-green-50 p-6">
 								<h3 class="mb-4 font-semibold text-gray-800">Location Details</h3>
 								<div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
@@ -420,7 +371,7 @@
 											name="address"
 											placeholder="Enter full address"
 											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
-											class:border-red-500={errors.address}
+											class:border-red-500={!!errors.address}
 										/>
 										{#if errors.address}
 											<p class="mt-1 text-sm text-red-500">{errors.address}</p>
@@ -459,7 +410,7 @@
 											name="city"
 											placeholder="Enter city"
 											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
-											class:border-red-500={errors.city}
+											class:border-red-500={!!errors.city}
 										/>
 										{#if errors.city}
 											<p class="mt-1 text-sm text-red-500">{errors.city}</p>
@@ -476,7 +427,7 @@
 											name="state"
 											placeholder="Enter state"
 											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
-											class:border-red-500={errors.state}
+											class:border-red-500={!!errors.state}
 										/>
 										{#if errors.state}
 											<p class="mt-1 text-sm text-red-500">{errors.state}</p>
@@ -493,7 +444,7 @@
 											name="country"
 											placeholder="Enter country"
 											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
-											class:border-red-500={errors.country}
+											class:border-red-500={!!errors.country}
 										/>
 										{#if errors.country}
 											<p class="mt-1 text-sm text-red-500">{errors.country}</p>
@@ -510,7 +461,7 @@
 											name="postalCode"
 											placeholder="Enter postal code"
 											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
-											class:border-red-500={errors.postalCode}
+											class:border-red-500={!!errors.postalCode}
 										/>
 										{#if errors.postalCode}
 											<p class="mt-1 text-sm text-red-500">{errors.postalCode}</p>
@@ -546,14 +497,14 @@
 						<button
 							type="submit"
 							disabled={isSubmitting ||
-								errors.name ||
-								errors.category ||
-								errors.location ||
-								errors.city ||
-								errors.state ||
-								errors.country ||
-								errors.postalCode ||
-								errors.address}
+								!!errors.name ||
+								!!errors.category ||
+								!!errors.location ||
+								!!errors.city ||
+								!!errors.state ||
+								!!errors.country ||
+								!!errors.postalCode ||
+								!!errors.address}
 							class="flex items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-green-500 px-8 py-3 font-bold text-white shadow-lg transition-all duration-300 hover:from-teal-600 hover:to-green-600 disabled:opacity-50"
 						>
 							{#if isSubmitting}

@@ -4,7 +4,7 @@
 	import type { Map, Marker } from 'leaflet';
 	import debounce from 'lodash.debounce';
 
-	// Define the structure for location details
+	// Types
 	interface LocationDetails {
 		latitude: number;
 		longitude: number;
@@ -17,421 +17,525 @@
 		postalCode?: string;
 	}
 
-	// Define the structure for Nominatim search results
 	interface SearchResult {
 		place_id: string;
 		display_name: string;
 		lat: string;
 		lon: string;
-		[key: string]: any;
+		type?: string;
+		importance?: number;
 	}
 
-	// Props
-	let { initialLat, initialLng, error } = $props();
+	interface MapPickerProps {
+		initialLat?: number;
+		initialLng?: number;
+		zoom?: number;
+		height?: string;
+		searchPlaceholder?: string;
+		countryCode?: string;
+		disabled?: boolean;
+	}
 
-	// Event dispatcher to communicate with parent components
+	// Props with defaults
+	let {
+		initialLat,
+		initialLng,
+		zoom = 10,
+		height = 'h-96',
+		searchPlaceholder = 'Search for a location...',
+		countryCode = 'in',
+		disabled = false
+	}: MapPickerProps = $props();
+
+	// Event dispatcher
 	const dispatch = createEventDispatcher<{
 		locationSelected: LocationDetails;
 		locationError: string;
+		mapReady: void;
 	}>();
 
-	// Component State
+	// Component state
 	let mapContainer: HTMLElement;
 	let map: Map | undefined;
 	let marker: Marker | undefined;
 	let L: typeof import('leaflet') | undefined;
 
-	let searchQuery = '';
-	let searchResults: SearchResult[] = [];
-	let isSearching = false;
-	let isLoadingLocation = false;
-	let isMapLoading = true;
-	let mapStatusMessage: string = 'Initializing map...';
+	let searchQuery = $state('');
+	let searchResults = $state<SearchResult[]>([]);
+	let isSearching = $state(false);
+	let isLoadingLocation = $state(false);
+	let isMapLoading = $state(true);
+	let mapStatusMessage = $state('Initializing map...');
+	let showSearchResults = $state(false);
 
-	// --- Lifecycle Hooks ---
+	// Reactive values
+	const isDisabled = $derived(disabled || isMapLoading);
+	const hasSearchResults = $derived(searchResults.length > 0);
 
 	onMount(() => {
-		// Initialize the map once the component is mounted
 		initMap();
 
-		// Set up a resize observer to keep the map correctly sized
+		// Handle map resizing
 		const resizeObserver = new ResizeObserver(() => {
 			if (map) {
-				map.invalidateSize();
+				setTimeout(() => map?.invalidateSize(), 100);
 			}
 		});
+
 		if (mapContainer) {
 			resizeObserver.observe(mapContainer);
 		}
 
-		// Cleanup function to run when the component is destroyed
 		return () => {
-			if (map) {
-				map.off();
-				map.remove();
-			}
+			cleanup();
 			if (mapContainer) {
 				resizeObserver.unobserve(mapContainer);
 			}
-			L = undefined;
 		};
 	});
 
-	// --- Map Initialization ---
-
-	async function initMap() {
+	async function initMap(): Promise<void> {
 		if (!browser || !mapContainer) {
-			mapStatusMessage = 'Map cannot be initialized outside of a browser environment.';
+			mapStatusMessage = 'Map requires browser environment';
 			return;
 		}
 
-		isMapLoading = true;
-		mapStatusMessage = 'Loading map resources...';
-
 		try {
-			// Dynamically import Leaflet to ensure it only runs on the client-side
+			isMapLoading = true;
+			mapStatusMessage = 'Loading map components...';
+
+			// Dynamic imports
 			L = await import('leaflet');
 			await import('leaflet/dist/leaflet.css');
 
-			// Fix for default Leaflet icon path issues with bundlers
-			// @ts-ignore
-			delete L.Icon.Default.prototype._getIconUrl;
-			L.Icon.Default.mergeOptions({
-				iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-				iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-				shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+			// Fix marker icons
+			setupLeafletIcons();
+
+			const lat = initialLat ?? 20.5937; // Default to India center
+			const lng = initialLng ?? 78.9629;
+
+			// Create map
+			map = L.map(mapContainer, {
+				center: [lat, lng],
+				zoom: zoom,
+				zoomControl: true,
+				attributionControl: true
 			});
 
-			// Set default coordinates to center of India if none are provided
-			const defaultLat = initialLat ?? 20.5937;
-			const defaultLng = initialLng ?? 78.9629;
+			// Add tile layer
+			const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+				attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+				maxZoom: 19,
+				tileSize: 256
+			});
 
-			// Create the map instance
-			map = L.map(mapContainer).setView([defaultLat, defaultLng], 7);
+			tileLayer.on('tileerror', handleTileError);
+			tileLayer.addTo(map);
 
-			// Add the tile layer from OpenStreetMap
-			L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-				attribution: '© OpenStreetMap contributors',
-				maxZoom: 19
-			})
-				.on('tileerror', () => {
-					mapStatusMessage = 'Failed to load map tiles. Please check your internet connection.';
-					dispatch('locationError', mapStatusMessage);
-				})
-				.addTo(map);
-
-			// --- Map Event Handling ---
+			// Setup map events
 			map.whenReady(() => {
 				isMapLoading = false;
-				mapStatusMessage = 'Map ready. Click to select a location.';
+				mapStatusMessage = 'Click on the map to select a location';
+
 				if (initialLat !== undefined && initialLng !== undefined) {
 					updateLocationOnMap(initialLat, initialLng);
 				}
-				// Handle map clicks for location selection
-				map!.on('click', async (e) => {
-					const { lat, lng } = e.latlng;
-					updateLocationOnMap(lat, lng);
-				});
+
+				dispatch('mapReady');
 			});
-		} catch (e) {
-			console.error('MapPicker: Error loading Leaflet:', e);
-			mapStatusMessage = 'Error loading map. Please check your internet connection.';
-			dispatch('locationError', mapStatusMessage);
+
+			map.on('click', handleMapClick);
+		} catch (error) {
+			console.error('Failed to initialize map:', error);
+			mapStatusMessage = 'Failed to load map. Please refresh the page.';
 			isMapLoading = false;
+			dispatch('locationError', 'Map initialization failed');
 		}
 	}
 
-	// --- Core Functions ---
+	function setupLeafletIcons(): void {
+		if (!L) return;
 
-	/**
-	 * Updates the marker and view on the map and initiates reverse geocoding.
-	 */
-	async function updateLocationOnMap(lat: number, lng: number) {
+		// @ts-ignore - Leaflet icon fix
+		delete L.Icon.Default.prototype._getIconUrl;
+
+		L.Icon.Default.mergeOptions({
+			iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+			iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+			shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png'
+		});
+	}
+
+	function handleTileError(): void {
+		mapStatusMessage = 'Failed to load map tiles. Check your connection.';
+		dispatch('locationError', mapStatusMessage);
+	}
+
+	async function handleMapClick(e: any): Promise<void> {
+		const { lat, lng } = e.latlng;
+		await updateLocationOnMap(lat, lng);
+	}
+
+	async function updateLocationOnMap(lat: number, lng: number): Promise<void> {
 		if (!map || !L) return;
 
-		// Add or move the marker
-		if (marker) {
-			marker.setLatLng([lat, lng]);
-		} else {
-			marker = L.marker([lat, lng]).addTo(map);
+		try {
+			// Update or create marker
+			if (marker) {
+				marker.setLatLng([lat, lng]);
+			} else {
+				marker = L.marker([lat, lng], {
+					draggable: true
+				}).addTo(map);
+
+				// Make marker draggable
+				marker.on('dragend', async (e) => {
+					const position = e.target.getLatLng();
+					await updateLocationOnMap(position.lat, position.lng);
+				});
+			}
+
+			// Center map
+			map.setView([lat, lng], Math.max(map.getZoom() || 10, 15));
+			mapStatusMessage = 'Fetching address details...';
+
+			// Get address
+			await reverseGeocode(lat, lng);
+		} catch (error) {
+			console.error('Error updating location:', error);
+			dispatch('locationError', 'Failed to update location');
 		}
-
-		// Center the map on the new location
-		map.setView([lat, lng], Math.max(map.getZoom() || 0, 15));
-		mapStatusMessage = `Location set. Fetching address...`;
-
-		// Get address details for the coordinates
-		await reverseGeocode(lat, lng);
 	}
 
-	/**
-	 * Fetches address details from Nominatim for a given lat/lng.
-	 */
-	async function reverseGeocode(lat: number, lng: number) {
-		mapStatusMessage = 'Fetching address details...';
+	async function reverseGeocode(lat: number, lng: number): Promise<void> {
 		try {
-			const response = await fetch(
-				`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`,
-				{
-					headers: {
-						'User-Agent': 'YourAppName/1.0 (contact@example.com)'
-					}
+			const url = new URL('https://nominatim.openstreetmap.org/reverse');
+			url.searchParams.set('format', 'json');
+			url.searchParams.set('lat', lat.toString());
+			url.searchParams.set('lon', lng.toString());
+			url.searchParams.set('addressdetails', '1');
+
+			const response = await fetch(url.toString(), {
+				headers: {
+					'User-Agent': 'SvelteKit-MapPicker/1.0'
 				}
-			);
-			if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+			});
+
+			if (!response.ok) {
+				throw new Error(`HTTP ${response.status}`);
+			}
 
 			const result = await response.json();
-			let details: LocationDetails = { latitude: lat, longitude: lng };
+			const details: LocationDetails = {
+				latitude: lat,
+				longitude: lng
+			};
 
-			if (result && result.address) {
+			if (result?.address) {
 				const addr = result.address;
-				details = {
-					...details,
-					address: result.display_name,
-					road: addr.road,
-					house_number: addr.house_number,
-					city: addr.city || addr.town || addr.village,
-					state: addr.state,
-					country: addr.country,
-					postalCode: addr.postcode
-				};
-				mapStatusMessage = `Selected: ${result.display_name}`;
+
+				Object.assign(details, {
+					address: result.display_name?.trim() || '',
+					road: addr.road?.trim() || addr.pedestrian?.trim() || '',
+					house_number: addr.house_number?.trim() || '',
+					city:
+						addr.city?.trim() ||
+						addr.town?.trim() ||
+						addr.village?.trim() ||
+						addr.municipality?.trim() ||
+						'',
+					state: addr.state?.trim() || addr.region?.trim() || '',
+					country: addr.country?.trim() || '',
+					postalCode: addr.postcode?.trim() || ''
+				});
+
+				mapStatusMessage = `Selected: ${details.city || 'Location'}, ${details.state || details.country}`;
 			} else {
-				mapStatusMessage = 'Could not retrieve detailed address. Coordinates are selected.';
+				mapStatusMessage = 'Location selected (address unavailable)';
 			}
+
 			dispatch('locationSelected', details);
-		} catch (err) {
-			console.error('MapPicker: Reverse geocoding error:', err);
-			mapStatusMessage = 'Error fetching address. Please check your connection.';
-			dispatch('locationError', mapStatusMessage);
-			// Still dispatch the coordinates even if address lookup fails
+		} catch (error) {
+			console.error('Reverse geocoding failed:', error);
+			mapStatusMessage = 'Location selected (address lookup failed)';
 			dispatch('locationSelected', { latitude: lat, longitude: lng });
+			dispatch('locationError', 'Could not fetch address details');
 		}
 	}
 
-	/**
-	 * Gets the user's current location using the browser's Geolocation API.
-	 */
-	const getCurrentLocation = () => {
-		if (!navigator.geolocation) {
-			dispatch('locationError', 'Geolocation is not supported by your browser.');
-			return;
-		}
-
-		isLoadingLocation = true;
-		mapStatusMessage = 'Getting your current location...';
-
-		navigator.geolocation.getCurrentPosition(
-			async (position) => {
-				const { latitude, longitude } = position.coords;
-				await updateLocationOnMap(latitude, longitude);
-				isLoadingLocation = false;
-			},
-			(err) => {
-				let errorMessage = 'Could not get your location. Please select manually.';
-				if (err.code === err.PERMISSION_DENIED) {
-					errorMessage = 'Location access denied. Please enable it in your browser settings.';
-				} else if (err.code === err.TIMEOUT) {
-					errorMessage = 'Location request timed out.';
-				}
-				dispatch('locationError', errorMessage);
-				mapStatusMessage = errorMessage;
-				isLoadingLocation = false;
-			},
-			{ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-		);
-	};
-
-	/**
-	 * Searches for a location using the Nominatim API.
-	 */
-	const searchLocation = async () => {
-		if (!searchQuery.trim()) {
+	async function searchLocation(): Promise<void> {
+		const query = searchQuery.trim();
+		if (!query) {
 			searchResults = [];
+			showSearchResults = false;
 			return;
 		}
-
-		isSearching = true;
-		searchResults = [];
-		mapStatusMessage = `Searching for "${searchQuery}"...`;
 
 		try {
-			const response = await fetch(
-				`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=5&countrycodes=in`,
-				{
-					headers: {
-						'User-Agent': 'YourAppName/1.0 (contact@example.com)'
-					}
+			isSearching = true;
+			mapStatusMessage = `Searching for "${query}"...`;
+
+			const url = new URL('https://nominatim.openstreetmap.org/search');
+			url.searchParams.set('format', 'json');
+			url.searchParams.set('q', query);
+			url.searchParams.set('limit', '5');
+			url.searchParams.set('addressdetails', '1');
+
+			if (countryCode) {
+				url.searchParams.set('countrycodes', countryCode);
+			}
+
+			const response = await fetch(url.toString(), {
+				headers: {
+					'User-Agent': 'SvelteKit-MapPicker/1.0'
 				}
-			);
-			if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+			});
+
+			if (!response.ok) {
+				throw new Error(`HTTP ${response.status}`);
+			}
 
 			const results = await response.json();
 			searchResults = results;
+			showSearchResults = results.length > 0;
+
 			if (results.length === 0) {
-				mapStatusMessage = 'No results found.';
-				dispatch('locationError', 'No search results found for your query.');
+				mapStatusMessage = `No results found for "${query}"`;
+				dispatch('locationError', 'No search results found');
+			} else {
+				mapStatusMessage = `Found ${results.length} result${results.length === 1 ? '' : 's'}`;
 			}
-		} catch (err) {
-			console.error('MapPicker: Search error:', err);
-			mapStatusMessage = 'Error during search.';
-			dispatch('locationError', 'Could not perform search. Check your connection.');
+		} catch (error) {
+			console.error('Search failed:', error);
+			mapStatusMessage = 'Search failed. Please try again.';
+			dispatch('locationError', 'Search request failed');
+			searchResults = [];
+			showSearchResults = false;
 		} finally {
 			isSearching = false;
 		}
-	};
+	}
 
-	/**
-	 * Handles selecting a result from the search list.
-	 */
-	const selectSearchResult = (result: SearchResult) => {
+	function selectSearchResult(result: SearchResult): void {
 		searchQuery = result.display_name;
-		searchResults = []; // Hide the results list
+		searchResults = [];
+		showSearchResults = false;
 		updateLocationOnMap(parseFloat(result.lat), parseFloat(result.lon));
-	};
+	}
 
-	// Debounce the search function to avoid excessive API calls while typing
-	const debouncedSearch = debounce(searchLocation, 500);
+	function handleSearchInput(): void {
+		if (!searchQuery.trim()) {
+			searchResults = [];
+			showSearchResults = false;
+			return;
+		}
+		debouncedSearch();
+	}
 
-	/**
-	 * Handles the Enter key press for an immediate search.
-	 */
-	const handleSearchKeydown = (event: KeyboardEvent) => {
+	function handleSearchKeydown(event: KeyboardEvent): void {
 		if (event.key === 'Enter') {
 			event.preventDefault();
-			debouncedSearch.cancel(); // Cancel any pending debounced search
-			searchLocation(); // Trigger search immediately
+			debouncedSearch.cancel();
+			searchLocation();
+		} else if (event.key === 'Escape') {
+			searchResults = [];
+			showSearchResults = false;
 		}
-	};
+	}
+
+	function handleSearchBlur(): void {
+		// Delay hiding results to allow for clicks
+		setTimeout(() => {
+			showSearchResults = false;
+		}, 150);
+	}
+
+	function cleanup(): void {
+		if (marker) {
+			marker.remove();
+			marker = undefined;
+		}
+		if (map) {
+			map.off();
+			map.remove();
+			map = undefined;
+		}
+		L = undefined;
+	}
+
+	// Debounced search
+	const debouncedSearch = debounce(searchLocation, 300);
 </script>
 
-<div class="space-y-4">
-	<div class="mb-4">
-		<label class="mb-2 block text-sm font-semibold text-gray-700" for="search-input"
-			>Search for Location</label
-		>
-		<div class="flex space-x-3">
-			<input
-				id="search-input"
-				type="text"
-				bind:value={searchQuery}
-				placeholder="e.g., Connaught Place, Delhi"
-				class="input-focus flex-1 rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
-				on:input={debouncedSearch}
-				on:keydown={handleSearchKeydown}
-				disabled={isMapLoading}
-				aria-label="Search for a location"
-			/>
-			<button
-				type="button"
-				on:click={searchLocation}
-				disabled={isSearching || isMapLoading}
-				class="rounded-xl bg-blue-500 px-6 py-3 font-medium text-white transition-colors duration-300 hover:bg-blue-600 disabled:opacity-50"
-			>
-				{isSearching ? 'Searching...' : 'Search'}
-			</button>
-		</div>
+<div class="map-picker-container space-y-4">
+	<!-- Search Input -->
+	<div class="search-section">
+		<label for="location-search" class="mb-2 block text-sm font-medium text-gray-700">
+			Search Location
+		</label>
+		<div class="relative mb-20">
+			<div class="flex gap-2">
+				<div class="relative flex-1">
+					<input
+						id="location-search"
+						type="text"
+						bind:value={searchQuery}
+						placeholder={searchPlaceholder}
+						disabled={isDisabled}
+						class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
+						on:input={handleSearchInput}
+						on:keydown={handleSearchKeydown}
+						on:blur={handleSearchBlur}
+						on:focus={() => (showSearchResults = hasSearchResults)}
+						autocomplete="off"
+					/>
 
-		{#if searchResults.length > 0}
-			<div
-				class="relative z-10 mt-2 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-md"
-				role="listbox"
-				aria-label="Search results"
-			>
-				{#each searchResults as result (result.place_id)}
-					<button
-						type="button"
-						on:click={() => selectSearchResult(result)}
-						class="w-full border-b px-4 py-2 text-left text-gray-800 transition-colors duration-200 last:border-b-0 hover:bg-gray-100"
-						role="option"
-						aria-selected="false"
-					>
-						{result.display_name}
-					</button>
-				{/each}
+					<!-- Search Results Dropdown -->
+					{#if showSearchResults && hasSearchResults}
+						<div
+							class="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg"
+						>
+							{#each searchResults as result (result.place_id)}
+								<button
+									type="button"
+									class="w-full border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-gray-50 focus:bg-gray-50"
+									on:click={() => selectSearchResult(result)}
+								>
+									<div class="font-medium text-gray-900">{result.display_name}</div>
+									{#if result.type}
+										<div class="mt-1 text-xs text-gray-500">{result.type}</div>
+									{/if}
+								</button>
+							{/each}
+						</div>
+					{/if}
+				</div>
+
+				<button
+					type="button"
+					on:click={searchLocation}
+					disabled={isSearching || isDisabled}
+					class="rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+				>
+					{#if isSearching}
+						<svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
+						</svg>
+					{:else}
+						Search
+					{/if}
+				</button>
 			</div>
-		{/if}
+		</div>
 	</div>
 
-	<div class="text-center">
-		<button
-			type="button"
-			on:click={getCurrentLocation}
-			disabled={isLoadingLocation || isMapLoading}
-			class="rounded-xl bg-gradient-to-r from-green-500 to-blue-500 px-6 py-3 font-medium text-white shadow-lg transition-all duration-300 hover:from-green-600 hover:to-blue-600 disabled:opacity-50"
-		>
-			{#if isLoadingLocation}
-				<span class="flex items-center">
-					<svg
-						class="mr-3 -ml-1 h-5 w-5 animate-spin text-white"
-						xmlns="http://www.w3.org/2000/svg"
-						fill="none"
-						viewBox="0 0 24 24"
-					>
-						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
-						></circle>
-						<path
-							class="opacity-75"
-							fill="currentColor"
-							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-						></path>
-					</svg>
-					Getting Location...
-				</span>
-			{:else}
-				📍 Use Current Location
-			{/if}
-		</button>
-	</div>
+	{#if browser && location.protocol !== 'https:' && location.hostname !== 'localhost'}
+		<div class="rounded-lg border border-amber-200 bg-amber-50 p-3">
+			<div class="flex items-start">
+				<svg class="mt-0.5 mr-2 h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+					<path
+						fill-rule="evenodd"
+						d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+						clip-rule="evenodd"
+					></path>
+				</svg>
+				<div class="text-sm text-amber-700">
+					<strong>Note:</strong> Location access requires a secure HTTPS connection. The current location
+					feature may not work on HTTP.
+				</div>
+			</div>
+		</div>
+	{/if}
 
-	<div class="relative">
-		<label class="mb-2 block text-sm font-semibold text-gray-700"
-			>Click on the map to set your exact location</label
-		>
+	<!-- Map Container -->
+	<div class="map-container relative">
+		<label class="mb-2 block text-sm font-medium text-gray-700"> Select Location on Map </label>
 		<div
-			id="map"
 			bind:this={mapContainer}
-			class="relative h-96 w-full overflow-hidden rounded-xl bg-gray-200 shadow-md"
+			class="relative {height} w-full overflow-hidden rounded-lg border border-gray-300 bg-gray-100"
 		>
 			{#if isMapLoading}
-				<div
-					class="bg-opacity-75 absolute inset-0 z-20 flex flex-col items-center justify-center bg-gray-300 text-gray-800"
-				>
-					<svg
-						class="mb-3 h-10 w-10 animate-spin text-blue-600"
-						xmlns="http://www.w3.org/2000/svg"
-						fill="none"
-						viewBox="0 0 24 24"
-					>
-						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
-						></circle>
-						<path
-							class="opacity-75"
-							fill="currentColor"
-							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-						></path>
-					</svg>
-					<p class="font-semibold">Loading Map...</p>
-					<p class="mt-1 px-4 text-center text-sm">
-						Please ensure you have an internet connection.
-					</p>
+				<div class="absolute inset-0 z-10 flex items-center justify-center bg-gray-50">
+					<div class="text-center">
+						<svg
+							class="mx-auto mb-2 h-8 w-8 animate-spin text-blue-600"
+							fill="none"
+							viewBox="0 0 24 24"
+						>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
+						</svg>
+						<p class="text-sm font-medium text-gray-600">Loading Map...</p>
+						<p class="mt-1 text-xs text-gray-500">Please wait...</p>
+					</div>
 				</div>
 			{/if}
 		</div>
-		{#if error}
-			<p class="mt-2 text-sm text-red-500">{error}</p>
-		{/if}
 	</div>
 
-	<div class="mt-4 rounded-xl bg-gray-50 p-3 text-center text-sm text-gray-600">
-		<span class="font-semibold">Status:</span>
-		{mapStatusMessage}
-	</div>
+	<!-- Status Message -->
+	<!-- <div class="status-bar rounded-lg bg-gray-50 p-3 text-center">
+		<p class="text-sm text-gray-600">
+			<span class="font-medium">Status:</span>
+			{mapStatusMessage}
+		</p>
+	</div> -->
 </div>
 
 <style>
-	#map {
-		z-index: 1;
-		min-height: 200px;
+	/* .map-picker-container {
+		@apply mx-auto w-full max-w-4xl;
+	} */
+
+	:global(.leaflet-container) {
+		font-family: inherit;
+	}
+
+	:global(.leaflet-popup-content-wrapper) {
+		border-radius: 8px;
+	}
+
+	:global(.leaflet-control-zoom) {
+		border-radius: 8px !important;
+		border: 1px solid #d1d5db !important;
+		box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
+	}
+
+	:global(.leaflet-control-zoom a) {
+		border-radius: 0 !important;
+		border: none !important;
+	}
+
+	:global(.leaflet-control-zoom a:first-child) {
+		border-top-left-radius: 7px !important;
+		border-top-right-radius: 7px !important;
+	}
+
+	:global(.leaflet-control-zoom a:last-child) {
+		border-bottom-left-radius: 7px !important;
+		border-bottom-right-radius: 7px !important;
 	}
 </style>

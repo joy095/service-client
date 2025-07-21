@@ -3,29 +3,64 @@
 	import type { Business } from '$lib/types';
 	import { fade, slide } from 'svelte/transition';
 	import Icon from '@iconify/svelte';
+	import formatDate from '$lib/dateFormat';
+	import { goto } from '$app/navigation';
 
 	export let business: Business;
 
 	userPendingBusiness.set(business);
 
-	// State to control popup visibility
+	// State to control popup visibility and confirmation
 	let showPopup = false;
+	let showConfirmDelete = false;
 
 	// Functions for edit and delete actions
 	function handleEdit() {
-		console.log('Edit business:', business);
+		goto(`/become-a-professional/${business.publicId}`);
 		// Add your edit logic here
 		showPopup = false;
 	}
 
-	function handleDelete() {
-		console.log('Delete business:', business);
-		// Add your delete logic here
-		showPopup = false;
+	async function handleDeleteConfirm() {
+		try {
+			const response = await fetch(
+				`${import.meta.env.VITE_API_URL}/business/${business.publicId}`,
+				{
+					method: 'DELETE',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					credentials: 'include'
+				}
+			);
+
+			if (!response.ok) {
+				throw new Error('Failed to delete business');
+			}
+
+			console.log('Business deleted:', business);
+			// Optionally, update the UI or store after successful deletion
+			showPopup = false;
+			// You might want to trigger a refresh of the business list here
+		} catch (error) {
+			console.error('Error deleting business:', error);
+			// Handle error (e.g., show error message to user)
+		}
 	}
 
 	function togglePopup() {
 		showPopup = !showPopup;
+		if (!showPopup) {
+			showConfirmDelete = false; // Reset confirmation state when closing popup
+		}
+	}
+
+	function handleDelete() {
+		showConfirmDelete = true; // Show confirmation buttons
+	}
+
+	function handleCancel() {
+		showConfirmDelete = false; // Revert to previous popup state
 	}
 </script>
 
@@ -45,7 +80,7 @@
 
 		<div class="details">
 			<div class="price-type">
-				<h3>{business.name}</h3>
+				<p class="font-semibold">Your listing stated on {formatDate(business.createdAt)}</p>
 			</div>
 			<p class="location">{business.city}, {business.state}, {business.country}</p>
 		</div>
@@ -61,20 +96,34 @@
 			on:click|stopPropagation
 		>
 			<button
-				class="hand-burger absolute left-5 top-5 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#EBEBEB] hover:bg-[#e7e7e7]"
-				on:click={() => (showPopup = !showPopup)}
+				class="hand-burger absolute top-5 left-5 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#EBEBEB] hover:bg-[#e7e7e7]"
+				on:click={togglePopup}
 			>
 				<Icon class="h-5 w-5 text-black" icon="material-symbols:close-rounded" />
 			</button>
 			<!-- Popup Image -->
 			<img src={business.ObjectName} alt={business.name} class="popup-image" />
 
-			<!-- Action Buttons -->
+			<div class="mb-3 text-center">
+				<p class=" font-semibold">
+					Your listing stated on {formatDate(business.createdAt)}
+				</p>
+				<p class="location">{business.city}, {business.state}, {business.country}</p>
+			</div>
+
+			<!-- Action Buttons or Confirmation -->
 			<div class="popup-actions">
-				<button class="edit-btn" on:click={handleEdit}>Edit listing</button>
-				<button class="delete-btn" on:click={handleDelete}>
-					<Icon icon="wpf:delete" class="h-4 w-4" /> Delete</button
-				>
+				{#if showConfirmDelete}
+					<p class="mb-2 text-center text-xl font-semibold">Remove this listing?</p>
+
+					<button class="edit-btn" on:click={handleDeleteConfirm}> Yes, remove </button>
+					<button class="delete-btn" on:click={handleCancel}>Cancel</button>
+				{:else}
+					<button class="edit-btn" on:click={handleEdit}>Edit listing</button>
+					<button class="delete-btn" on:click={handleDelete}>
+						<Icon icon="wpf:delete" class="h-4 w-4" /> Delete
+					</button>
+				{/if}
 			</div>
 		</div>
 	</div>
@@ -86,6 +135,7 @@
 		text-decoration: none;
 		color: inherit;
 		overflow: hidden;
+		cursor: pointer;
 
 		img {
 			width: 100%;
@@ -95,21 +145,15 @@
 		}
 
 		.details {
-			padding: 1rem;
+			padding-top: 1rem;
 			text-align: left;
 
 			.price-type {
 				margin-bottom: 0.2rem;
-
-				.price {
-					font-weight: bold;
-					color: #ff5a5f;
-				}
 			}
 
 			.location {
 				color: #666;
-				margin-bottom: 0.5rem;
 				font-size: 0.9rem;
 			}
 		}
@@ -172,7 +216,7 @@
 	.edit-btn {
 		background-color: #292929;
 		color: white;
-		transition: all 0.3;
+		transition: all 0.3s;
 
 		&:hover {
 			background-color: #000;
@@ -181,7 +225,7 @@
 
 	.delete-btn {
 		color: #292929;
-		transition: all 0.3;
+		transition: all 0.3s;
 		display: flex;
 		align-items: center;
 		justify-content: center;
