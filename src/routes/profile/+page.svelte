@@ -1,3 +1,4 @@
+<!-- src/routes/profile/+page.svelte -->
 <script lang="ts">
 	import PendingBusinessCard from '$lib/components/PendingBusinessCard.svelte';
 	import { initializeFromServer } from '$lib/store/authStore';
@@ -10,6 +11,12 @@
 		businesses: Business[];
 	};
 
+	// Reactivity for businesses array to allow updates
+	let businesses = data.businesses;
+
+	// Log the initial businesses data
+	console.log('Initial businesses data:', businesses);
+
 	const user = data.user;
 
 	onMount(() => {
@@ -19,6 +26,22 @@
 			tryRefreshToken();
 		}
 	});
+
+	// Function to refetch businesses after one is deleted
+	async function refreshBusinesses() {
+		try {
+			const res = await fetch('/api/business/by-user'); // Assuming this endpoint fetches all businesses for the user
+			if (res.ok) {
+				const newData = await res.json();
+				businesses = newData.businesses; // Update the local 'businesses' variable
+				console.log('Businesses refreshed:', businesses);
+			} else {
+				console.error('Failed to refetch businesses after deletion.');
+			}
+		} catch (error) {
+			console.error('Error refetching businesses:', error);
+		}
+	}
 </script>
 
 {#if user}
@@ -46,8 +69,11 @@
 
 		<!-- Businesses -->
 		<div class="property-grid">
-			{#each data.businesses as business (business.id)}
-				<PendingBusinessCard {business} />
+			{#each businesses as business (business.id)}
+				<!-- Listen for the custom 'businessDeleted' event from the child component -->
+				<PendingBusinessCard {business} on:businessDeleted={refreshBusinesses} />
+			{:else}
+				<p class="col-span-full text-center text-gray-500">No pending businesses found.</p>
 			{/each}
 		</div>
 	</div>

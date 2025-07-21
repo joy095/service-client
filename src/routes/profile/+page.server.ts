@@ -5,29 +5,35 @@ import type { Business } from '$lib/types';
 import { env } from '$env/dynamic/private';
 
 export const load: PageServerLoad = async ({ fetch }: { fetch: typeof globalThis.fetch }) => {
-
     try {
         const res = await fetch(`${env.API_URL}/business/by-user`);
         if (!res.ok) {
-            throw new Error('Failed to fetch properties');
+            // It's better to return an empty array or throw a specific error
+            // if the API call fails, rather than throwing a generic error that might crash the page.
+            console.error('Failed to fetch businesses:', res.status, res.statusText);
+            return { businesses: [] };
         }
         const data = await res.json();
-        const business: Business = data.business;
+        // The backend now returns an array under 'businesses' key
+        const businesses: Business[] = data.businesses;
 
-        const isFullUrl = business.ObjectName?.startsWith('http');
-        const formattedBusiness = {
-            ...business,
-            ObjectName: business.ObjectName
-                ? isFullUrl
-                    ? business.ObjectName
-                    : BASE_URL + business.ObjectName
-                : `https://picsum.photos/536/354?random=${business.id}`
-        };
+        // Map over the array of businesses to format ObjectName for each
+        const formattedBusinesses = businesses.map(business => {
+            const isFullUrl = business.ObjectName?.startsWith('http');
+            return {
+                ...business,
+                ObjectName: business.ObjectName
+                    ? isFullUrl
+                        ? business.ObjectName
+                        : BASE_URL + business.ObjectName
+                    : `https://picsum.photos/536/354?random=${business.id}` // Fallback image
+            };
+        });
 
-        return { businesses: [formattedBusiness] };
+        return { businesses: formattedBusinesses };
 
     } catch (error) {
-        console.error(error);
+        console.error('Error in +page.server.ts load function:', error);
         return {
             businesses: []
         };

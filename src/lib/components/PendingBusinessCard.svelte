@@ -5,23 +5,28 @@
 	import Icon from '@iconify/svelte';
 	import formatDate from '$lib/dateFormat';
 	import { goto } from '$app/navigation';
+	import { createEventDispatcher } from 'svelte'; // Import createEventDispatcher
 
 	export let business: Business;
 
-	userPendingBusiness.set(business);
+	userPendingBusiness.set([business]);
 
 	// State to control popup visibility and confirmation
 	let showPopup = false;
 	let showConfirmDelete = false;
+	let deleting = false; // New state for loading indicator on delete button
+
+	// Create an event dispatcher
+	const dispatch = createEventDispatcher();
 
 	// Functions for edit and delete actions
 	function handleEdit() {
 		goto(`/become-a-professional/${business.publicId}`);
-		// Add your edit logic here
-		showPopup = false;
+		showPopup = false; // Close popup after navigating
 	}
 
 	async function handleDeleteConfirm() {
+		deleting = true; // Set loading state to true
 		try {
 			const response = await fetch(
 				`${import.meta.env.VITE_API_URL}/business/${business.publicId}`,
@@ -35,16 +40,22 @@
 			);
 
 			if (!response.ok) {
-				throw new Error('Failed to delete business');
+				// Attempt to parse error message from response if available
+				const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+				throw new Error(errorData.message || 'Failed to delete business');
 			}
 
-			console.log('Business deleted:', business);
-			// Optionally, update the UI or store after successful deletion
-			showPopup = false;
-			// You might want to trigger a refresh of the business list here
+			console.log('Business deleted successfully:', business.publicId);
+			showPopup = false; // Close the popup
+			showConfirmDelete = false; // Reset confirmation state
+
+			dispatch('businessDeleted', { publicId: business.publicId });
 		} catch (error) {
 			console.error('Error deleting business:', error);
-			// Handle error (e.g., show error message to user)
+			// You can add a user-friendly error message here, e.g., using a toast notification
+			// alert(`Error deleting business: ${error.message}`); // Avoid alert(), use a custom modal or toast
+		} finally {
+			deleting = false; // Reset loading state
 		}
 	}
 
@@ -116,7 +127,33 @@
 				{#if showConfirmDelete}
 					<p class="mb-2 text-center text-xl font-semibold">Remove this listing?</p>
 
-					<button class="edit-btn" on:click={handleDeleteConfirm}> Yes, remove </button>
+					<button class="edit-btn" on:click={handleDeleteConfirm} disabled={deleting}>
+						{#if deleting}
+							<svg
+								class="h-5 w-5 animate-spin text-white"
+								xmlns="http://www.w3.org/2000/svg"
+								fill="none"
+								viewBox="0 0 24 24"
+							>
+								<circle
+									class="opacity-25"
+									cx="12"
+									cy="12"
+									r="10"
+									stroke="currentColor"
+									stroke-width="4"
+								></circle>
+								<path
+									class="opacity-75"
+									fill="currentColor"
+									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+								></path>
+							</svg>
+							Removing...
+						{:else}
+							Yes, remove
+						{/if}
+					</button>
 					<button class="delete-btn" on:click={handleCancel}>Cancel</button>
 				{:else}
 					<button class="edit-btn" on:click={handleEdit}>Edit listing</button>
@@ -129,34 +166,34 @@
 	</div>
 {/if}
 
-<style>
+<style lang="postcss">
 	.property-card {
 		display: block;
 		text-decoration: none;
 		color: inherit;
 		overflow: hidden;
 		cursor: pointer;
+	}
 
-		img {
-			width: 100%;
-			height: 25rem;
-			object-fit: cover;
-			border-radius: 0.8rem;
-		}
+	.property-card img {
+		width: 100%;
+		height: 25rem;
+		object-fit: cover;
+		border-radius: 0.8rem;
+	}
 
-		.details {
-			padding-top: 1rem;
-			text-align: left;
+	.property-card .details {
+		padding-top: 1rem;
+		text-align: left;
+	}
 
-			.price-type {
-				margin-bottom: 0.2rem;
-			}
+	.property-card .details .price-type {
+		margin-bottom: 0.2rem;
+	}
 
-			.location {
-				color: #666;
-				font-size: 0.9rem;
-			}
-		}
+	.property-card .details .location {
+		color: #666;
+		font-size: 0.9rem;
 	}
 
 	/* Popup Styles */
@@ -211,29 +248,31 @@
 		border-radius: 0.4rem;
 		cursor: pointer;
 		font-weight: 500;
+		/* Ensure flex properties for spinner are not overridden */
+		display: flex; /* Explicitly set display to flex */
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem; /* Gap for text and icon/spinner */
 	}
 
 	.edit-btn {
 		background-color: #292929;
 		color: white;
 		transition: all 0.3s;
+	}
 
-		&:hover {
-			background-color: #000;
-		}
+	.edit-btn:hover {
+		background-color: #000;
 	}
 
 	.delete-btn {
 		color: #292929;
 		transition: all 0.3s;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.5rem;
+		/* Background color for delete button is handled by Tailwind in markup for consistency with loading state */
+	}
 
-		&:hover {
-			color: #000;
-			background-color: rgb(235, 235, 235);
-		}
+	.delete-btn:hover {
+		color: #000;
+		background-color: rgb(235, 235, 235);
 	}
 </style>
