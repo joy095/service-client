@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { goto } from '$app/navigation';
 	import Icon from '@iconify/svelte';
 	import { onDestroy, onMount } from 'svelte';
 
@@ -10,6 +11,40 @@
 	let isDragging = false;
 	export let value: File[] = [];
 	let objectFits: string[] = [];
+
+	export let data: { publicId: string };
+
+	async function submitForm(event: Event) {
+		event.preventDefault();
+		if (value.length === 0) {
+			alert('Please select at least one image.');
+			return;
+		}
+
+		const formData = new FormData();
+		for (const file of value) {
+			formData.append('images', file, file.name);
+		}
+
+		const response = await fetch(
+			`${import.meta.env.VITE_API_URL}/business-image/${data.publicId}`,
+			{
+				method: 'POST',
+				body: formData,
+				credentials: 'include' // send access_token cookie
+			}
+		);
+
+		const responseData: { message?: string } = await response.json();
+		if (response.ok) {
+			alert('Images uploaded successfully');
+			value = [];
+			imagePreviews = [];
+			goto('/profile');
+		} else {
+			alert(responseData.message || 'Failed to upload');
+		}
+	}
 
 	// Handle image object-fit mode
 	function handleLoad(event: Event, index: number) {
@@ -130,81 +165,97 @@
 		role="region"
 		aria-label="Drag and drop images here"
 	>
-		<input
-			type="file"
-			accept="image/png,image/jpeg,image/jpg"
-			bind:this={imageInput}
-			on:change={handleImageChange}
-			class="hidden"
-			id="imageInput"
-			multiple
-		/>
-		<label
-			for="imageInput"
-			class="cursor-pointer rounded-md bg-gray-800 px-5 py-3 text-white hover:bg-black focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+		<form
+			method="POST"
+			enctype="multipart/form-data"
+			on:submit|preventDefault={submitForm}
+			class="flex w-full flex-col items-center"
 		>
-			Browser
-		</label>
+			<input
+				type="file"
+				accept="image/png,image/jpeg,image/jpg"
+				bind:this={imageInput}
+				on:change={handleImageChange}
+				class="hidden"
+				id="imageInput"
+				multiple
+			/>
+			<label
+				for="imageInput"
+				class="cursor-pointer rounded-md bg-gray-800 px-5 py-3 text-white hover:bg-black focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+			>
+				Browser
+			</label>
 
-		{#if imagePreviews.length > 0}
-			<div class="mt-4 grid w-full max-w-3xl grid-cols-2 gap-5">
-				{#each imagePreviews as preview, index}
-					<div class={`image-wrapper ${index === 0 ? 'first-image' : ''}`}>
-						<div
-							class="image-container relative h-full w-full overflow-hidden rounded-md bg-gray-100"
-						>
-							<img
-								src={preview.src}
-								alt={preview.name}
-								class={`h-[15rem] w-full ${objectFits[index] || 'object-cover'}`}
-								on:load={(e) => handleLoad(e, index)}
-							/>
-						</div>
-						<div class="menu-wrapper absolute top-2 left-2 z-10">
-							<button
-								class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#EBEBEB] hover:bg-[#e7e7e7]"
-								on:click={() => (openMenuIndex = openMenuIndex === index ? null : index)}
+			{#if imagePreviews.length > 0}
+				<div class="mt-4 grid w-full max-w-3xl grid-cols-2 gap-5">
+					{#each imagePreviews as preview, index}
+						<div class={`image-wrapper ${index === 0 ? 'first-image' : ''}`}>
+							<div
+								class="image-container relative h-full w-full overflow-hidden rounded-md bg-gray-100"
 							>
-								<Icon class="h-5 w-5 text-black" icon="pepicons-pencil:dots-x" />
-							</button>
-
-							{#if openMenuIndex === index}
-								<div
-									class="absolute right-0 mt-2 w-40 rounded-md border border-gray-200 bg-white py-2 text-sm shadow-lg"
+								<img
+									src={preview.src}
+									alt={preview.name}
+									class={`h-[15rem] w-full ${objectFits[index] || 'object-cover'}`}
+									on:load={(e) => handleLoad(e, index)}
+								/>
+							</div>
+							<div class="menu-wrapper absolute top-2 left-2 z-10">
+								<button
+									class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#EBEBEB] hover:bg-[#e7e7e7]"
+									on:click={() => (openMenuIndex = openMenuIndex === index ? null : index)}
 								>
-									<button
-										class="w-full cursor-pointer px-4 py-2 text-left font-medium hover:bg-gray-100"
-										on:click={() => clearPreview(index)}
-									>
-										Delete
-									</button>
-									<button
-										class="w-full cursor-pointer px-4 py-2 text-left font-medium hover:bg-gray-100"
-										on:click={() => moveImageUp(index)}
-										disabled={index === 0}
-									>
-										Move Up
-									</button>
-									<button
-										class="w-full cursor-pointer px-4 py-2 text-left font-medium hover:bg-gray-100"
-										on:click={() => moveImageDown(index)}
-										disabled={index === imagePreviews.length - 1}
-									>
-										Move Down
-									</button>
-								</div>
-							{/if}
-						</div>
-					</div>
-				{/each}
-			</div>
-		{/if}
+									<Icon class="h-5 w-5 text-black" icon="pepicons-pencil:dots-x" />
+								</button>
 
-		{#if error}
-			<p class="mt-2 text-sm text-red-500">{error}</p>
-		{/if}
-		<p class="mt-2 text-2xl font-medium text-gray-800">Drag and drop</p>
-		<p class="text-xs text-gray-800">or browse for photos</p>
+								{#if openMenuIndex === index}
+									<div
+										class="absolute right-0 mt-2 w-40 rounded-md border border-gray-200 bg-white py-2 text-sm shadow-lg"
+									>
+										<button
+											class="w-full cursor-pointer px-4 py-2 text-left font-medium hover:bg-gray-100"
+											on:click={() => clearPreview(index)}
+										>
+											Delete
+										</button>
+										<button
+											class="w-full cursor-pointer px-4 py-2 text-left font-medium hover:bg-gray-100"
+											on:click={() => moveImageUp(index)}
+											disabled={index === 0}
+										>
+											Move Up
+										</button>
+										<button
+											class="w-full cursor-pointer px-4 py-2 text-left font-medium hover:bg-gray-100"
+											on:click={() => moveImageDown(index)}
+											disabled={index === imagePreviews.length - 1}
+										>
+											Move Down
+										</button>
+									</div>
+								{/if}
+							</div>
+						</div>
+					{/each}
+				</div>
+			{/if}
+
+			{#if error}
+				<p class="mt-2 text-sm text-red-500">{error}</p>
+			{/if}
+			<p class="mt-2 text-2xl font-medium text-gray-800">Drag and drop</p>
+			<p class="text-xs text-gray-800">or browse for photos</p>
+
+			{#if imagePreviews.length > 0}
+				<button
+					type="submit"
+					class="mt-6 w-full max-w-sm rounded-md bg-indigo-600 px-6 py-3 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+				>
+					Submit Images
+				</button>
+			{/if}
+		</form>
 	</div>
 </div>
 

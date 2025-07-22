@@ -1,6 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
-import type { Actions, RequestEvent } from './$types';
+import type { Actions, RequestEvent } from '../$types';
 import { userPendingBusiness } from '$lib/store';
 import { get } from 'svelte/store';
 
