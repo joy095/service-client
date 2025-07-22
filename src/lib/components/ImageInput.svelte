@@ -1,36 +1,63 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import Icon from '@iconify/svelte';
+	import { onDestroy, onMount } from 'svelte';
 
+	let openMenuIndex: number | null = null;
 	let imageInput: HTMLInputElement | null = null;
 	let imagePreviews: { src: string; name: string }[] = [];
 	let error: string | null = null;
 	let isDragging = false;
 	export let value: File[] = [];
-
 	let objectFits: string[] = [];
 
+	// Handle image object-fit mode
 	function handleLoad(event: Event, index: number) {
 		const img = event.target as HTMLImageElement;
 		objectFits[index] = img.naturalHeight > img.naturalWidth ? 'object-contain' : 'object-cover';
 	}
 
-	// Maximum file size (10MB)
-	const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+	// Handle outside click to close any menu
+	function handleClickOutside(event: MouseEvent) {
+		const target = event.target as HTMLElement;
+		if (!target.closest('.menu-wrapper')) {
+			openMenuIndex = null;
+		}
+	}
+
+	onMount(() => {
+		if (browser) {
+			document.addEventListener('click', handleClickOutside);
+		}
+	});
+
+	onDestroy(() => {
+		if (browser) {
+			document.removeEventListener('click', handleClickOutside);
+		}
+	});
+
+	const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 	function handleImageChange(event: Event) {
 		const files = (event.target as HTMLInputElement).files;
-		if (files) {
-			processFiles(Array.from(files));
-		}
+		if (files) processFiles(Array.from(files));
 	}
 
 	function handleDrop(event: DragEvent) {
 		event.preventDefault();
 		isDragging = false;
 		const files = event.dataTransfer?.files;
-		if (files) {
-			processFiles(Array.from(files));
-		}
+		if (files) processFiles(Array.from(files));
+	}
+
+	function handleDragOver(event: DragEvent) {
+		event.preventDefault();
+		isDragging = true;
+	}
+
+	function handleDragLeave() {
+		isDragging = false;
 	}
 
 	function processFiles(files: File[]) {
@@ -55,30 +82,22 @@
 			reader.readAsDataURL(file);
 		}
 
-		// Update the bound value
 		value = [...value, ...validFiles];
-	}
-
-	function handleDragOver(event: DragEvent) {
-		event.preventDefault();
-		isDragging = true;
-	}
-
-	function handleDragLeave() {
-		isDragging = false;
 	}
 
 	function clearPreview(index: number) {
 		imagePreviews = imagePreviews.filter((_, i) => i !== index);
 		value = value.filter((_, i) => i !== index);
 		objectFits = objectFits.filter((_, i) => i !== index);
+		if (openMenuIndex === index) openMenuIndex = null;
 	}
 </script>
 
 <div class="min-h-screen w-full rounded-lg bg-white p-6 shadow-md">
 	<h3 class="mb-4 text-center text-lg font-semibold text-gray-800">Upload Images</h3>
+
 	<div
-		class="mx-auto flex max-w-2xl flex-col items-center gap-5 rounded-md border-2 border-dashed px-6 py-10"
+		class="mx-auto flex max-w-3xl flex-col items-center gap-5 rounded-md border-2 border-dashed px-6 py-10"
 		class:border-indigo-600={isDragging}
 		class:border-gray-300={!isDragging}
 		on:drop={handleDrop}
@@ -102,11 +121,14 @@
 		>
 			Browser
 		</label>
+
 		{#if imagePreviews.length > 0}
 			<div class="mt-4 grid w-full max-w-3xl grid-cols-2 gap-5">
 				{#each imagePreviews as preview, index}
-					<div class={`relative ${index === 0 ? 'first-image' : ''}`}>
-						<div class="h-full w-full overflow-hidden rounded-md bg-gray-100">
+					<div class={`image-wrapper ${index === 0 ? 'first-image' : ''}`}>
+						<div
+							class="image-container relative h-full w-full overflow-hidden rounded-md bg-gray-100"
+						>
 							<img
 								src={preview.src}
 								alt={preview.name}
@@ -114,13 +136,29 @@
 								on:load={(e) => handleLoad(e, index)}
 							/>
 						</div>
-						<button
-							on:click={() => clearPreview(index)}
-							aria-label="Remove {preview.name}"
-							class="absolute top-1 right-1 cursor-pointer rounded-full bg-white p-2 shadow-md hover:bg-gray-200"
-						>
-							<Icon icon="line-md:close" class="h-5 w-5 text-gray-500" />
-						</button>
+						<div class="menu-wrapper absolute top-2 left-2 z-10">
+							<button
+								class="flex h-9 w-9 items-center justify-center rounded-full bg-[#EBEBEB] hover:bg-[#e7e7e7]"
+								on:click={() => (openMenuIndex = openMenuIndex === index ? null : index)}
+							>
+								<Icon class="h-5 w-5 text-black" icon="pepicons-pencil:dots-x" />
+							</button>
+
+							{#if openMenuIndex === index}
+								<div
+									class="absolute right-0 mt-2 w-40 rounded-md border border-gray-200 bg-white py-2 text-sm shadow-lg"
+								>
+									<button
+										class="w-full px-4 py-2 text-left text-red-600 hover:bg-gray-100"
+										on:click={() => clearPreview(index)}
+									>
+										Delete
+									</button>
+									<button class="w-full px-4 py-2 text-left hover:bg-gray-100">Edit</button>
+									<button class="w-full px-4 py-2 text-left hover:bg-gray-100">Set as Cover</button>
+								</div>
+							{/if}
+						</div>
 					</div>
 				{/each}
 			</div>
@@ -136,27 +174,37 @@
 
 <style>
 	.first-image {
-		grid-column: 1 / span 2;
-
-		&::before {
-			position: absolute;
-			left: 1rem;
-			right: auto;
-			top: 1rem;
-			border-radius: 0.3rem;
-			content: 'Cover image';
-			font-weight: 500;
-			font-size: 1rem;
-			background-color: #fff;
-			padding-top: 0.1rem;
-			padding-left: 0.5rem;
-			z-index: 1;
-			height: 1.8rem;
-			width: 6.7rem;
-		}
+		grid-column: span 2;
 
 		div > img {
 			object-fit: cover;
+			height: 25rem;
 		}
+	}
+
+	.first-image .image-container::before {
+		content: 'Cover image';
+		position: absolute;
+		top: 0.5rem;
+		left: 0.5rem;
+		background-color: #fff;
+		color: #000;
+		font-size: 0.875rem;
+		font-weight: 500;
+		padding: 0.25rem 0.5rem;
+		border-radius: 0.375rem;
+		z-index: 10;
+	}
+
+	.image-wrapper {
+		position: relative;
+	}
+
+	.menu-wrapper {
+		position: absolute;
+		top: 0.5rem;
+		left: auto;
+		right: 0.5rem;
+		z-index: 20;
 	}
 </style>
