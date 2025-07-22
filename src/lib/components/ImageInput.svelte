@@ -103,9 +103,9 @@
 			Browser
 		</label>
 		{#if imagePreviews.length > 0}
-			<div class="mt-4 grid w-full max-w-3xl grid-cols-2 gap-4">
+			<div class="mt-4 grid w-full max-w-3xl grid-cols-2 gap-5">
 				{#each imagePreviews as preview, index}
-					<div class={`relative ${index === 0 ? 'col-span-2' : ''}`}>
+					<div class={`relative ${index === 0 ? 'first-image' : ''}`}>
 						<div class="h-full w-full overflow-hidden rounded-md bg-gray-100">
 							<img
 								src={preview.src}
@@ -133,3 +133,30 @@
 		<p class="text-xs text-gray-800">or browse for photos</p>
 	</div>
 </div>
+
+<style>
+	.first-image {
+		grid-column: 1 / span 2;
+
+		&::before {
+			position: absolute;
+			left: 1rem;
+			right: auto;
+			top: 1rem;
+			border-radius: 0.3rem;
+			content: 'Cover image';
+			font-weight: 500;
+			font-size: 1rem;
+			background-color: #fff;
+			padding-top: 0.1rem;
+			padding-left: 0.5rem;
+			z-index: 1;
+			height: 1.8rem;
+			width: 6.7rem;
+		}
+
+		div > img {
+			object-fit: cover;
+		}
+	}
+</style>
