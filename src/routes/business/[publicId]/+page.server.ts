@@ -20,20 +20,20 @@ export const load: PageServerLoad = async ({ fetch, params }) => {
     // Normalize business image URL
     const business: Business = {
         ...businessRaw,
-        ObjectName: businessRaw.ObjectName?.startsWith('http')
-            ? businessRaw.ObjectName
-            : businessRaw.ObjectName
-                ? BASE_URL + businessRaw.ObjectName
+        PrimaryImageObject: businessRaw.PrimaryImageObject?.startsWith('http')
+            ? businessRaw.PrimaryImageObject
+            : businessRaw.PrimaryImageObject
+                ? BASE_URL + businessRaw.PrimaryImageObject
                 : `https://picsum.photos/536/354?random=${businessRaw.id}`
     };
 
     // Normalize service image URLs
     const services: Service[] = (serviceData.service ?? []).map((srv: Service) => ({
         ...srv,
-        objectName: srv.objectName?.startsWith('http')
-            ? srv.objectName
-            : srv.objectName
-                ? BASE_URL + srv.objectName
+        PrimaryImageObject: srv.PrimaryImageObject?.startsWith('http')
+            ? srv.PrimaryImageObject
+            : srv.PrimaryImageObject
+                ? BASE_URL + srv.PrimaryImageObject
                 : `https://picsum.photos/400/250?random=${srv.id}`
     }));
 

@@ -19,7 +19,12 @@
 	<!-- Business Header -->
 	<div class="hero-section" in:fade={{ duration: 800, easing: cubicOut }}>
 		<div class="image-wrapper">
-			<img loading="lazy" src={business.ObjectName} alt={business.name} class="main-image" />
+			<img
+				loading="lazy"
+				src={business.PrimaryImageObject}
+				alt={business.name}
+				class="main-image"
+			/>
 			<div class="image-overlay">
 				<h1 class="hero-title">{business.name}</h1>
 				<p class="hero-subtitle">{business.category} in {business.city}, {business.country}</p>
@@ -56,7 +61,12 @@
 					in:slide={{ duration: 600, delay: Number(service.id) * 100, easing: cubicOut }}
 				>
 					<div class="service-image-wrapper">
-						<img loading="lazy" src={service.objectName} alt={service.name} class="service-image" />
+						<img
+							loading="lazy"
+							src={service.PrimaryImageObject}
+							alt={service.name}
+							class="service-image"
+						/>
 						<div class="service-overlay">
 							<a href="/booking/{business.publicId}?service={service.id}" class="cta-button"
 								>Book Now</a

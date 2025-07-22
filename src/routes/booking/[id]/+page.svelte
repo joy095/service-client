@@ -74,7 +74,7 @@
 				<div class="flex items-center gap-4">
 					<img
 						class="h-8 object-cover"
-						src={business.ObjectName}
+						src={business.PrimaryImageObject}
 						alt="Logo of {business.name}"
 						loading="lazy"
 					/>

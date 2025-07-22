@@ -17,15 +17,15 @@ export const load: PageServerLoad = async ({ fetch }: { fetch: typeof globalThis
         // The backend now returns an array under 'businesses' key
         const businesses: Business[] = data.businesses;
 
-        // Map over the array of businesses to format ObjectName for each
+        // Map over the array of businesses to format PrimaryImageObject for each
         const formattedBusinesses = businesses.map(business => {
-            const isFullUrl = business.ObjectName?.startsWith('http');
+            const isFullUrl = business.PrimaryImageObject?.startsWith('http');
             return {
                 ...business,
-                ObjectName: business.ObjectName
+                PrimaryImageObject: business.PrimaryImageObject
                     ? isFullUrl
-                        ? business.ObjectName
-                        : BASE_URL + business.ObjectName
+                        ? business.PrimaryImageObject
+                        : BASE_URL + business.PrimaryImageObject
                     : `https://picsum.photos/536/354?random=${business.id}` // Fallback image
             };
         });

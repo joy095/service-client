@@ -6,13 +6,13 @@
 		city: string;
 		state: string;
 		country: string;
-		ObjectName: string | null;
+		PrimaryImageObject: string | null;
 		publicId: string;
 	};
 </script>
 
 <a href={`/business/${business.publicId}`} class="property-card">
-	<img src={business.ObjectName} alt={business.name} />
+	<img src={business.PrimaryImageObject} alt={business.name} />
 
 	<div class="details">
 		<div class="price-type">

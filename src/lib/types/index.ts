@@ -14,9 +14,18 @@ export interface Business {
     updatedAt: string;
     isActive: boolean;
     ownerId: string;
-    ObjectName: string | null;
+    PrimaryImageObject: string | null;
     publicId: string;
 };
+
+export interface BusinessImage {
+    imageId: string;
+    businessId: string;
+    isPrimary: boolean;
+    createdAt: string;
+    PrimaryImageObject: string;
+    position: number;
+}
 
 export interface Service {
     id: string;
@@ -29,7 +38,7 @@ export interface Service {
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
-    objectName: string;
+    PrimaryImageObject: string;
 };
 
 export interface WorkingHour {
