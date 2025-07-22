@@ -29,7 +29,7 @@ export interface Service {
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
-    object_name: string;
+    objectName: string;
 };
 
 export interface WorkingHour {

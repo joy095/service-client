@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount, createEventDispatcher } from 'svelte';
 	import { browser } from '$app/environment';
-	import type { Map, Marker } from 'leaflet';
+	import { type Map, type Marker } from 'leaflet';
 	import debounce from 'lodash.debounce';
+	import Icon from '@iconify/svelte';
 
 	// Types
 	interface LocationDetails {
@@ -415,7 +416,7 @@
 					type="button"
 					on:click={searchLocation}
 					disabled={isSearching || isDisabled}
-					class="rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+					class="cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					{#if isSearching}
 						<svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -434,7 +435,7 @@
 							></path>
 						</svg>
 					{:else}
-						Search
+						<Icon icon="mingcute:search-line" width="24" height="24" />
 					{/if}
 				</button>
 			</div>
@@ -460,7 +461,7 @@
 	{/if}
 
 	<!-- Map Container -->
-	<div class="map-container relative">
+	<div class="map-container relative z-0">
 		<label class="mb-2 block text-sm font-medium text-gray-700"> Select Location on Map </label>
 		<div
 			bind:this={mapContainer}

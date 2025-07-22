@@ -1,9 +1,18 @@
 <script lang="ts">
+	import Icon from '@iconify/svelte';
+
 	let imageInput: HTMLInputElement | null = null;
 	let imagePreviews: { src: string; name: string }[] = [];
 	let error: string | null = null;
 	let isDragging = false;
 	export let value: File[] = [];
+
+	let objectFits: string[] = [];
+
+	function handleLoad(event: Event, index: number) {
+		const img = event.target as HTMLImageElement;
+		objectFits[index] = img.naturalHeight > img.naturalWidth ? 'object-contain' : 'object-cover';
+	}
 
 	// Maximum file size (10MB)
 	const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
@@ -62,20 +71,14 @@
 	function clearPreview(index: number) {
 		imagePreviews = imagePreviews.filter((_, i) => i !== index);
 		value = value.filter((_, i) => i !== index);
-		// if (imageInput) imageInput.value = '';
-	}
-
-	function clearAllPreviews() {
-		imagePreviews = [];
-		value = [];
-		if (imageInput) imageInput.value = '';
+		objectFits = objectFits.filter((_, i) => i !== index);
 	}
 </script>
 
-<div class="w-full rounded-lg bg-white p-6 shadow-md">
+<div class="min-h-screen w-full rounded-lg bg-white p-6 shadow-md">
 	<h3 class="mb-4 text-center text-lg font-semibold text-gray-800">Upload Images</h3>
 	<div
-		class="flex flex-col items-center rounded-md border-2 border-dashed p-4"
+		class="mx-auto flex max-w-2xl flex-col items-center gap-5 rounded-md border-2 border-dashed px-6 py-10"
 		class:border-indigo-600={isDragging}
 		class:border-gray-300={!isDragging}
 		on:drop={handleDrop}
@@ -95,37 +98,38 @@
 		/>
 		<label
 			for="imageInput"
-			class="cursor-pointer rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+			class="cursor-pointer rounded-md bg-gray-800 px-5 py-3 text-white hover:bg-black focus:ring-2 focus:ring-indigo-500 focus:outline-none"
 		>
-			Choose Images
+			Browser
 		</label>
 		{#if imagePreviews.length > 0}
-			<div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+			<div class="mt-4 grid w-full max-w-3xl grid-cols-2 gap-4">
 				{#each imagePreviews as preview, index}
-					<div class="flex flex-col items-center">
-						<img src={preview.src} alt={preview.name} class="h-24 w-24 rounded-md object-cover" />
-						<p class="mt-1 text-xs text-gray-600">{preview.name}</p>
+					<div class={`relative ${index === 0 ? 'col-span-2' : ''}`}>
+						<div class="h-full w-full overflow-hidden rounded-md bg-gray-100">
+							<img
+								src={preview.src}
+								alt={preview.name}
+								class={`h-[15rem] w-full ${objectFits[index] || 'object-cover'}`}
+								on:load={(e) => handleLoad(e, index)}
+							/>
+						</div>
 						<button
 							on:click={() => clearPreview(index)}
-							class="mt-1 text-sm text-red-500 hover:text-red-700"
 							aria-label="Remove {preview.name}"
+							class="absolute top-1 right-1 cursor-pointer rounded-full bg-white p-2 shadow-md hover:bg-gray-200"
 						>
-							Remove
+							<Icon icon="line-md:close" class="h-5 w-5 text-gray-500" />
 						</button>
 					</div>
 				{/each}
 			</div>
-			<button
-				on:click={clearAllPreviews}
-				class="mt-4 text-sm text-red-500 hover:text-red-700"
-				aria-label="Clear all images"
-			>
-				Clear All
-			</button>
 		{/if}
+
 		{#if error}
 			<p class="mt-2 text-sm text-red-500">{error}</p>
 		{/if}
-		<p class="mt-2 text-xs text-gray-400">Supported formats: PNG, JPG. Max size: 10MB</p>
+		<p class="mt-2 text-2xl font-medium text-gray-800">Drag and drop</p>
+		<p class="text-xs text-gray-800">or browse for photos</p>
 	</div>
 </div>

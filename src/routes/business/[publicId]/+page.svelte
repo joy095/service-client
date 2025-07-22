@@ -56,12 +56,7 @@
 					in:slide={{ duration: 600, delay: Number(service.id) * 100, easing: cubicOut }}
 				>
 					<div class="service-image-wrapper">
-						<img
-							loading="lazy"
-							src={service.object_name}
-							alt={service.name}
-							class="service-image"
-						/>
+						<img loading="lazy" src={service.objectName} alt={service.name} class="service-image" />
 						<div class="service-overlay">
 							<a href="/booking/{business.publicId}?service={service.id}" class="cta-button"
 								>Book Now</a

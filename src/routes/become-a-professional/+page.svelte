@@ -2,6 +2,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
 	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
 	import type { ActionData } from './$types';
 	import MapPicker from '$lib/components/MapPicker.svelte';
 
@@ -172,50 +173,58 @@
 		mapError = event.detail;
 		errors.location = event.detail;
 	}
+
+	function handleSubmit() {
+		goto('/upload-images'); // Redirect to image upload page
+	}
 </script>
 
-<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4 py-12">
-	<div class="mx-auto max-w-4xl">
-		<div class="mb-12 text-center">
-			<h1
-				class="mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-4xl font-bold text-transparent md:text-5xl"
-			>
-				Create Your Service
-			</h1>
-			<p class="text-lg text-gray-600">Set up your business profile in just a few steps</p>
+<div class="min-h-screen bg-gray-50 px-4 py-12">
+	<div class="mx-auto max-w-3xl">
+		<div class="mb-10 text-center">
+			<h1 class="mb-3 text-3xl font-bold text-gray-900 md:text-4xl">Create Your Service</h1>
+			<p class="text-base text-gray-600">Set up your business profile in a few simple steps</p>
 		</div>
 
-		<div class="z-10 mb-12 flex items-center justify-center">
-			<div class="flex items-center space-x-8">
+		<div class="mb-10 flex items-center justify-center">
+			<div class="flex items-center space-x-6">
 				{#each [1, 2, 3] as step}
 					<div class="flex flex-col items-center">
 						<div
-							class="flex h-12 w-12 items-center justify-center rounded-full text-lg font-semibold text-white transition-all duration-300 {currentStep >=
+							class="flex h-10 w-10 items-center justify-center rounded-full text-base font-semibold text-white transition-all duration-300 {currentStep >=
 							step
-								? 'bg-gradient-to-r from-blue-500 to-purple-500 shadow-lg'
-								: 'bg-gray-300'} {currentStep === step ? 'scale-110 shadow-xl' : ''}"
+								? 'bg-coral-500 shadow-md'
+								: 'bg-gray-300'} {currentStep === step ? 'scale-110' : ''}"
 						>
 							{step}
 						</div>
 						<span
-							class="mt-2 text-sm font-medium {currentStep >= step
-								? 'text-blue-600'
-								: 'text-gray-400'}"
+							class="mt-2 text-xs font-medium {currentStep >= step
+								? 'text-gray-900'
+								: 'text-gray-500'}"
 						>
 							{step === 1 ? 'Basic Info' : step === 2 ? 'Location' : 'Review'}
 						</span>
 					</div>
+					{#if step < 3}
+						<div
+							class="h-1 w-12 rounded-full {currentStep > step ? 'bg-coral-500' : 'bg-gray-200'}"
+						></div>
+					{/if}
 				{/each}
 			</div>
 		</div>
 
-		<div class="glass-effect rounded-2xl p-8 shadow-2xl md:p-12">
+		<div class="rounded-2xl bg-white p-8 shadow-lg">
 			<form
 				method="POST"
 				use:enhance={() => {
 					isSubmitting = true;
 					return async ({ formData, update }) => {
 						isSubmitting = false;
+						if (form?.success) {
+							handleSubmit();
+						}
 						await update();
 					};
 				}}
@@ -223,14 +232,14 @@
 			>
 				{#if currentStep === 1}
 					<div
-						in:fly={{ x: 300, duration: 500, easing: quintOut }}
-						out:fly={{ x: -300, duration: 300 }}
+						in:fly={{ x: 200, duration: 400, easing: quintOut }}
+						out:fly={{ x: -200, duration: 300 }}
 					>
-						<h2 class="mb-6 text-center text-2xl font-bold text-gray-800">Basic Information</h2>
+						<h2 class="mb-6 text-xl font-semibold text-gray-900">Basic Information</h2>
 
-						<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-							<div class="md:col-span-2">
-								<label class="mb-2 block text-sm font-semibold text-gray-700" for="business-name"
+						<div class="space-y-6">
+							<div>
+								<label class="mb-2 block text-sm font-medium text-gray-700" for="business-name"
 									>Business Name</label
 								>
 								<input
@@ -239,24 +248,24 @@
 									bind:value={formData.name}
 									name="name"
 									placeholder="Enter your business name"
-									class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+									class="focus:border-coral-500 focus:ring-coral-200 w-full rounded-lg border border-gray-300 px-4 py-3 text-sm transition-all duration-300 focus:ring-2"
 									class:border-red-500={!!errors.name}
 									required
 								/>
 								{#if errors.name}
-									<p class="mt-1 text-sm text-red-500">{errors.name}</p>
+									<p class="mt-1 text-xs text-red-500">{errors.name}</p>
 								{/if}
 							</div>
 
-							<div class="md:col-span-2">
-								<label class="mb-2 block text-sm font-semibold text-gray-700" for="category-select"
+							<div>
+								<label class="mb-2 block text-sm font-medium text-gray-700" for="category-select"
 									>Category</label
 								>
 								<select
 									id="category-select"
 									bind:value={formData.category}
 									name="category"
-									class="input-focus w-full appearance-none rounded-xl border-2 border-gray-200 bg-white px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+									class="focus:border-coral-500 focus:ring-coral-200 w-full rounded-lg border border-gray-300 px-4 py-3 text-sm transition-all duration-300 focus:ring-2"
 									class:border-red-500={!!errors.category}
 									required
 								>
@@ -266,7 +275,7 @@
 									{/each}
 								</select>
 								{#if errors.category}
-									<p class="mt-1 text-sm text-red-500">{errors.category}</p>
+									<p class="mt-1 text-xs text-red-500">{errors.category}</p>
 								{/if}
 							</div>
 						</div>
@@ -275,12 +284,10 @@
 
 				{#if currentStep === 2}
 					<div
-						in:fly={{ x: 300, duration: 500, easing: quintOut }}
-						out:fly={{ x: -300, duration: 300 }}
+						in:fly={{ x: 200, duration: 400, easing: quintOut }}
+						out:fly={{ x: -200, duration: 300 }}
 					>
-						<h2 class="mb-6 text-center text-2xl font-bold text-gray-800">
-							Set Your Location on Map
-						</h2>
+						<h2 class="mb-6 text-xl font-semibold text-gray-900">Set Your Location</h2>
 
 						<MapPicker
 							initialLat={parseFloat(formData.latitude) || undefined}
@@ -291,7 +298,7 @@
 						/>
 
 						{#if errors.location}
-							<p class="mt-2 text-center text-sm text-red-500">{errors.location}</p>
+							<p class="mt-2 text-center text-xs text-red-500">{errors.location}</p>
 						{/if}
 					</div>
 				{/if}
@@ -313,15 +320,13 @@
 
 				{#if currentStep === 3}
 					<div
-						in:fly={{ x: 300, duration: 500, easing: quintOut }}
-						out:fly={{ x: -300, duration: 300 }}
+						in:fly={{ x: 200, duration: 400, easing: quintOut }}
+						out:fly={{ x: -200, duration: 300 }}
 					>
-						<h2 class="mb-6 text-center text-2xl font-bold text-gray-800">
-							Review Your Information
-						</h2>
+						<h2 class="mb-6 text-xl font-semibold text-gray-900">Review Your Information</h2>
 
 						{#if errors.city || errors.state || errors.country || errors.postalCode}
-							<div class="mb-6 rounded-lg bg-yellow-100 p-4 text-yellow-700">
+							<div class="mb-6 rounded-lg bg-yellow-50 p-4 text-yellow-700">
 								<p class="font-medium">Please complete the following required fields:</p>
 								<ul class="mt-2 list-disc pl-5 text-sm">
 									{#if errors.city}
@@ -341,9 +346,9 @@
 						{/if}
 
 						<div class="space-y-6">
-							<div class="rounded-xl bg-gray-50 p-6">
-								<h3 class="mb-4 font-semibold text-gray-800">Basic Information</h3>
-								<div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
+							<div class="rounded-lg bg-gray-50 p-6">
+								<h3 class="mb-4 text-base font-semibold text-gray-900">Basic Information</h3>
+								<div class="grid grid-cols-1 gap-4 text-sm">
 									<div>
 										<span class="font-medium">Business Name:</span>
 										{formData.name || 'N/A'}
@@ -352,15 +357,15 @@
 								</div>
 							</div>
 
-							<div class="rounded-xl bg-green-50 p-6">
-								<h3 class="mb-4 font-semibold text-gray-800">Location Details</h3>
-								<div class="grid grid-cols-1 gap-4 text-sm md:grid-cols-2">
+							<div class="rounded-lg bg-gray-50 p-6">
+								<h3 class="mb-4 text-base font-semibold text-gray-900">Location Details</h3>
+								<div class="space-y-4">
 									<div>
 										<span class="font-medium">Location Set:</span>
 										{formData.latitude && formData.longitude ? 'Yes' : 'No'}
 									</div>
-									<div class="md:col-span-2">
-										<label class="mb-2 block text-sm font-semibold text-gray-700" for="address"
+									<div>
+										<label class="mb-2 block text-sm font-medium text-gray-700" for="address"
 											>Full Address</label
 										>
 										<input
@@ -369,15 +374,15 @@
 											bind:value={formData.address}
 											name="address"
 											placeholder="Enter full address"
-											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+											class="focus:border-coral-500 focus:ring-coral-200 w-full rounded-lg border border-gray-300 px-4 py-3 text-sm transition-all duration-300 focus:ring-2"
 											class:border-red-500={!!errors.address}
 										/>
 										{#if errors.address}
-											<p class="mt-1 text-sm text-red-500">{errors.address}</p>
+											<p class="mt-1 text-xs text-red-500">{errors.address}</p>
 										{/if}
 									</div>
 									<div>
-										<label class="mb-2 block text-sm font-semibold text-gray-700" for="road"
+										<label class="mb-2 block text-sm font-medium text-gray-700" for="road"
 											>Road</label
 										>
 										<input
@@ -386,20 +391,11 @@
 											bind:value={formData.road}
 											name="road"
 											placeholder="Enter road name"
-											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+											class="focus:border-coral-500 focus:ring-coral-200 w-full rounded-lg border border-gray-300 px-4 py-3 text-sm transition-all duration-300 focus:ring-2"
 										/>
 									</div>
-									{#if formData.road}
-										<div><span class="font-medium">Road:</span> {formData.road}</div>
-									{/if}
-									{#if formData.house_number}
-										<div>
-											<span class="font-medium">House Number:</span>
-											{formData.house_number}
-										</div>
-									{/if}
 									<div>
-										<label class="mb-2 block text-sm font-semibold text-gray-700" for="city"
+										<label class="mb-2 block text-sm font-medium text-gray-700" for="city"
 											>City</label
 										>
 										<input
@@ -408,15 +404,15 @@
 											bind:value={formData.city}
 											name="city"
 											placeholder="Enter city"
-											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+											class="focus:border-coral-500 focus:ring-coral-200 w-full rounded-lg border border-gray-300 px-4 py-3 text-sm transition-all duration-300 focus:ring-2"
 											class:border-red-500={!!errors.city}
 										/>
 										{#if errors.city}
-											<p class="mt-1 text-sm text-red-500">{errors.city}</p>
+											<p class="mt-1 text-xs text-red-500">{errors.city}</p>
 										{/if}
 									</div>
 									<div>
-										<label class="mb-2 block text-sm font-semibold text-gray-700" for="state"
+										<label class="mb-2 block text-sm font-medium text-gray-700" for="state"
 											>State</label
 										>
 										<input
@@ -425,15 +421,15 @@
 											bind:value={formData.state}
 											name="state"
 											placeholder="Enter state"
-											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+											class="focus:border-coral-500 focus:ring-coral-200 w-full rounded-lg border border-gray-300 px-4 py-3 text-sm transition-all duration-300 focus:ring-2"
 											class:border-red-500={!!errors.state}
 										/>
 										{#if errors.state}
-											<p class="mt-1 text-sm text-red-500">{errors.state}</p>
+											<p class="mt-1 text-xs text-red-500">{errors.state}</p>
 										{/if}
 									</div>
 									<div>
-										<label class="mb-2 block text-sm font-semibold text-gray-700" for="country"
+										<label class="mb-2 block text-sm font-medium text-gray-700" for="country"
 											>Country</label
 										>
 										<input
@@ -442,15 +438,15 @@
 											bind:value={formData.country}
 											name="country"
 											placeholder="Enter country"
-											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+											class="focus:border-coral-500 focus:ring-coral-200 w-full rounded-lg border border-gray-300 px-4 py-3 text-sm transition-all duration-300 focus:ring-2"
 											class:border-red-500={!!errors.country}
 										/>
 										{#if errors.country}
-											<p class="mt-1 text-sm text-red-500">{errors.country}</p>
+											<p class="mt-1 text-xs text-red-500">{errors.country}</p>
 										{/if}
 									</div>
 									<div>
-										<label class="mb-2 block text-sm font-semibold text-gray-700" for="postalCode"
+										<label class="mb-2 block text-sm font-medium text-gray-700" for="postalCode"
 											>Postal Code</label
 										>
 										<input
@@ -459,11 +455,11 @@
 											bind:value={formData.postalCode}
 											name="postalCode"
 											placeholder="Enter postal code"
-											class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+											class="focus:border-coral-500 focus:ring-coral-200 w-full rounded-lg border border-gray-300 px-4 py-3 text-sm transition-all duration-300 focus:ring-2"
 											class:border-red-500={!!errors.postalCode}
 										/>
 										{#if errors.postalCode}
-											<p class="mt-1 text-sm text-red-500">{errors.postalCode}</p>
+											<p class="mt-1 text-xs text-red-500">{errors.postalCode}</p>
 										{/if}
 									</div>
 								</div>
@@ -472,25 +468,25 @@
 					</div>
 				{/if}
 
-				<div class="flex justify-between pt-8">
+				<div class="flex justify-between pt-6">
 					<button
 						type="button"
 						on:click={prevStep}
-						class="rounded-xl bg-gray-200 px-6 py-3 font-medium text-gray-700 transition-colors duration-300 hover:bg-gray-300 {currentStep ===
+						class="cursor-pointer rounded-lg border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-700 transition-all duration-300 hover:bg-gray-100 {currentStep ===
 						1
 							? 'invisible'
 							: ''}"
 					>
-						← Previous
+						Previous
 					</button>
 
 					{#if currentStep < 3}
 						<button
 							type="button"
 							on:click={nextStep}
-							class="rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-3 font-medium text-white shadow-lg transition-all duration-300 hover:from-blue-600 hover:to-purple-600"
+							class="bg-coral-500 hover:bg-coral-600 focus:ring-coral-200 cursor-pointer rounded-lg px-6 py-2.5 text-sm font-medium text-white transition-all duration-300 focus:ring-2"
 						>
-							Next →
+							Next
 						</button>
 					{:else}
 						<button
@@ -504,11 +500,11 @@
 								!!errors.country ||
 								!!errors.postalCode ||
 								!!errors.address}
-							class="flex items-center justify-center rounded-xl bg-gradient-to-r from-teal-500 to-green-500 px-8 py-3 font-bold text-white shadow-lg transition-all duration-300 hover:from-teal-600 hover:to-green-600 disabled:opacity-50"
+							class="bg-coral-500 hover:bg-coral-600 focus:ring-coral-200 flex cursor-pointer items-center justify-center rounded-lg px-6 py-2.5 text-sm font-medium text-white transition-all duration-300 focus:ring-2 disabled:opacity-50"
 						>
 							{#if isSubmitting}
 								<svg
-									class="mr-3 -ml-1 h-5 w-5 animate-spin text-white"
+									class="mr-2 h-5 w-5 animate-spin text-white"
 									xmlns="http://www.w3.org/2000/svg"
 									fill="none"
 									viewBox="0 0 24 24"
@@ -529,7 +525,7 @@
 								</svg>
 								Submitting...
 							{:else}
-								Submit Form
+								Next
 							{/if}
 						</button>
 					{/if}
@@ -539,11 +535,11 @@
 			{#if form?.success}
 				<div
 					transition:fade={{ duration: 300 }}
-					class="mt-4 flex items-center justify-center rounded-lg bg-green-500/20 p-4 text-green-300"
+					class="mt-4 flex items-center rounded-lg bg-green-50 p-4 text-green-700"
 				>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
-						class="mr-2 h-6 w-6"
+						class="mr-2 h-5 w-5"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -560,11 +556,11 @@
 			{:else if form?.error}
 				<div
 					transition:fade={{ duration: 300 }}
-					class="mt-4 flex items-center justify-center rounded-lg bg-red-500/20 p-4 text-red-300"
+					class="mt-4 flex items-center rounded-lg bg-red-50 p-4 text-red-700"
 				>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
-						class="mr-2 h-6 w-6"
+						class="mr-2 h-5 w-5"
 						fill="none"
 						viewBox="0 0 24 24"
 						stroke="currentColor"
@@ -584,28 +580,23 @@
 </div>
 
 <style>
-	.glass-effect {
-		background: rgba(255, 255, 255, 0.95);
-		backdrop-filter: blur(20px);
-		border: 1px solid rgba(255, 255, 255, 0.3);
+	.bg-coral-500 {
+		background-color: #ff5a5f;
 	}
 
-	@keyframes float {
-		0%,
-		100% {
-			transform: translateY(0px);
-		}
-		50% {
-			transform: translateY(-10px);
-		}
+	.rounded-lg {
+		border-radius: 0.5rem;
 	}
 
-	.input-focus {
-		transition: all 0.3s ease;
+	.shadow-lg {
+		box-shadow:
+			0 10px 15px -3px rgba(0, 0, 0, 0.1),
+			0 4px 6px -2px rgba(0, 0, 0, 0.05);
 	}
 
-	.input-focus:focus {
-		transform: translateY(-2px);
-		box-shadow: 0 10px 25px rgba(102, 126, 234, 0.15);
+	.transition-all {
+		transition-property: all;
+		transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+		transition-duration: 300ms;
 	}
 </style>

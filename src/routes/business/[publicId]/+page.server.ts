@@ -30,10 +30,10 @@ export const load: PageServerLoad = async ({ fetch, params }) => {
     // Normalize service image URLs
     const services: Service[] = (serviceData.service ?? []).map((srv: Service) => ({
         ...srv,
-        object_name: srv.object_name?.startsWith('http')
-            ? srv.object_name
-            : srv.object_name
-                ? BASE_URL + srv.object_name
+        objectName: srv.objectName?.startsWith('http')
+            ? srv.objectName
+            : srv.objectName
+                ? BASE_URL + srv.objectName
                 : `https://picsum.photos/400/250?random=${srv.id}`
     }));
 
