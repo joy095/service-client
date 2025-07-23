@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
-	import Map from '$lib/components/Map.svelte';
+	// import Map from '$lib/components/Map.svelte';
 
 	export let data;
 	const { business, services } = data;
@@ -21,7 +21,7 @@
 		<div class="image-wrapper">
 			<img
 				loading="lazy"
-				src={business.PrimaryImageObject}
+				src={business.images[0].objectName}
 				alt={business.name}
 				class="main-image"
 			/>

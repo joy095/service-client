@@ -14,7 +14,14 @@ export interface Business {
     updatedAt: string;
     isActive: boolean;
     ownerId: string;
-    PrimaryImageObject: string | null;
+    images: {
+        businessId: string;
+        imageId: string;
+        isPrimary: boolean;
+        createdAt: string;
+        objectName: string;
+        position: number;
+    }[]
     publicId: string;
 };
 

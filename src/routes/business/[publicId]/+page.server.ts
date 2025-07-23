@@ -2,7 +2,6 @@ import type { PageServerLoad } from './$types';
 import type { Business, Service } from '$lib/types';
 import { env } from '$env/dynamic/private';
 
-const BASE_URL = 'https://r2-worker-proxy.joykarmakar987654321.workers.dev';
 const API_BASE = env.API_URL;
 
 export const load: PageServerLoad = async ({ fetch, params }) => {
@@ -17,24 +16,16 @@ export const load: PageServerLoad = async ({ fetch, params }) => {
     if (!serviceRes.ok) throw new Error('Failed to load services');
     const serviceData = await serviceRes.json();
 
-    // Normalize business image URL
+    // Normalize business - use objectName exactly as provided by backend
     const business: Business = {
         ...businessRaw,
-        objectName: businessRaw.objectName
-            ? businessRaw.objectName.startsWith('http')
-                ? businessRaw.objectName
-                : `${BASE_URL}/${businessRaw.objectName}`
-            : `https://picsum.photos/536/354?random=${businessRaw.id}`
+        objectName: businessRaw.objectName || null
     };
 
-    // Normalize service image URLs
+    // Normalize services - use objectName exactly as provided by backend
     const services: Service[] = (serviceData.service ?? []).map((srv: Service) => ({
         ...srv,
-        objectName: srv.objectName
-            ? srv.objectName.startsWith('http')
-                ? srv.objectName
-                : `${BASE_URL}/${srv.objectName}`
-            : `https://picsum.photos/400/250?random=${srv.id}`
+        objectName: srv.objectName || null
     }));
 
     return { business, services };

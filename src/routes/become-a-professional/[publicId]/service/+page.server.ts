@@ -24,9 +24,6 @@ export const actions: Actions = {
             body: formData
         });
 
-        console.log(accessToken)
-
-        console.log(formData)
 
         if (!res.ok) {
             const data = await res.json();
