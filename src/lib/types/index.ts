@@ -38,7 +38,7 @@ export interface Service {
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
-    PrimaryImageObject: string;
+    objectName: string;
 };
 
 export interface WorkingHour {

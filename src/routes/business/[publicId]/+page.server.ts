@@ -13,28 +13,28 @@ export const load: PageServerLoad = async ({ fetch, params }) => {
     const businessRaw = businessData.business;
 
     // Use the internal UUID to fetch services
-    const serviceRes = await fetch(`${API_BASE}/services/${businessRaw.id}`);
+    const serviceRes = await fetch(`${API_BASE}/services/${params.publicId}`);
     if (!serviceRes.ok) throw new Error('Failed to load services');
     const serviceData = await serviceRes.json();
 
     // Normalize business image URL
     const business: Business = {
         ...businessRaw,
-        PrimaryImageObject: businessRaw.PrimaryImageObject?.startsWith('http')
-            ? businessRaw.PrimaryImageObject
-            : businessRaw.PrimaryImageObject
-                ? BASE_URL + businessRaw.PrimaryImageObject
-                : `https://picsum.photos/536/354?random=${businessRaw.id}`
+        objectName: businessRaw.objectName
+            ? businessRaw.objectName.startsWith('http')
+                ? businessRaw.objectName
+                : `${BASE_URL}/${businessRaw.objectName}`
+            : `https://picsum.photos/536/354?random=${businessRaw.id}`
     };
 
     // Normalize service image URLs
     const services: Service[] = (serviceData.service ?? []).map((srv: Service) => ({
         ...srv,
-        PrimaryImageObject: srv.PrimaryImageObject?.startsWith('http')
-            ? srv.PrimaryImageObject
-            : srv.PrimaryImageObject
-                ? BASE_URL + srv.PrimaryImageObject
-                : `https://picsum.photos/400/250?random=${srv.id}`
+        objectName: srv.objectName
+            ? srv.objectName.startsWith('http')
+                ? srv.objectName
+                : `${BASE_URL}/${srv.objectName}`
+            : `https://picsum.photos/400/250?random=${srv.id}`
     }));
 
     return { business, services };
