@@ -32,7 +32,7 @@ export const load: PageServerLoad = async ({ fetch }: { fetch: typeof globalThis
                 publicId: business.publicId,
             };
         });
-        console.log(businesses)
+
         return { businesses };
     } catch (error) {
         console.error(error);
