@@ -13,7 +13,7 @@
 		</div>
 	{:else}
 		<div class="property-grid">
-			{#each data.businesses as business (business.id)}
+			{#each data.businesses as business (business.publicId)}
 				<PropertyCard {business} />
 			{/each}
 		</div>

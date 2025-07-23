@@ -77,7 +77,7 @@
 <button on:click={togglePopup}>
 	<div class="property-card">
 		<div class="relative">
-			<img src={business.PrimaryImageObject} alt={business.name} />
+			<img src={business.images[0].objectName} alt={business.name} />
 
 			<span
 				class="absolute top-5 left-5 flex items-center gap-1 rounded-full bg-white px-3 py-1 text-sm font-semibold text-gray-800"
@@ -109,7 +109,7 @@
 			>
 				<Icon class="h-5 w-5 text-black" icon="material-symbols:close-rounded" />
 			</button>
-			<img src={business.PrimaryImageObject} alt={business.name} class="popup-image" />
+			<img src={business.images[0].objectName} alt={business.name} class="popup-image" />
 
 			<div class="mb-3 text-center">
 				<p class=" font-semibold">

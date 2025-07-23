@@ -1,5 +1,5 @@
 export interface Business {
-    id: string;
+    id: string | null;
     name: string;
     category: string;
     address: string;
@@ -10,10 +10,11 @@ export interface Business {
     imageId: string | null;
     Latitude: number;
     Longitude: number;
-    createdAt: string;
-    updatedAt: string;
+    createdAt: string | null;
+    updatedAt: string | null;
     isActive: boolean;
-    ownerId: string;
+    ownerId: string | null;
+    publicId: string;
     images: {
         businessId: string;
         imageId: string;
@@ -21,8 +22,7 @@ export interface Business {
         createdAt: string;
         objectName: string;
         position: number;
-    }[]
-    publicId: string;
+    }[] | null
 };
 
 export interface BusinessImage {
@@ -30,8 +30,8 @@ export interface BusinessImage {
     businessId: string;
     isPrimary: boolean;
     createdAt: string;
-    PrimaryImageObject: string;
     position: number;
+    objectName: string;
 }
 
 export interface Service {
