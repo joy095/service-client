@@ -39,7 +39,7 @@ export interface Service {
     businessId: string;
     name: string;
     description: string;
-    durationMinutes: number;
+    duration: number;
     price: number;
     imageId: string | null;
     isActive: boolean;

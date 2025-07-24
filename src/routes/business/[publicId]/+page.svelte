@@ -19,12 +19,22 @@
 	<!-- Business Header -->
 	<div class="hero-section" in:fade={{ duration: 800, easing: cubicOut }}>
 		<div class="image-wrapper">
-			<img
-				loading="lazy"
-				src={business.images[0].objectName}
-				alt={business.name}
-				class="main-image"
-			/>
+			{#if business.images?.length > 0 && business.images[0].objectName}
+				<img
+					src={business.images[0].objectName}
+					alt={business.name}
+					class="h-48 w-full rounded-t object-cover"
+					on:error={(e) =>
+						((e.currentTarget as HTMLImageElement).src =
+							'https://images.unsplash.com/photo-1575936123452-b67c3203c357?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aW1hZ2V8ZW58MHx8MHx8fDA%3D')}
+				/>
+			{:else}
+				<img
+					src="https://images.unsplash.com/photo-1575936123452-b67c3203c357?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aW1hZ2V8ZW58MHx8MHx8fDA%3D"
+					alt="No image available"
+					class="h-48 w-full rounded-t object-cover"
+				/>
+			{/if}
 			<div class="image-overlay">
 				<h1 class="hero-title">{business.name}</h1>
 				<p class="hero-subtitle">{business.category} in {business.city}, {business.country}</p>

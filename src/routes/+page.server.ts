@@ -40,8 +40,6 @@ export const load: PageServerLoad = async ({ fetch }) => {
             })) ?? []
         }));
 
-        console.log("Business", businesses)
-
         return {
             businesses
         };
