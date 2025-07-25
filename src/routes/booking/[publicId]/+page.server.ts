@@ -35,10 +35,6 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
     }
     const data = await res.json();
 
-    console.log("data.workingHours", data.workingHours)
-    console.log("business", business)
-    console.log("services", services)
-
     return {
         business,
         workingHours: data.workingHours,

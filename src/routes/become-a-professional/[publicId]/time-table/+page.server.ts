@@ -1,56 +1,57 @@
+// src/routes/working-hour/bulk/[businessId]/+page.server.ts
+import { fail } from '@sveltejs/kit';
+import type { Actions } from './$types';
 import { env } from '$env/dynamic/private';
-import type { Business, Service } from '$lib/types';
-import type { PageServerLoad } from './$types';
 
-const BASE_URL = 'https://r2-worker-proxy.joykarmakar987654321.workers.dev';
-const API_BASE = env.API_URL;
+export const actions = {
+    default: async ({ request, params }) => {
+        const businessId = params.publicId;
+        const formData = await request.formData();
 
-export const load: PageServerLoad = async ({ params, fetch, url }) => {
+        // Extract days data
+        const days = [];
+        const dayIndices = new Set<number>();
 
-    // Fetch business data by publicId (e.g. premium-barber-HTmV9hlV)
-    const businessRes = await fetch(`${API_BASE}/business/${params.id}`);
-    if (!businessRes.ok) throw new Error('Failed to load business');
-    const businessData = await businessRes.json();
-    const businessRaw = businessData.business;
+        // Get all day indices from form data
+        for (const key of formData.keys()) {
+            const match = key.match(/days\[(\d+)\]\.dayOfWeek/);
+            if (match) {
+                dayIndices.add(parseInt(match[1]));
+            }
+        }
 
-    // Get serviceId from query parameters
-    const serviceId = url.searchParams.get('service'); // Service ID from query parameters
+        // Build days array
+        for (const index of dayIndices) {
+            days.push({
+                dayOfWeek: formData.get(`days[${index}].dayOfWeek`) as string,
+                openTime: formData.get(`days[${index}].openTime`) as string,
+                closeTime: formData.get(`days[${index}].closeTime`) as string,
+                isClosed: formData.get(`days[${index}].isClosed`) === 'true'
+            });
+        }
 
-    // Use the internal UUID to fetch services
-    const serviceRes = await fetch(`${API_BASE}/service/${serviceId}`);
-    if (!serviceRes.ok) throw new Error('Failed to load services');
-    const serviceData = await serviceRes.json();
+        // Get timezone
+        const timezone = formData.get('timezone') as string;
 
+        try {
+            // Call your backend API
+            const response = await fetch(`${env.API_URL}/working-hour/bulk/${businessId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ days, timezone })
+            });
 
-    // Normalize business image URL
-    const business: Business = {
-        ...businessRaw,
-        PrimaryImageObject: businessRaw.PrimaryImageObject?.startsWith('http')
-            ? businessRaw.PrimaryImageObject
-            : businessRaw.PrimaryImageObject
-                ? BASE_URL + businessRaw.PrimaryImageObject
-                : `https://picsum.photos/536/354?random=${businessRaw.id}`
-    };
+            if (!response.ok) {
+                throw new Error('Failed to save working hours');
+            }
 
-    // Normalize service image URLs
-    const services: Service = {
-        ...serviceData.service,
-        PrimaryImageObject: serviceData.service.PrimaryImageObject?.startsWith('http')
-            ? serviceData.service.PrimaryImageObject
-            : serviceData.service.PrimaryImageObject
-                ? BASE_URL + serviceData.service.PrimaryImageObject
-                : `https://picsum.photos/400/250?random=${serviceData.service.id}`
-    };
-
-    const res = await fetch(`${env.API_URL}/working-hour-business/${business.publicId}/working-hours`);
-    if (!res.ok) {
-        throw new Error('Failed to load working hours');
+            // Handle success (redirect or show message)
+            return { success: true };
+        } catch (error) {
+            console.error('Error saving working hours:', error);
+            return fail(500, { error: 'Failed to save working hours' });
+        }
     }
-    const data = await res.json();
-
-    return {
-        business,
-        workingHours: data.workingHours,
-        services
-    };
-};
+} satisfies Actions;

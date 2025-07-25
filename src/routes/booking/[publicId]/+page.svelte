@@ -104,7 +104,7 @@
 	}
 </script>
 
-<section class="container mx-auto">
+<section class="container mx-auto min-h-screen">
 	<div class="mx-auto mt-20 flex max-w-fit gap-8 overflow-hidden rounded-md p-8 shadow-2xl">
 		<div class="max-w-[19rem]">
 			<div class="flex flex-col gap-8">
@@ -163,7 +163,7 @@
 		</div>
 
 		<div>
-			<Calendar bind:value type="single" {minValue} {isDateDisabled} />
+			<Calendar class="transition-all" bind:value type="single" {minValue} {isDateDisabled} />
 		</div>
 
 		{#if value && service}
