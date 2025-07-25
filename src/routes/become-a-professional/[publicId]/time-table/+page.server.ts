@@ -4,9 +4,18 @@ import type { Actions } from './$types';
 import { env } from '$env/dynamic/private';
 
 export const actions = {
-    default: async ({ request, params }) => {
+    default: async ({ request, params, cookies }) => {
         const businessId = params.publicId;
         const formData = await request.formData();
+
+        const accessToken = cookies.get('access_token');
+        if (!accessToken) {
+            return fail(401, {
+                error: 'Not authenticated',
+                success: false,
+                message: 'Please login to continue'
+            });
+        }
 
         // Extract days data
         const days = [];
@@ -38,7 +47,8 @@ export const actions = {
             const response = await fetch(`${env.API_URL}/working-hour/bulk/${businessId}`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    Cookie: `access_token=${accessToken}`
                 },
                 body: JSON.stringify({ days, timezone })
             });
