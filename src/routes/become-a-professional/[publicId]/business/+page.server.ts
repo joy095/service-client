@@ -89,9 +89,9 @@ export const actions: Actions = {
         const state = data.get('state')?.toString()?.trim();
         const country = data.get('country')?.toString()?.trim();
         const postalCode = data.get('postalCode')?.toString()?.trim();
-        const road = data.get('road')?.toString()?.trim(); // Include road if needed
-        const house_number = data.get('house_number')?.toString()?.trim(); // Include house_number if needed
-        const about = data.get('about')?.toString()?.trim(); // Include about if used
+        const road = data.get('road')?.toString()?.trim();
+        const house_number = data.get('house_number')?.toString()?.trim();
+        // const about = data.get('about')?.toString()?.trim();
 
         // Basic validation - ensure required fields are present
         if (
@@ -108,8 +108,7 @@ export const actions: Actions = {
             return fail(400, {
                 error: 'Missing required fields: name, category, location, address, city, state, country, postalCode.',
                 success: false,
-                // Optionally return form data and errors to repopulate form on failure
-                formData: {
+                formData: { // Return formData for repopulation
                     name,
                     category,
                     latitude,
@@ -120,8 +119,8 @@ export const actions: Actions = {
                     country,
                     postalCode,
                     road,
-                    house_number,
-                    about
+                    house_number
+                    // about
                 }
             });
         }
@@ -136,57 +135,95 @@ export const actions: Actions = {
             const updateData = {
                 name,
                 category,
-                latitude: parseFloat(latitude), // Ensure numeric types if required by API
+                latitude: parseFloat(latitude),
                 longitude: parseFloat(longitude),
                 address,
                 city,
                 state,
                 country,
                 postalCode,
-                ...(road && { road }), // Include optional fields only if they have values
-                ...(house_number && { house_number }),
-                ...(about && { about })
+                ...(road && { road }),
+                ...(house_number && { house_number })
+                // ...(about && { about })
             };
+
+            console.log(`[Server Action] Sending PUT request to ${env.API_URL}/business/${publicId}`);
+            console.log('[Server Action] Update Data:', JSON.stringify(updateData, null, 2)); // Log data being sent
 
             // Make PUT request to update business data
             const response = await fetch(`${env.API_URL}/business/${publicId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    // Include the access token
-                    // Option 1: Bearer Token
-                    // 'Authorization': `Bearer ${accessToken}`
-                    // Option 2: Cookie (matching your action example)
                     Cookie: `access_token=${accessToken}`
                 },
-                credentials: 'include', // Include cookies if needed by the API
-                body: JSON.stringify(updateData) // Send JSON data
+                credentials: 'include',
+                body: JSON.stringify(updateData)
             });
 
+            console.log(`[Server Action] Received response: Status ${response.status}`); // Log response status
+
             if (!response.ok) {
-                const errorBody = await response.json().catch(() => ({})); // Safely parse error body
-                console.error('API PUT Error:', response.status, errorBody);
+                // Attempt to parse error body, but handle potential JSON errors
+                let errorBody = {};
+                try {
+                    errorBody = await response.json();
+                } catch (parseError) {
+                    console.warn('[Server Action] Could not parse error response body as JSON:', parseError);
+                    // errorBody remains an empty object
+                }
+                console.error('[Server Action] API PUT Error:', response.status, errorBody);
                 return fail(response.status, {
-                    error: errorBody.error || `Failed to update business: ${response.statusText}`,
+                    error: errorBody?.error || `Failed to update business: ${response.statusText} (Status: ${response.status})`,
                     success: false
                 });
             }
 
-            // Business updated successfully
-            const updatedBusiness = await response.json(); // Get the updated data if needed
-            // Optionally, update the store if necessary after successful update
-            // userPendingBusiness.set(updatedBusiness);
+            // --- Critical Section: Handling the successful response body ---
+            let updatedBusinessData = null;
+            const contentType = response.headers.get('content-type');
+            console.log(`[Server Action] Response Content-Type: ${contentType}`); // Log content type
 
-            return {
-                success: true,
-                message: 'Business updated successfully',
-                // Optionally return the updated data
-                updatedBusiness: updatedBusiness
-            };
+            // Check if the response has content and is JSON before trying to parse
+            if (contentType && contentType.includes('application/json')) {
+                try {
+                    updatedBusinessData = await response.json();
+                    console.log('[Server Action] Parsed response body successfully:', updatedBusinessData);
+                } catch (parseError) {
+                    console.warn('[Server Action] Could not parse successful response body as JSON, even though Content-Type suggests JSON:', parseError);
+                    // updatedBusinessData remains null
+                    // This might be okay if the API just returns 200 OK with no body
+                }
+            } else {
+                console.log('[Server Action] Response body is not application/json or is empty. Reading text...');
+                const textBody = await response.text(); // Read as text to see what's there
+                console.log('[Server Action] Raw response body text:', textBody);
+                if (textBody.trim()) {
+                    console.warn('[Server Action] Unexpected non-JSON response body content.');
+                } else {
+                    console.log('[Server Action] Response body is empty (as expected for some successful PUTs).');
+                }
+            }
+            // --- End Critical Section ---
+
+            // Business update request was successful (status 2xx)
+            // Proceed to redirect regardless of whether we parsed the body
+            console.log(`[Server Action] Update successful, redirecting to /become-a-professional/${publicId}/upload-images`);
+            throw redirect(303, `/become-a-professional/${publicId}/upload-images`);
+
+
         } catch (err) {
-            console.error('Fetch error during update:', err);
+            if (err?.constructor?.name === 'Redirect' || (err instanceof Response && err.status >= 300 && err.status < 400)) {
+                // This is the intended redirect. Re-throw it so SvelteKit handles it.
+                console.log('[Server Action] Caught redirect, re-throwing...'); // You already have this, good.
+                throw err; // Crucially, this must happen BEFORE the general error handling.
+            }
+
+            // --- Check 2: Any other unexpected error ---
+            // If it's not a redirect, log it and return a failure.
+            console.error('[Server Action] Unexpected error during update:', err); // This should now only log *real* errors.
             return fail(500, {
-                error: 'Could not connect to server to update business.',
+                error: 'An unexpected error occurred while updating the business. Please try again.',
                 success: false
             });
         }
