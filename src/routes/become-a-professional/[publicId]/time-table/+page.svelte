@@ -20,65 +20,29 @@
 		{ id: 'sat', label: 'S', dayName: 'Saturday' }
 	];
 
-	const timeOptions = [
-		'12:00am',
-		'12:30am',
-		'1:00am',
-		'1:30am',
-		'2:00am',
-		'2:30am',
-		'3:00am',
-		'3:30am',
-		'4:00am',
-		'4:30am',
-		'5:00am',
-		'5:30am',
-		'6:00am',
-		'6:30am',
-		'7:00am',
-		'7:30am',
-		'8:00am',
-		'8:30am',
-		'9:00am',
-		'9:30am',
-		'10:00am',
-		'10:30am',
-		'11:00am',
-		'11:30am',
-		'12:00pm',
-		'12:30pm',
-		'1:00pm',
-		'1:30pm',
-		'2:00pm',
-		'2:30pm',
-		'3:00pm',
-		'3:30pm',
-		'4:00pm',
-		'4:30pm',
-		'5:00pm',
-		'5:30pm',
-		'6:00pm',
-		'6:30pm',
-		'7:00pm',
-		'7:30pm',
-		'8:00pm',
-		'8:30pm',
-		'9:00pm',
-		'9:30pm',
-		'10:00pm',
-		'10:30pm',
-		'11:00pm',
-		'11:30pm'
-	];
+	const timeOptions: string[] = Array.from({ length: 24 * 4 }, (_, index) => {
+		const totalMinutes = index * 15;
+		const hour = Math.floor(totalMinutes / 60) % 24;
+		const minute = totalMinutes % 60;
+
+		const period = hour < 12 ? 'am' : 'pm';
+		const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+
+		return `${displayHour}:${minute.toString().padStart(2, '0')}${period}`;
+	});
 
 	// State for each day with default times
 	let dayStates = $state(
-		daysOfWeek.map((day) => ({
-			id: day.id,
-			startTime: '9:00am',
-			endTime: '5:00pm',
-			isAvailable: true
-		}))
+		daysOfWeek.map((day) => {
+			// Check if the day is a weekend (Saturday or Sunday)
+			const isWeekend = day.id === 'sat' || day.id === 'sun';
+			return {
+				id: day.id,
+				startTime: isWeekend ? '9:00am' : '9:00am', // Default start time (can be adjusted)
+				endTime: isWeekend ? '5:00pm' : '5:00pm', // Default end time (can be adjusted)
+				isAvailable: !isWeekend // Available Mon-Fri, Unavailable Sat/Sun
+			};
+		})
 	);
 
 	let selectedTimezone = $state('Asia/Kolkata');
@@ -192,7 +156,7 @@
 											onValueChange={(value) => handleStartTimeChange(day.id, [value])}
 										>
 											<SelectTrigger
-												class="w-36 rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-500 dark:bg-gray-600"
+												class="w-36 cursor-pointer rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-500 dark:bg-gray-600"
 											>
 												<span class="text-gray-900 dark:text-white">{dayStates[i].startTime}</span>
 											</SelectTrigger>
@@ -215,7 +179,7 @@
 											onValueChange={(value) => handleEndTimeChange(day.id, [value])}
 										>
 											<SelectTrigger
-												class="w-36 rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-500 dark:bg-gray-600"
+												class="w-36 cursor-pointer rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-500 dark:bg-gray-600"
 											>
 												<span class="text-gray-900 dark:text-white">{dayStates[i].endTime}</span>
 											</SelectTrigger>
@@ -242,7 +206,7 @@
 									size="sm"
 									type="button"
 									onclick={() => toggleDayAvailability(day.id)}
-									class="h-10 w-10 self-start p-0 text-red-500 hover:bg-red-50 hover:text-red-700 sm:self-center dark:hover:bg-red-900/20"
+									class="h-10 w-10 cursor-pointer self-start p-0 text-red-500 hover:bg-red-50 hover:text-red-700 sm:self-center dark:hover:bg-red-900/20"
 									title="Remove availability"
 								>
 									<Icon icon="mdi:close" class="h-5 w-5" />
@@ -256,7 +220,7 @@
 									size="sm"
 									type="button"
 									onclick={() => toggleDayAvailability(day.id)}
-									class="h-10 border-blue-200 px-4 text-blue-600 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-400 dark:hover:bg-blue-900/30"
+									class="h-10 cursor-pointer border-blue-200 px-4 text-blue-600 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-400 dark:hover:bg-blue-900/30"
 									title="Add availability"
 								>
 									<Icon icon="mdi:plus" class="mr-1 h-4 w-4" />
@@ -295,7 +259,7 @@
 			<div class="flex justify-end">
 				<Button
 					type="submit"
-					class="transform rounded-lg bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-3 font-medium text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:from-blue-700 hover:to-indigo-800 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+					class="transform cursor-pointer rounded-lg bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-3 font-medium text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:from-blue-700 hover:to-indigo-800 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
 					disabled={!isFormValid}
 				>
 					Save Working Hours

@@ -163,7 +163,7 @@
 		</div>
 
 		<div>
-			<Calendar class="transition-all" bind:value type="single" {minValue} {isDateDisabled} />
+			<Calendar bind:value type="single" {minValue} {isDateDisabled} />
 		</div>
 
 		{#if value && service}

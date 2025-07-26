@@ -21,7 +21,7 @@
 
 	// Functions for edit and delete actions
 	function handleEdit() {
-		goto(`/become-a-professional/${business.publicId}`);
+		goto(`/become-a-professional/${business.publicId}/business`);
 		showPopup = false; // Close popup after navigating
 	}
 
@@ -77,7 +77,18 @@
 <button on:click={togglePopup}>
 	<div class="property-card">
 		<div class="relative">
-			<img src={business.images[0].objectName} alt={business.name} />
+			{#if business.images?.length > 0 && business.images[0].objectName}
+				<img
+					src={business.images[0].objectName}
+					alt={business.name}
+					on:error={(e) =>
+						((e.currentTarget as HTMLImageElement).src =
+							'https://images.unsplash.com/photo-1575936123452-b67c3203c357?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aW1hZ2V8ZW58MHx8MHx8fDA%3D')}
+					class="h-48 w-full rounded-t object-cover"
+				/>
+			{:else}
+				<div class="h-[25rem] w-full rounded-md bg-gray-200 object-cover"></div>
+			{/if}
 
 			<span
 				class="absolute top-5 left-5 flex items-center gap-1 rounded-full bg-white px-3 py-1 text-sm font-semibold text-gray-800"
@@ -89,7 +100,9 @@
 
 		<div class="details">
 			<div class="price-type">
-				<p class="font-semibold">Your listing stated on {formatDate(business.createdAt)}</p>
+				{#if business.createdAt !== null}
+					<p class="font-semibold">Your listing stated on {formatDate(business.createdAt)}</p>
+				{:else}{/if}
 			</div>
 			<p class="location">{business.city}, {business.state}, {business.country}</p>
 		</div>
@@ -109,12 +122,24 @@
 			>
 				<Icon class="h-5 w-5 text-black" icon="material-symbols:close-rounded" />
 			</button>
-			<img src={business.images[0].objectName} alt={business.name} class="popup-image" />
+
+			{#if business.images?.length > 0 && business.images[0].objectName}
+				<img
+					src={business.images[0].objectName}
+					alt={business.name}
+					class="popup-image"
+					on:error={(e) =>
+						((e.currentTarget as HTMLImageElement).src =
+							'https://images.unsplash.com/photo-1575936123452-b67c3203c357?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aW1hZ2V8ZW58MHx8MHx8fDA%3D')}
+				/>
+			{:else}
+				<div class="popup-image bg-gray-200"></div>
+			{/if}
 
 			<div class="mb-3 text-center">
-				<p class=" font-semibold">
-					Your listing stated on {formatDate(business.createdAt)}
-				</p>
+				{#if business.createdAt !== null}
+					<p class="font-semibold">Your listing stated on {formatDate(business.createdAt)}</p>
+				{:else}{/if}
 				<p class="location">{business.city}, {business.state}, {business.country}</p>
 			</div>
 
