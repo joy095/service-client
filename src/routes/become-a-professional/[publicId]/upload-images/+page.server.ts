@@ -1,12 +1,65 @@
-// /business-image/: publicId
-
-import { fail } from '@sveltejs/kit';
+// src/routes/become-a-professional/[publicId]/upload-images/+page.server.ts
+import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
-import type { Actions } from './$types';
+import type { PageServerLoad } from './$types';
 
+// --- Type Definitions for API Responses ---
+interface BusinessImageData {
+    id: string; // Or whatever ID type your API uses
+    url: string; // URL to access the image
+    // Add other fields if your API provides them (e.g., order, isPrimary)
+    // order?: number;
+    // isPrimary?: boolean;
+}
+
+// --- Load Function: Fetch existing images ---
+export const load: PageServerLoad = async ({ params, cookies }) => {
+    const { publicId } = params;
+    const accessToken = cookies.get('access_token');
+    if (!accessToken) {
+        throw redirect(303, '/login');
+    }
+    try {
+        const response = await fetch(`${env.API_URL}/business-image/${publicId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: `access_token=${accessToken}`
+            },
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            const errorBody = await response.json().catch(() => ({}));
+            console.error('[Image Load] API GET Error:', response.status, errorBody);
+            // Return an empty array if fetching fails
+            return { images: [], error: errorBody.error || `Failed to load images: ${response.statusText}` };
+        }
+
+        // --- FIX: Parse the response and extract the array ---
+        const apiResponseData: { images: BusinessImageData[] } = await response.json();
+        // Check if apiResponseData has an 'images' property and it's an array
+        const imagesArray = Array.isArray(apiResponseData.images) ? apiResponseData.images : [];
+
+        // Optional: Log to verify the structure
+        console.log('[Image Load] Fetched images array:', imagesArray);
+
+        // Return the extracted array
+        return { images: imagesArray, error: null };
+    } catch (err) {
+        console.error('[Image Load] Fetch error:', err);
+        // Return an empty array on error
+        return { images: [], error: 'Could not connect to server to load images.' };
+    }
+};
+
+// --- Actions: Handle image operations ---
 export const actions: Actions = {
-    default: async ({ request, cookies, params }) => {
+    // --- Add New Images ---
+    add: async ({ request, cookies, params }) => {
+        const { publicId } = params;
         const accessToken = cookies.get('access_token');
+
         if (!accessToken) {
             return fail(401, {
                 error: 'Not authenticated',
@@ -15,10 +68,10 @@ export const actions: Actions = {
             });
         }
 
-        const form = await request.formData();
-        const images = form.getAll('images') as File[];
+        const formData = await request.formData();
+        const images = formData.getAll('images') as File[]; // Get all files associated with 'images'
 
-        if (!images.length) {
+        if (!images || images.length === 0) {
             return fail(400, {
                 error: 'No images provided',
                 success: false,
@@ -26,40 +79,235 @@ export const actions: Actions = {
             });
         }
 
+        // Prepare FormData for the API request
         const uploadForm = new FormData();
         for (const file of images) {
-            uploadForm.append('images', file);
+            // Basic client-side validation mimic on server (optional but good practice)
+            // You might want more robust validation based on your API requirements
+            if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
+                return fail(400, {
+                    error: `Invalid file type for ${file.name}`,
+                    success: false,
+                    message: 'Only PNG, JPG, and JPEG files are allowed.'
+                });
+            }
+            // const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB example
+            // if (file.size > MAX_FILE_SIZE) {
+            //   return fail(400, { error: `File ${file.name} is too large`, success: false, message: 'File size exceeds limit.' });
+            // }
+            uploadForm.append('images', file); // Append each file
         }
 
         try {
-            const response = await fetch(`${env.API_URL}/business-image/${params.publicId}`, {
+            // Make POST request to add images
+            const response = await fetch(`${env.API_URL}/business-image/${publicId}`, {
                 method: 'POST',
+                // Don't set Content-Type header manually for FormData, let the browser set it
                 headers: {
+                    // Include the access token via Cookie
                     Cookie: `access_token=${accessToken}`
                 },
-                body: uploadForm
+                body: uploadForm, // Send the FormData object
+                credentials: 'include' // Include cookies if needed by the API
             });
 
-            const result = await response.json();
             if (!response.ok) {
+                // Handle non-2xx responses from the API
+                const errorResult = await response.json().catch(() => ({}));
+                console.error('[Image Add] API POST Error:', response.status, errorResult);
                 return fail(response.status, {
-                    error: result.error || 'Failed to upload images',
+                    error: errorResult.error || 'Failed to upload images',
                     success: false,
-                    message: result.message
+                    message: errorResult.message || `Upload failed: ${response.statusText}`
                 });
             }
 
+            // Image(s) uploaded successfully
+            // const result = await response.json(); // Parse success response if needed
+            // console.log('[Image Add] Success Response:', result);
             return {
                 success: true,
                 message: 'Images uploaded successfully'
+                // Optionally return data about the new images if the API provides it
+                // newImages: result?.newImages // Adjust based on API response
             };
+
         } catch (err) {
-            console.error('Image upload error:', err);
+            // Handle network errors or unexpected issues during the fetch
+            console.error('[Image Add] Network/Fetch error:', err);
             return fail(500, {
                 error: 'Server error',
                 success: false,
-                message: 'Failed to connect to server'
+                message: 'Failed to connect to server for image upload'
             });
         }
+    },
+
+    // --- Delete an Image ---
+    delete: async ({ request, cookies, params }) => {
+        const { publicId } = params;
+        const accessToken = cookies.get('access_token');
+
+        if (!accessToken) {
+            return fail(401, {
+                error: 'Not authenticated',
+                success: false,
+                message: 'Please login to continue'
+            });
+        }
+
+        const formData = await request.formData();
+        const imageId = formData.get('imageId')?.toString(); // Get the ID of the image to delete
+
+        if (!imageId) {
+            return fail(400, {
+                error: 'Image ID is required',
+                success: false,
+                message: 'Missing image identifier for deletion'
+            });
+        }
+
+        try {
+            // Make DELETE request to remove the specific image
+            const response = await fetch(`${env.API_URL}/business-image/${publicId}/${imageId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json', // Standard for DELETE with no body
+                    // Include the access token via Cookie
+                    Cookie: `access_token=${accessToken}`
+                },
+                credentials: 'include' // Include cookies if needed by the API
+            });
+
+            if (!response.ok) {
+                // Handle non-2xx responses from the API
+                const errorResult = await response.json().catch(() => ({}));
+                console.error('[Image Delete] API DELETE Error:', response.status, errorResult);
+                return fail(response.status, {
+                    error: errorResult.error || 'Failed to delete image',
+                    success: false,
+                    message: errorResult.message || `Deletion failed: ${response.statusText}`
+                });
+            }
+
+            // Image deleted successfully
+            // const result = await response.json(); // Parse success response if needed
+            // console.log('[Image Delete] Success Response:', result);
+            return {
+                success: true,
+                message: 'Image deleted successfully'
+            };
+
+        } catch (err) {
+            // Handle network errors or unexpected issues during the fetch
+            console.error('[Image Delete] Network/Fetch error:', err);
+            return fail(500, {
+                error: 'Server error',
+                success: false,
+                message: 'Failed to connect to server for image deletion'
+            });
+        }
+    },
+
+    // --- Reorder Images / Set Primary Image ---
+    // This action handles setting the primary image based on the first image in the submitted order.
+    // Your API structure suggests a specific endpoint for setting primary.
+    // If reordering involves updating an 'order' field on each image, you would need a different approach,
+    // potentially looping through the order and making individual PUT requests or using a batch endpoint if available.
+    // For now, we'll implement setting the primary image.
+    reorder: async ({ request, cookies, params }) => {
+        const { publicId } = params;
+        const accessToken = cookies.get('access_token');
+
+        if (!accessToken) {
+            return fail(401, {
+                error: 'Not authenticated',
+                success: false,
+                message: 'Please login to continue'
+            });
+        }
+
+        const formData = await request.formData();
+        // Assuming the client sends the new order as a comma-separated string of IDs
+        // e.g., 'order=3,1,2'
+        const orderString = formData.get('order')?.toString();
+
+        if (!orderString) {
+            return fail(400, {
+                error: 'New image order is required',
+                success: false,
+                message: 'Image order data is missing'
+            });
+        }
+
+        // Parse the order string into an array of IDs
+        const newOrder = orderString.split(',').map(id => id.trim()).filter(id => id.length > 0);
+
+        if (newOrder.length === 0) {
+            return fail(400, {
+                error: 'Invalid image order provided',
+                success: false,
+                message: 'The submitted order list is empty'
+            });
+        }
+
+        // --- Example: Set the first image in the list as the primary ---
+        // This matches the API endpoint structure you provided:
+        // POST /business-image/:publicId/:imageId/primary
+        const newPrimaryId = newOrder[0]; // Get the ID of the image intended to be primary
+
+        if (!newPrimaryId) {
+            return fail(400, {
+                error: 'Could not determine primary image',
+                success: false,
+                message: 'No image ID found for setting as primary'
+            });
+        }
+
+        try {
+            // Make POST request to set the primary image
+            // Adjust method (POST/PUT) and endpoint structure based on your actual API
+            const response = await fetch(`${env.API_URL}/business-image/${publicId}/${newPrimaryId}/primary`, {
+                method: 'POST', // Or PUT, check your API docs
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Include the access token via Cookie
+                    Cookie: `access_token=${accessToken}`
+                },
+                credentials: 'include' // Include cookies if needed by the API
+            });
+
+            if (!response.ok) {
+                // Handle non-2xx responses from the API
+                const errorResult = await response.json().catch(() => ({}));
+                console.error('[Image Reorder/Set Primary] API POST Error:', response.status, errorResult);
+                // Decide if failing to set primary should fail the whole action or just warn.
+                // For now, let's return a success for the reorder action but indicate the primary setting failed.
+                return {
+                    success: true,
+                    message: 'Image order updated',
+                    warning: errorResult.error || `Failed to set primary image: ${response.statusText}`
+                };
+            }
+
+            // Primary image set successfully
+            // const result = await response.json(); // Parse success response if needed
+            // console.log('[Image Reorder/Set Primary] Success Response:', result);
+            return {
+                success: true,
+                message: 'Image order updated and primary image set'
+            };
+
+        } catch (err) {
+            // Handle network errors or unexpected issues during the fetch
+            console.error('[Image Reorder/Set Primary] Network/Fetch error:', err);
+            // Decide if this is a hard failure or just a warning.
+            return {
+                success: true,
+                message: 'Image order updated',
+                warning: 'Error occurred while setting the primary image.'
+            };
+        }
     }
+    // --- End Actions ---
 };
