@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
 
         const services = await response.json();
 
-        console.log('service', services)
+        // console.log('service', services)
 
         return {
             publicId,
