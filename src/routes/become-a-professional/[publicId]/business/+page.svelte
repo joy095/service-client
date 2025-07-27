@@ -302,38 +302,12 @@
 
 						// Return the callback to handle the result
 						return async ({ update, result }) => {
-							// The primary role of this callback is to call `update()`
-							// which integrates with SvelteKit's form actions.
-							// If the action redirects, `update()` handles the navigation.
-							// If the action returns data, `update()` updates the `form` prop.
-							console.log('[Client Enhance] Starting update()...');
 							try {
 								// Await the update process
 								await update();
-								console.log(
-									'[Client Enhance] update() completed (might have navigated or updated `form` prop).'
-								);
-								// Note: If `update()` caused a navigation, this line might not execute,
-								// or execute in the context of the old page just before navigation.
-								// If it updated the `form` prop (e.g., on validation error), the component re-renders.
 							} catch (updateError) {
-								// This catches errors that occur during the `update()` process itself,
-								// such as network issues preventing the action response from being received,
-								// or problems processing the response *after* it's received but *before*
-								// SvelteKit finishes handling it (e.g., issues with the redirect mechanism itself).
-								console.error('[Client Enhance] Error during update() call:', updateError);
-								// Reset submitting state on client-side error during update
 								isSubmitting = false;
-								// Optionally, display a client-side error message
-								// Example: generalFormError = "Failed to process form submission. Please check your connection and try again.";
 							}
-							// Crucially, DO NOT manually set isSubmitting = false here in the success path.
-							// The `isSubmitting` state should reflect the actual submission state.
-							// If the action redirects, the component/page unmounts, so the state is irrelevant.
-							// If the action returns data (success or error), the component re-renders,
-							// and the button's disabled state or the success/error messages should take over.
-							// Setting it to false here prematurely hides the "Saving..." state before
-							// the navigation is complete or the result is displayed.
 						};
 					}}
 					class="space-y-6"
@@ -694,7 +668,7 @@
 									</svg>
 									Saving...
 								{:else if businessData}
-									Update Business
+									Next
 								{:else}
 									Submit Form
 								{/if}
