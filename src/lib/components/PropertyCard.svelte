@@ -11,6 +11,8 @@
 			objectName: string;
 		}[];
 	};
+
+	console.log(business.images);
 </script>
 
 <a href={`/business/${business.publicId}`} class="property-card">

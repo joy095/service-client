@@ -34,7 +34,6 @@ export const load: PageServerLoad = async ({ fetch }) => {
                 businessId: img.businessId,
                 imageId: img.imageId,
                 position: img.position,
-                isPrimary: img.isPrimary,
                 objectName: img.objectName,
                 createdAt: img.createdAt,
             })) ?? []

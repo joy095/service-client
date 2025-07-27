@@ -7,7 +7,6 @@ import type { PageServerLoad } from './$types';
 interface BusinessImageData {
     imageId: string; // Unique identifier for the image record
     url: string;     // URL to access the image (from objectName)
-    isPrimary: boolean; // Indicates if this is the primary image
     position: number; // Display order position
 }
 
@@ -41,7 +40,7 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
         const imagesArray = Array.isArray(apiResponseData.images) ? apiResponseData.images : [];
 
         // Optional: Log to verify the structure
-        console.log('[Image Load] Fetched images array:', imagesArray);
+        
 
         // Return the extracted array
         return { images: imagesArray, error: null };
@@ -121,9 +120,6 @@ export const actions: Actions = {
                 });
             }
 
-            // Image(s) uploaded successfully
-            // const result = await response.json(); // Parse success response if needed
-            // console.log('[Image Add] Success Response:', result);
             return {
                 success: true,
                 message: 'Images uploaded successfully'
@@ -166,8 +162,6 @@ export const actions: Actions = {
             });
         }
 
-        console.log(`/${publicId}/${imageId}`)
-
         try {
             // Make DELETE request to remove the specific image
             const response = await fetch(`${env.API_URL}/business-image/${publicId}/${imageId}`, {
@@ -191,9 +185,6 @@ export const actions: Actions = {
                 });
             }
 
-            // Image deleted successfully
-            // const result = await response.json(); // Parse success response if needed
-            // console.log('[Image Delete] Success Response:', result);
             return {
                 success: true,
                 message: 'Image deleted successfully'
@@ -241,8 +232,6 @@ export const actions: Actions = {
             .filter(id => id.length > 0 && id !== 'undefined'); // Filter out invalid IDs
 
         if (newOrder.length === 0) {
-            // Not necessarily an error, just nothing to reorder.
-            console.log('[Image Reorder] No valid image IDs provided for reordering.');
             return {
                 success: true,
                 message: 'No images specified for reordering.'
@@ -277,7 +266,6 @@ export const actions: Actions = {
 
             // --- Success ---
             const reorderResult = await response.json();
-            console.log('[Image Reorder] API Success:', reorderResult);
             return {
                 success: true,
                 message: reorderResult.message || 'Image order updated successfully.'

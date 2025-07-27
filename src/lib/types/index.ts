@@ -18,7 +18,6 @@ export interface Business {
     images: {
         businessId: string;
         imageId: string;
-        isPrimary: boolean;
         createdAt: string;
         objectName: string;
         position: number;
@@ -28,7 +27,6 @@ export interface Business {
 export interface BusinessImage {
     imageId: string;
     businessId: string;
-    isPrimary: boolean;
     createdAt: string;
     position: number;
     objectName: string;
