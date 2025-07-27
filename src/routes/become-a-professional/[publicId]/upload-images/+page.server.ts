@@ -5,11 +5,10 @@ import type { PageServerLoad } from './$types';
 
 // --- Type Definitions for API Responses ---
 interface BusinessImageData {
-    id: string; // Or whatever ID type your API uses
-    url: string; // URL to access the image
-    // Add other fields if your API provides them (e.g., order, isPrimary)
-    // order?: number;
-    // isPrimary?: boolean;
+    imageId: string; // Unique identifier for the image record
+    url: string;     // URL to access the image (from objectName)
+    isPrimary: boolean; // Indicates if this is the primary image
+    position: number; // Display order position
 }
 
 // --- Load Function: Fetch existing images ---
@@ -167,6 +166,8 @@ export const actions: Actions = {
             });
         }
 
+        console.log(`/${publicId}/${imageId}`)
+
         try {
             // Make DELETE request to remove the specific image
             const response = await fetch(`${env.API_URL}/business-image/${publicId}/${imageId}`, {
@@ -209,16 +210,11 @@ export const actions: Actions = {
         }
     },
 
-    // --- Reorder Images / Set Primary Image ---
-    // This action handles setting the primary image based on the first image in the submitted order.
-    // Your API structure suggests a specific endpoint for setting primary.
-    // If reordering involves updating an 'order' field on each image, you would need a different approach,
-    // potentially looping through the order and making individual PUT requests or using a batch endpoint if available.
-    // For now, we'll implement setting the primary image.
+    // --- Reorder Images ---
+    // This action now sends the FULL order to the dedicated backend reorder endpoint.
     reorder: async ({ request, cookies, params }) => {
         const { publicId } = params;
         const accessToken = cookies.get('access_token');
-
         if (!accessToken) {
             return fail(401, {
                 error: 'Not authenticated',
@@ -228,8 +224,6 @@ export const actions: Actions = {
         }
 
         const formData = await request.formData();
-        // Assuming the client sends the new order as a comma-separated string of IDs
-        // e.g., 'order=3,1,2'
         const orderString = formData.get('order')?.toString();
 
         if (!orderString) {
@@ -240,73 +234,66 @@ export const actions: Actions = {
             });
         }
 
-        // Parse the order string into an array of IDs
-        const newOrder = orderString.split(',').map(id => id.trim()).filter(id => id.length > 0);
+        // Parse the order string into an array of IDs (these are the existing image objectNames/IDs)
+        const newOrder = orderString
+            .split(',')
+            .map(id => id.trim())
+            .filter(id => id.length > 0 && id !== 'undefined'); // Filter out invalid IDs
 
         if (newOrder.length === 0) {
-            return fail(400, {
-                error: 'Invalid image order provided',
-                success: false,
-                message: 'The submitted order list is empty'
-            });
+            // Not necessarily an error, just nothing to reorder.
+            console.log('[Image Reorder] No valid image IDs provided for reordering.');
+            return {
+                success: true,
+                message: 'No images specified for reordering.'
+            };
         }
 
-        // --- Example: Set the first image in the list as the primary ---
-        // This matches the API endpoint structure you provided:
-        // POST /business-image/:publicId/:imageId/primary
-        const newPrimaryId = newOrder[0]; // Get the ID of the image intended to be primary
-
-        if (!newPrimaryId) {
-            return fail(400, {
-                error: 'Could not determine primary image',
-                success: false,
-                message: 'No image ID found for setting as primary'
-            });
-        }
-
+        // --- Send the full order to the backend reorder endpoint ---
         try {
-            // Make POST request to set the primary image
-            // Adjust method (POST/PUT) and endpoint structure based on your actual API
-            const response = await fetch(`${env.API_URL}/business-image/${publicId}/${newPrimaryId}/primary`, {
-                method: 'POST', // Or PUT, check your API docs
+            // Prepare data for the reorder API call - Send as JSON
+            const reorderData = { order: newOrder }; // Send the full array of existing image IDs/objectNames
+
+            const response = await fetch(`${env.API_URL}/business-image/${publicId}/reorder`, {
+                method: 'POST', // Method matches the new Go Fiber route
                 headers: {
-                    'Content-Type': 'application/json',
-                    // Include the access token via Cookie
+                    'Content-Type': 'application/json', // Sending JSON
                     Cookie: `access_token=${accessToken}`
                 },
-                credentials: 'include' // Include cookies if needed by the API
+                body: JSON.stringify(reorderData), // Send JSON body
+                credentials: 'include'
             });
 
             if (!response.ok) {
-                // Handle non-2xx responses from the API
                 const errorResult = await response.json().catch(() => ({}));
-                console.error('[Image Reorder/Set Primary] API POST Error:', response.status, errorResult);
-                // Decide if failing to set primary should fail the whole action or just warn.
-                // For now, let's return a success for the reorder action but indicate the primary setting failed.
-                return {
-                    success: true,
-                    message: 'Image order updated',
-                    warning: errorResult.error || `Failed to set primary image: ${response.statusText}`
-                };
+                console.error('[Image Reorder] API Reorder Error:', response.status, errorResult);
+                // Return appropriate error
+                return fail(response.status, {
+                    error: errorResult.error || 'Failed to reorder images',
+                    success: false,
+                    message: errorResult.message || `Reorder failed: ${response.statusText}`
+                });
             }
 
-            // Primary image set successfully
-            // const result = await response.json(); // Parse success response if needed
-            // console.log('[Image Reorder/Set Primary] Success Response:', result);
+            // --- Success ---
+            const reorderResult = await response.json();
+            console.log('[Image Reorder] API Success:', reorderResult);
             return {
                 success: true,
-                message: 'Image order updated and primary image set'
+                message: reorderResult.message || 'Image order updated successfully.'
             };
 
+            // Note: The Go ReorderBusinessImages function handles shifting positions correctly.
+            // The primary image will be the one at position 1 after the reorder.
+            // The previous logic that explicitly called /primary is usually redundant now.
+
         } catch (err) {
-            // Handle network errors or unexpected issues during the fetch
-            console.error('[Image Reorder/Set Primary] Network/Fetch error:', err);
-            // Decide if this is a hard failure or just a warning.
-            return {
-                success: true,
-                message: 'Image order updated',
-                warning: 'Error occurred while setting the primary image.'
-            };
+            console.error('[Image Reorder] Network/Fetch error:', err);
+            return fail(500, {
+                error: 'Server error',
+                success: false,
+                message: 'Failed to connect to server for image reordering.'
+            });
         }
     }
     // --- End Actions ---

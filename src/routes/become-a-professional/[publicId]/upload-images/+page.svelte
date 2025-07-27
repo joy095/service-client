@@ -1,13 +1,122 @@
 <!-- src/routes/become-a-professional/[publicId]/upload-images/+page.svelte -->
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores'; // Import page store to get data
 	import Icon from '@iconify/svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { get } from 'svelte/store'; // Import get to access page store value
 
-	const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+	// --- State ---
+	let openMenuIndex: number | null = $state(null); // Using runes for simpler state management
+	let imageInput: HTMLInputElement | null = $state(null);
+	// Structure for previews: { src: string; name: string; id?: string; file?: File }
+	// id is for existing images fetched from the server
+	// file is for new File objects selected by the user
+	let imagePreviews: { src: string; name: string; id?: string; file?: File }[] = $state([]);
+	let error: string | null = $state(null);
+	let isDragging = $state(false);
+	let objectFits: string[] = $state([]);
+	let isSubmitting = $state(false); // State for loading spinner
+
+	// --- Load existing images from server data ---
+	// Use the data loaded by the server's load function
+	const pageData = get(page).data;
+	if (pageData?.images) {
+		// Map server image data to preview format
+		// --- FIX: Use imageId as the 'id' ---
+		imagePreviews = pageData.images
+			.map((img) => {
+				// img is now typed based on the updated interface in +page.server.ts
+				// Extract a meaningful name or create one from the URL
+				let imageName = `Image ${img.position}`;
+				try {
+					const url = new URL(img.objectName.trim());
+					const pathParts = url.pathname.split('/');
+					if (pathParts.length > 0) {
+						imageName = pathParts[pathParts.length - 1];
+						imageName = imageName.replace(/\.[^/.]+$/, ''); // Remove extension
+					}
+				} catch (e) {
+					console.warn('Could not parse image name from URL:', img.objectName, e);
+				}
+				return {
+					src: img.objectName.trim(),
+					name: imageName,
+					// --- CORRECTED: Use imageId as the unique identifier ---
+					id: img.imageId // <--- Use imageId here
+					// file: undefined
+				};
+			})
+			.sort((a, b) => {
+				// Sorting logic can potentially be simplified if position is reliable,
+				// but this way still works.
+				const posA = pageData.images.find((i) => i.imageId === a.id)?.position ?? 0; // Use imageId for lookup
+				const posB = pageData.images.find((i) => i.imageId === b.id)?.position ?? 0; // Use imageId for lookup
+				return posA - posB;
+			});
+
+		objectFits = new Array(imagePreviews.length).fill('');
+	}
+
+	// --- Server Interaction ---
+
+	// Handle image object-fit mode (for new uploads or loaded images)
+	function handleLoad(event: Event, index: number) {
+		const img = event.target as HTMLImageElement;
+		// Only set object-fit if not already set (e.g., for existing images loaded from URL)
+		if (!objectFits[index]) {
+			objectFits[index] = img.naturalHeight > img.naturalWidth ? 'object-contain' : 'object-cover';
+		}
+	}
+
+	// Handle outside click to close any menu
+	function handleClickOutside(event: MouseEvent) {
+		const target = event.target as HTMLElement;
+		if (!target.closest('.menu-wrapper')) {
+			openMenuIndex = null;
+		}
+	}
+
+	onMount(() => {
+		if (browser) {
+			document.addEventListener('click', handleClickOutside);
+		}
+	});
+
+	onDestroy(() => {
+		if (browser) {
+			document.removeEventListener('click', handleClickOutside);
+		}
+	});
+
+	// --- Image Manipulation ---
+
+	function moveImageUp(index: number) {
+		if (index > 0) {
+			[imagePreviews[index - 1], imagePreviews[index]] = [
+				imagePreviews[index],
+				imagePreviews[index - 1]
+			];
+			[objectFits[index - 1], objectFits[index]] = [objectFits[index], objectFits[index - 1]];
+			openMenuIndex = null;
+		}
+	}
+
+	function moveImageDown(index: number) {
+		if (index < imagePreviews.length - 1) {
+			[imagePreviews[index + 1], imagePreviews[index]] = [
+				imagePreviews[index],
+				imagePreviews[index + 1]
+			];
+			[objectFits[index + 1], objectFits[index]] = [objectFits[index], objectFits[index + 1]];
+			openMenuIndex = null;
+		}
+	}
 
 	// --- File Handling (New Uploads) ---
+
+	const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 	function handleImageChange(event: Event) {
 		const files = (event.target as HTMLInputElement).files;
@@ -30,207 +139,75 @@
 		isDragging = false;
 	}
 
-	// Handle image object-fit mode (This function was also missing)
-	function handleLoad(event: Event, index: number) {
-		const img = event.target as HTMLImageElement;
-		// Only set object-fit if not already set (e.g., for existing images loaded from URL)
-		// You might refine this logic further if needed.
-		if (!objectFits[index]) {
-			objectFits[index] = img.naturalHeight > img.naturalWidth ? 'object-contain' : 'object-cover';
-		}
-	}
-
-	// Handle outside click to close any menu (This function was also missing)
-	function handleClickOutside(event: MouseEvent) {
-		const target = event.target as HTMLElement;
-		if (!target.closest('.menu-wrapper')) {
-			openMenuIndex = null;
-		}
-	}
-
-	// Import necessary lifecycle functions
-	import { onDestroy, onMount } from 'svelte';
-	import { browser } from '$app/environment'; // Import browser
-
-	// Add lifecycle hooks
-	onMount(() => {
-		if (browser) {
-			// Only run in the browser
-			document.addEventListener('click', handleClickOutside);
-		}
-	});
-
-	onDestroy(() => {
-		if (browser) {
-			// Only run in the browser
-			document.removeEventListener('click', handleClickOutside);
-		}
-	});
-
 	function processFiles(files: File[]) {
 		error = null;
 		const validFiles: File[] = [];
 		for (const file of files) {
 			if (!['image/png', 'image/jpeg', 'image/jpg'].includes(file.type)) {
 				error = 'Only PNG and JPG files are supported.';
-				console.warn('Unsupported file type:', file.name, file.type);
 				continue;
 			}
 			if (file.size > MAX_FILE_SIZE) {
 				error = 'Each file must be less than 10MB.';
-				console.warn('File too large:', file.name, file.size);
 				continue;
 			}
 			validFiles.push(file);
 			const reader = new FileReader();
 			reader.onload = (e) => {
-				// Add new file previews to the END of the list
-				// You might want different logic for insertion point.
-				imagePreviews = [...imagePreviews, { src: e.target?.result as string, name: file.name }];
+				// Add new file previews to the end
+				// Include the File object itself for easy access during upload
+				imagePreviews = [
+					...imagePreviews,
+					{ src: e.target?.result as string, name: file.name, file: file }
+				];
 				objectFits = [...objectFits, '']; // Add placeholder for object-fit
-				// Note: value array is updated AFTER the loop to ensure all valid files are included.
 			};
 			reader.readAsDataURL(file);
 		}
-		// Update the value array which holds the actual File objects to be uploaded
-		value = [...value, ...validFiles];
-		// Adding new files is a change
-		if (validFiles.length > 0) {
-			hasChanges = true;
-		}
-		console.log(
-			'Processed files. New value length:',
-			value.length,
-			'New imagePreviews length:',
-			imagePreviews.length
-		);
+		// Note: We no longer directly manage a separate 'value' array.
+		// The File objects are now stored within imagePreviews[].file for new uploads.
+		// Existing images don't have a 'file' property.
 	}
 
-	// --- State ---
-	let openMenuIndex: number | null = null;
-	let imageInput: HTMLInputElement | null = null;
-	// Update type to include potential 'id' for existing images if available from API
-	// For now, we'll use objectName as the identifier for existing images if 'id' isn't present
-	let imagePreviews: { src: string; name: string; id?: string; objectName?: string }[] = [];
-	let error: string | null = null;
-	let isDragging = false;
-	let value: File[] = []; // Files selected for upload
-	let objectFits: string[] = [];
-	let hasChanges = false; // Track if user made edits
-
-	const pageData = get(page).data;
-	// console.log('Raw page data:', pageData); // Debug log
-
-	if (pageData?.images && Array.isArray(pageData.images)) {
-		// Sort by position to ensure correct initial order
-		const sortedImages = [...pageData.images].sort((a, b) => a.position - b.position);
-
-		// Map server image data to preview format
-		// Assuming server returns { isPrimary: boolean, objectName: string, position: number }
-		// Use objectName as src and id if available, otherwise use objectName as a temporary id
-		imagePreviews = sortedImages.map((img) => {
-			// Derive a name from the URL or use a generic one
-			const urlParts = img.objectName.split('/');
-			const fileName = urlParts[urlParts.length - 1]?.split('?')[0] || `Image_${img.position}`;
-			return {
-				src: img.objectName.trim(), // Trim whitespace from URL
-				name: fileName,
-				// If your API provides a unique 'id', use it: id: img.id
-				// Otherwise, for reordering, we might need to track objectName or find another unique ID
-				// For deletion, you'll likely need a unique 'id' from the API.
-				objectName: img.objectName.trim() // Store original objectName for potential use
-			};
-		});
-		// Initialize objectFits array based on the number of loaded images
-		objectFits = new Array(imagePreviews.length).fill('');
-		console.log('Loaded and sorted images:', imagePreviews);
-		// Initially, no changes have been made
-		hasChanges = false;
-	} else {
-		console.log('No images data found or not an array in pageData:', pageData?.images);
-		imagePreviews = [];
-		objectFits = [];
-		hasChanges = false;
-	}
-
-	// --- Server Interaction, Image Manipulation, File Handling, Delete, Submit Logic ---
-	// ... (Keep the rest of your existing logic, adapting the submitForm as shown previously)
-	// Important: Ensure submitForm uses the correct logic for handling changes, new uploads, reordering, and deletion
-	// based on your API endpoints and the data structure (especially finding the correct ID for deletion).
-
-	// Example adaptation for clearPreview to mark changes:
+	// --- Delete Image ---
 	function clearPreview(index: number) {
-		// Mark change when deleting
-		hasChanges = true;
+		// Remove from previews and objectFits
 		imagePreviews = imagePreviews.filter((_, i) => i !== index);
-		// Note: For new uploads in 'value', you might need different logic if 'value' indices don't align perfectly.
-		// A more robust way is to manage 'value' strictly for new uploads and imagePreviews for display.
-		// Let's assume imagePreviews corresponds to display order, including new uploads at the end.
-		// If imagePreviews mixes existing and new, logic gets complex. Simplifying: assume imagePreviews
-		// index maps to objectFits and potentially a separate tracking for new file indices if needed.
-		// For now, just filter objectFits. Adjust 'value' handling if needed based on how new uploads are added.
 		objectFits = objectFits.filter((_, i) => i !== index);
+
 		if (openMenuIndex === index) openMenuIndex = null;
-		// TODO: Implement actual deletion call if deleting an existing image.
-		// You'll need the unique ID (img.id if API provides it) for the delete action.
+		// No need to explicitly manage 'value' anymore as it's part of imagePreviews
 	}
 
-	// Example adaptation for move functions to mark changes:
-	function moveImageUp(index: number) {
-		if (index > 0) {
-			[imagePreviews[index - 1], imagePreviews[index]] = [
-				imagePreviews[index],
-				imagePreviews[index - 1]
-			];
-			// Ensure objectFits moves with the image
-			if (index < objectFits.length) {
-				[objectFits[index - 1], objectFits[index]] = [objectFits[index], objectFits[index - 1]];
-			}
-			openMenuIndex = null;
-			hasChanges = true; // Mark change on reorder
-		}
-	}
-
-	function moveImageDown(index: number) {
-		if (index < imagePreviews.length - 1) {
-			[imagePreviews[index + 1], imagePreviews[index]] = [
-				imagePreviews[index],
-				imagePreviews[index + 1]
-			];
-			// Ensure objectFits moves with the image
-			if (index < objectFits.length && index + 1 < objectFits.length) {
-				[objectFits[index + 1], objectFits[index]] = [objectFits[index], objectFits[index + 1]];
-			}
-			openMenuIndex = null;
-			hasChanges = true; // Mark change on reorder
-		}
-	}
-
-	// --- Adapted Submit Logic (Conceptual) ---
-	// Inside your submitForm function:
+	// --- Submit Logic ---
 	async function submitForm(event: Event) {
 		event.preventDefault();
+		isSubmitting = true; // Start spinner
 
-		const publicId = get(page).params.publicId;
+		const publicId = get(page).params.publicId; // Get publicId from page store
 		if (!publicId) {
 			console.error('Public ID not found');
 			alert('Error: Could not identify business profile.');
+			isSubmitting = false;
 			return;
 		}
 
 		try {
-			let uploadSuccess = true;
-			let reorderSuccess = true;
-			let deleteSuccess = true; // If you implement individual deletes
+			let response;
 
-			if (value.length > 0) {
-				// --- Upload New Images ---
+			// 1. Handle New File Uploads
+			// Filter previews to get only new uploads (those with a 'file' property)
+			const newUploads = imagePreviews
+				.filter((preview) => preview.file !== undefined)
+				.map((p) => p.file) as File[];
+
+			if (newUploads.length > 0) {
 				console.log('Uploading new files...');
 				const uploadFormData = new FormData();
-				for (const file of value) {
+				for (const file of newUploads) {
 					uploadFormData.append('images', file, file.name);
 				}
-				const response = await fetch(`?/add`, {
+				response = await fetch(`?/add`, {
 					method: 'POST',
 					body: uploadFormData
 				});
@@ -241,92 +218,87 @@
 				}
 				const uploadResult = await response.json();
 				console.log('Upload result:', uploadResult);
-				// Optionally, update imagePreviews with the new images returned from the API if needed
-				// This might require refetching or processing the uploadResult
-				// For simplicity, assume UI reflects changes, and backend handles final state.
 			}
 
-			if (hasChanges) {
-				// Only send reorder if there were changes (move/delete)
-				// --- Reorder Images ---
-				// You need to determine the correct identifiers for your API's reorder endpoint.
-				// If it's based on 'objectName' or a unique 'id' returned by the API.
-				// Assuming your API expects a comma-separated list of identifiers (ids or objectNames)
-				// corresponding to the new order.
-				// This example uses a placeholder 'getIdForReorder' function.
-				// You need to implement this based on your API requirements.
-				// If your API provides a unique 'id', use that. Otherwise, 'objectName' might work if unique.
-				// IMPORTANT: Ensure getIdForReorder correctly identifies the image for the API.
-
-				// Placeholder function - Replace with logic to get the correct ID for your API
-				// This is a CRITICAL part that depends on your backend API
-				const getIdForReorder = (preview: { id?: string; objectName?: string }) => {
-					// Example: Prefer 'id' if available, otherwise use trimmed 'objectName'
-					// Check your API docs for what identifier it expects for reordering
-					// return preview.id || (preview.objectName ? preview.objectName.trim() : '');
-					// If your API uses 'objectName' as the ID for reordering:
-					return preview.objectName ? preview.objectName.trim() : '';
-				};
-
-				const newOrder = imagePreviews
-					.map((preview) => getIdForReorder(preview))
-					.filter((id) => id !== '');
-
-				if (newOrder.length > 0) {
-					console.log('Sending reorder request with order:', newOrder.join(','));
-					const reorderFormData = new FormData();
-					reorderFormData.append('order', newOrder.join(','));
-
-					const response = await fetch(`?/reorder`, {
+			// 2. Handle Reordering / Setting Primary
+			// Send the current order of ALL image IDs (existing and new ones get temporary IDs or are handled by position)
+			// The backend needs to understand the full order.
+			// This assumes your backend API for reorder expects the full list of IDs in the desired order.
+			// 2. Handle Reordering
+			if (imagePreviews.length > 0) {
+				console.log('Sending reorder request...');
+				const reorderFormData = new FormData();
+				// --- This part now correctly uses imageId because imagePreviews[].id is imageId ---
+				const currentOrderIds = imagePreviews
+					.map((p) => p.id) // p.id is now imageId
+					.filter((id) => id !== undefined)
+					.join(',');
+				if (currentOrderIds) {
+					reorderFormData.append('order', currentOrderIds);
+					response = await fetch(`?/reorder`, {
 						method: 'POST',
 						body: reorderFormData
 					});
-
 					if (!response.ok) {
 						const errorData = await response.json();
-						// Decide if reorder failure is critical or just a warning
-						console.error('Reorder failed:', errorData.message || response.statusText);
-						// alert('Warning: Image order might not be saved.');
-						// Or treat as error:
 						throw new Error(errorData.message || 'Failed to reorder images');
 					}
 					const reorderResult = await response.json();
 					console.log('Reorder result:', reorderResult);
-					// Handle success/warning from reorderResult if needed
 				} else {
-					console.warn('New order list is empty, skipping reorder request.');
+					console.log('No existing images to reorder.');
 				}
-
-				// --- Delete Images (Conceptual) ---
-				// If you track deleted image IDs separately:
-				// Loop through deletedIds array and call delete action for each
-				// for (const deletedId of deletedIds) {
-				//   const deleteFormData = new FormData();
-				//   deleteFormData.append('imageId', deletedId);
-				//   const response = await fetch(`?/delete`, { method: 'POST', body: deleteFormData });
-				//   if (!response.ok) { ... handle error ... }
-				// }
 			}
 
-			// --- Redirect Regardless ---
-			// Use goto for client-side redirect after handling actions
-			// Or use SvelteKit's redirect if you prefer server-side (requires throwing redirect)
+			// 3. Handle Deletions
+			// --- FIX: Use imageId for comparison ---
+			const originalImageIds = new Set(pageData?.images?.map((img: any) => img.imageId) || []); // <--- Use imageId
+			const currentImageIds = new Set(
+				imagePreviews.map((p) => p.id).filter((id) => id !== undefined)
+			);
+			const idsToDelete = [...originalImageIds].filter((id) => !currentImageIds.has(id));
+
+			if (idsToDelete.length > 0) {
+				console.log('Deleting images:', idsToDelete);
+				for (const imageId of idsToDelete) {
+					// imageId here is the correct UUID
+					const deleteFormData = new FormData();
+					// --- imageId is now the correct UUID ---
+					deleteFormData.append('imageId', imageId); // <--- Correct ID sent
+					response = await fetch(`?/delete`, {
+						method: 'POST',
+						body: deleteFormData
+					});
+
+					if (!response.ok) {
+						const errorData = await response.json();
+						console.error(`Failed to delete image ${imageId}:`, errorData.message);
+						// Optionally, you could throw an error here to stop the process
+						// or continue trying to delete others. Let's alert for now.
+						alert(`Failed to delete some images: ${errorData.message || response.statusText}`);
+						// Don't throw, try to continue redirecting
+					}
+				}
+				console.log('Deletion requests sent.');
+			}
+
 			alert('Changes saved successfully!');
-			goto(`/become-a-professional/${publicId}/service`); // Change to your desired redirect path
+
+			// --- Redirect Regardless ---
+
+			goto(`/become-a-professional/${publicId}/service`);
 		} catch (err) {
 			console.error('Submission error:', err);
 			alert(err.message || 'An error occurred while saving changes.');
-			// Decide if you want to redirect on error or stay
-			// goto('/service');
+			// Decide if you want to redirect on error or stay on the page
+			// goto('/service'); // Uncomment if you want to redirect even on error
+		} finally {
+			isSubmitting = false; // Stop spinner regardless of success or failure
 		}
 	}
 </script>
 
-<!-- Rest of your Svelte template (HTML/CSS) remains largely the same -->
-<!-- Ensure the form calls submitForm -->
-<!-- Make sure image previews loop correctly, especially handling existing images with IDs -->
-<!-- You might want to add visual indicators for new vs. existing images -->
-
+<!-- Rest of your Svelte template (HTML/CSS) -->
 <div class="min-h-screen w-full rounded-lg bg-white p-6 shadow-md">
 	<h3 class="mb-4 text-center text-lg font-semibold text-gray-800">Manage Images</h3>
 	<div
@@ -376,6 +348,7 @@
 							</div>
 							<div class="menu-wrapper absolute top-2 left-2 z-10">
 								<button
+									type="button"
 									class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#EBEBEB] hover:bg-[#e7e7e7]"
 									on:click={() => (openMenuIndex = openMenuIndex === index ? null : index)}
 									aria-label="Image options"
@@ -387,12 +360,14 @@
 										class="absolute right-0 mt-2 w-40 rounded-md border border-gray-200 bg-white py-2 text-sm shadow-lg"
 									>
 										<button
+											type="button"
 											class="w-full cursor-pointer px-4 py-2 text-left font-medium hover:bg-gray-100"
 											on:click={() => clearPreview(index)}
 										>
 											Delete
 										</button>
 										<button
+											type="button"
 											class="w-full cursor-pointer px-4 py-2 text-left font-medium hover:bg-gray-100"
 											on:click={() => moveImageUp(index)}
 											disabled={index === 0}
@@ -400,6 +375,7 @@
 											Move Up
 										</button>
 										<button
+											type="button"
 											class="w-full cursor-pointer px-4 py-2 text-left font-medium hover:bg-gray-100"
 											on:click={() => moveImageDown(index)}
 											disabled={index === imagePreviews.length - 1}
@@ -421,9 +397,29 @@
 			<!-- Submit button is always present now -->
 			<button
 				type="submit"
-				class="mt-6 w-full max-w-sm rounded-md bg-indigo-600 px-6 py-3 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+				disabled={isSubmitting}
+				class="mt-6 flex w-full max-w-sm items-center justify-center rounded-md bg-indigo-600 px-6 py-3 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-400 focus:outline-none disabled:opacity-50"
 			>
-				Save Changes & Continue
+				<!-- Show spinner or text based on isSubmitting state -->
+				{#if isSubmitting}
+					<svg
+						class="mr-3 h-5 w-5 animate-spin text-white"
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+					>
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+						></circle>
+						<path
+							class="opacity-75"
+							fill="currentColor"
+							d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+						></path>
+					</svg>
+					Saving...
+				{:else}
+					Save Changes & Continue
+				{/if}
 			</button>
 		</form>
 	</div>

@@ -668,7 +668,7 @@
 									</svg>
 									Saving...
 								{:else if businessData}
-									Update Business
+									Next
 								{:else}
 									Submit Form
 								{/if}
