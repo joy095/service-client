@@ -202,7 +202,6 @@
 				.map((p) => p.file) as File[];
 
 			if (newUploads.length > 0) {
-				console.log('Uploading new files...');
 				const uploadFormData = new FormData();
 				for (const file of newUploads) {
 					uploadFormData.append('images', file, file.name);
@@ -217,7 +216,6 @@
 					throw new Error(errorData.message || 'Failed to upload new images');
 				}
 				const uploadResult = await response.json();
-				console.log('Upload result:', uploadResult);
 			}
 
 			// 2. Handle Reordering / Setting Primary
@@ -226,7 +224,6 @@
 			// This assumes your backend API for reorder expects the full list of IDs in the desired order.
 			// 2. Handle Reordering
 			if (imagePreviews.length > 0) {
-				console.log('Sending reorder request...');
 				const reorderFormData = new FormData();
 				// --- This part now correctly uses imageId because imagePreviews[].id is imageId ---
 				const currentOrderIds = imagePreviews
@@ -244,7 +241,6 @@
 						throw new Error(errorData.message || 'Failed to reorder images');
 					}
 					const reorderResult = await response.json();
-					console.log('Reorder result:', reorderResult);
 				} else {
 					console.log('No existing images to reorder.');
 				}
@@ -259,7 +255,6 @@
 			const idsToDelete = [...originalImageIds].filter((id) => !currentImageIds.has(id));
 
 			if (idsToDelete.length > 0) {
-				console.log('Deleting images:', idsToDelete);
 				for (const imageId of idsToDelete) {
 					// imageId here is the correct UUID
 					const deleteFormData = new FormData();
@@ -279,10 +274,9 @@
 						// Don't throw, try to continue redirecting
 					}
 				}
-				console.log('Deletion requests sent.');
 			}
 
-			alert('Changes saved successfully!');
+			// alert('Changes saved successfully!');
 
 			// --- Redirect Regardless ---
 
