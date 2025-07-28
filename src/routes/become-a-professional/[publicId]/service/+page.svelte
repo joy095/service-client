@@ -1,7 +1,8 @@
-<!-- src/routes/somepage/[publicId]/currentpage/+page.svelte -->
+<!-- src/routes/become-a-professional/[publicId]/service/+page.svelte -->
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import deepEqual from 'fast-deep-equal';
+	import { onDestroy } from 'svelte';
 
 	export let data: {
 		publicId: string;
@@ -128,6 +129,17 @@
 			(!!formData.imageUrl || !!formData.image)
 		);
 	}
+
+	let previewUrl: string | null = null;
+
+	$: if (formData.image) {
+		if (previewUrl) URL.revokeObjectURL(previewUrl);
+		previewUrl = URL.createObjectURL(formData.image);
+	}
+
+	onDestroy(() => {
+		if (previewUrl) URL.revokeObjectURL(previewUrl);
+	});
 </script>
 
 <div class="mx-auto max-w-4xl p-4 sm:p-6">
@@ -407,8 +419,11 @@
 						<div class="flex flex-col gap-6 sm:flex-row">
 							<div class="flex-shrink-0">
 								{#if formData.imageUrl || formData.image}
+									{@const imageUrl = formData.image
+										? URL.createObjectURL(formData.image)
+										: formData.imageUrl}
 									<img
-										src={formData.image ? URL.createObjectURL(formData.image) : formData.imageUrl}
+										src={imageUrl}
 										alt="Service preview"
 										class="h-40 w-40 rounded-xl border-2 border-white object-cover shadow-md"
 										on:error={() => (formData.imageUrl = '')}
@@ -630,14 +645,5 @@
 
 	.animate-spin {
 		animation: spin 1s linear infinite;
-	}
-
-	@keyframes spin {
-		from {
-			transform: rotate(0deg);
-		}
-		to {
-			transform: rotate(360deg);
-		}
 	}
 </style>
