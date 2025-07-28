@@ -7,13 +7,9 @@
 
 	onMount(async () => {
 		try {
-			console.log('🔍 Fetching health endpoint...');
 			const url = 'https://r2-worker-proxy.joykarmakar987654321.workers.dev/health';
-			console.log('📍 URL:', url);
 
 			const response = await fetch(url);
-			console.log('✅ Response received:', response.status, response.statusText);
-			console.log('📋 Response headers:', [...response.headers.entries()]);
 
 			if (!response.ok) {
 				const errorText = await response.text();
@@ -22,7 +18,7 @@
 			}
 
 			const data = await response.json();
-			console.log('🎉 Success! Data:', data);
+
 			healthData = data;
 		} catch (err) {
 			console.error('💥 Fetch error details:', {
