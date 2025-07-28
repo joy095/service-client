@@ -212,8 +212,14 @@
 				});
 
 				if (!response.ok) {
-					const errorData = await response.json();
-					throw new Error(errorData.message || 'Failed to upload new images');
+					let errorMessage = 'Failed to upload new images';
+					try {
+						const errorData = await response.json();
+						errorMessage = errorData.message || errorMessage;
+					} catch (e) {
+						errorMessage = `${errorMessage}: ${response.statusText}`;
+					}
+					throw new Error(errorMessage);
 				}
 				const uploadResult = await response.json();
 			}
@@ -255,6 +261,7 @@
 			const idsToDelete = [...originalImageIds].filter((id) => !currentImageIds.has(id));
 
 			if (idsToDelete.length > 0) {
+				const deletionErrors = [];
 				for (const imageId of idsToDelete) {
 					// imageId here is the correct UUID
 					const deleteFormData = new FormData();
@@ -270,9 +277,13 @@
 						console.error(`Failed to delete image ${imageId}:`, errorData.message);
 						// Optionally, you could throw an error here to stop the process
 						// or continue trying to delete others. Let's alert for now.
-						alert(`Failed to delete some images: ${errorData.message || response.statusText}`);
+						deletionErrors.push(imageId);
 						// Don't throw, try to continue redirecting
 					}
+				}
+
+				if (deletionErrors.length > 0) {
+					alert(`Failed to delete ${deletionErrors.length} image(s). Please try again.`);
 				}
 			}
 
