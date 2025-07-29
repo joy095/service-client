@@ -90,17 +90,19 @@
 				<div class="h-[25rem] w-full rounded-md bg-gray-200 object-cover"></div>
 			{/if}
 
-			<span
-				class="absolute top-5 left-5 flex items-center gap-1 rounded-full bg-white px-3 py-1 text-sm font-semibold text-gray-800"
-			>
-				<div class="h-2 w-2 rounded-full bg-amber-600"></div>
-				In progress
-			</span>
+			{#if business.isActive != true}
+				<span
+					class="absolute top-5 left-5 flex items-center gap-1 rounded-full bg-white px-3 py-1 text-sm font-semibold text-gray-800"
+				>
+					<div class="h-2 w-2 rounded-full bg-amber-600"></div>
+					In progress
+				</span>
+			{/if}
 		</div>
 
 		<div class="details">
 			<div class="price-type">
-				{#if business.createdAt !== null}
+				{#if business.createdAt !== null && business.isActive != true}
 					<p class="font-semibold">Your listing stated on {formatDate(business.createdAt)}</p>
 				{:else}{/if}
 			</div>
