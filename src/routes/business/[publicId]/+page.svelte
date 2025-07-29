@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
+	import ImageGallery from '$lib/components/ImageGallery.svelte';
+	import type { Image } from '$lib/types/index.js';
 	// import Map from '$lib/components/Map.svelte';
 
 	export let data;
@@ -13,51 +15,32 @@
 		isVisible = true;
 		return () => (isVisible = false);
 	});
+
+	const images: Image[] =
+		business.images
+			?.filter((img) => img?.objectName) // Only valid images
+			.map((img, index) => ({
+				id: img.imageId?.toString() || crypto.randomUUID(), // Fallback ID
+				url: img.objectName.trim(), // Trim whitespace
+				alt: `${business.name} - Gallery image ${index + 1}`,
+				index
+			})) || [];
 </script>
 
 <div class="container">
-	<!-- Business Header -->
-	<div class="hero-section" in:fade={{ duration: 800, easing: cubicOut }}>
-		<div class="image-wrapper">
-			{#if business.images?.length > 0 && business.images[0].objectName}
-				<img
-					src={business.images[0].objectName}
-					alt={business.name}
-					class="main-image"
-					on:error={(e) =>
-						((e.currentTarget as HTMLImageElement).src =
-							'https://images.unsplash.com/photo-1575936123452-b67c3203c357?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aW1hZ2V8ZW58MHx8MHx8fDA%3D')}
-				/>
+	<div class="grid grid-cols-3">
+		<div class="col-span-2">
+			{#if images.length === 0}
+				<div class="flex justify-center">
+					<img
+						src="https://archive.org/details/placeholder-image"
+						alt="No images available"
+						class="max-w-md rounded-3xl opacity-50"
+					/>
+				</div>
 			{:else}
-				<img
-					src="https://images.unsplash.com/photo-1575936123452-b67c3203c357?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aW1hZ2V8ZW58MHx8MHx8fDA%3D"
-					alt="No image available"
-					class="h-48 w-full rounded-t object-cover"
-				/>
+				<ImageGallery {images} />
 			{/if}
-			<div class="image-overlay">
-				<h1 class="hero-title">{business.name}</h1>
-				<p class="hero-subtitle">{business.category} in {business.city}, {business.country}</p>
-			</div>
-		</div>
-
-		<div class="info-card" in:slide={{ duration: 600, delay: 200, easing: cubicOut }}>
-			<div class="details-grid">
-				<div class="detail-item">
-					<span class="label">Location</span>
-					<span>{business?.Latitude}, {business?.Longitude}</span>
-				</div>
-				<div class="detail-item">
-					<span class="label">Postal Code</span>
-					<span>{business.postalCode}</span>
-				</div>
-				<div class="detail-item">
-					<span class="label">Status</span>
-					<span class={business.isActive ? 'status-active' : 'status-inactive'}>
-						{business.isActive ? 'Active' : 'Inactive'}
-					</span>
-				</div>
-			</div>
 		</div>
 	</div>
 
@@ -99,14 +82,6 @@
 
 	<!-- Map -->
 	{#if business.Latitude && business.Longitude !== 0}
-		<!-- <Map
-			className="mt-10 overflow-hidden rounded-md !z-0"
-			storeLat={business.Latitude}
-			storeLng={business.Longitude}
-			businessName={business.name}
-			zoom={16}
-		/> -->
-
 		<iframe
 			src={`https://maps.google.com/maps?q=${business.Latitude},${business.Longitude} (${encodeURIComponent(business.name)})&z=16&output=embed`}
 			class="mt-10 h-[30rem] w-full rounded-md rounded-md"

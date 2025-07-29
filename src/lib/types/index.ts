@@ -21,7 +21,7 @@ export interface Business {
         createdAt: string;
         objectName: string;
         position: number;
-    }[] | null
+    }[]
 };
 
 export interface BusinessImage {
@@ -39,11 +39,12 @@ export interface Service {
     description: string;
     duration: number;
     price: number;
-    imageId: string | null;
+    imageId: string;
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
     objectName: string;
+    durationMinutes: number;
 };
 
 export interface WorkingHour {
@@ -73,3 +74,9 @@ export interface AuthState {
     user: User | null;
 }
 
+export type Image = {
+    id: string;
+    url: string;
+    alt: string;
+    index: number;
+};

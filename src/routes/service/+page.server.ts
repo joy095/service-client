@@ -1,6 +1,6 @@
 // src/routes/somepage/[publicId]/currentpage/+page.server.ts
-import type { Actions, PageServerLoad } from './$types';
-import { fail, redirect } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from '../$types';
+import { fail } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 
 export const load: PageServerLoad = async ({ params, fetch }) => {

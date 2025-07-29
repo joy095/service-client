@@ -291,7 +291,9 @@
 
 			// --- Redirect Regardless ---
 
-			goto(`/become-a-professional/${publicId}/service`);
+			let serviceId = 'g';
+
+			goto(`/become-a-professional/${publicId}/service/${serviceId}`);
 		} catch (err) {
 			console.error('Submission error:', err);
 			alert(err.message || 'An error occurred while saving changes.');
