@@ -28,13 +28,16 @@
 	async function handleDeleteConfirm() {
 		deleting = true; // Set loading state to true
 		try {
-			const response = await fetch(`${import.meta.env.API_URL}/business/${business.publicId}`, {
-				method: 'DELETE',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				credentials: 'include'
-			});
+			const response = await fetch(
+				`${import.meta.env.VITE_API_URL}/business/${business.publicId}`,
+				{
+					method: 'DELETE',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					credentials: 'include'
+				}
+			);
 
 			if (!response.ok) {
 				// Attempt to parse error message from response if available
