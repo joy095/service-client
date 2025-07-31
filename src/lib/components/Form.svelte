@@ -38,7 +38,7 @@
 
 		try {
 			if (step === 'email') {
-				const res = await fetch(`/api/user-is-registered`, {
+				const res = await fetch(`${import.meta.env.API_URL}/user-is-registered`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ email })
@@ -55,7 +55,7 @@
 				if (status === 'Pending') {
 					step = 'otp';
 				} else if (status === 'Not Verified') {
-					const resendRes = await fetch(`/api/resend-otp`, {
+					const resendRes = await fetch(`${import.meta.env.API_URL}/resend-otp`, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({ email })
@@ -73,7 +73,7 @@
 					step = 'register';
 				}
 			} else if (step === 'register') {
-				const res = await fetch(`/api/register`, {
+				const res = await fetch(`${import.meta.env.API_URL}/register`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					credentials: 'include',
@@ -94,7 +94,7 @@
 				// Backend should set access/refresh token in HttpOnly cookie
 				step = 'otp';
 			} else if (step === 'otp') {
-				const res = await fetch(`/api/verify-email`, {
+				const res = await fetch(`${import.meta.env.API_URL}/verify-email`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ email, otp, device: deviceName })
@@ -107,7 +107,7 @@
 
 				step = 'password';
 			} else if (step === 'password') {
-				const res = await fetch(`/api/login`, {
+				const res = await fetch(`${import.meta.env.API_URL}/login`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ email, password }),
@@ -128,7 +128,7 @@
 				isFormOpen.set(false);
 				await invalidateAll();
 			} else if (step === 'forgot-email') {
-				const res = await fetch(`/api/forgot-password`, {
+				const res = await fetch(`${import.meta.env.API_URL}/forgot-password`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ email })
@@ -139,7 +139,7 @@
 				}
 				step = 'forgot-otp';
 			} else if (step === 'forgot-otp') {
-				const res = await fetch(`/api/forgot-password-otp`, {
+				const res = await fetch(`${import.meta.env.API_URL}/forgot-password-otp`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
@@ -156,7 +156,7 @@
 
 				step = 'password'; // User can now log in
 			} else if (step === 'reset-password') {
-				const res = await fetch(`/api/reset-password`, {
+				const res = await fetch(`${import.meta.env.API_URL}/reset-password`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ email, password })

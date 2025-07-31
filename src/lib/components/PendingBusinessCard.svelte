@@ -28,7 +28,7 @@
 	async function handleDeleteConfirm() {
 		deleting = true; // Set loading state to true
 		try {
-			const response = await fetch(`/api/business/${business.publicId}`, {
+			const response = await fetch(`${import.meta.env.API_URL}/business/${business.publicId}`, {
 				method: 'DELETE',
 				headers: {
 					'Content-Type': 'application/json'
