@@ -13,7 +13,7 @@ export async function tryRefreshToken(): Promise<void> {
         }
 
         // Make request only if access token is not found
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/refresh-token`, {
+        const res = await fetch(`/api/refresh - token`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
