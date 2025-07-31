@@ -4,7 +4,7 @@ import { goto } from '$app/navigation';
 
 export async function logout() {
     try {
-        await fetch(`${import.meta.env.API_URL}/logout`, {
+        await fetch(`${import.meta.env.VITE_API_URL}/logout`, {
             method: 'POST',
             credentials: 'include' // sends HttpOnly access_token cookie
         });
