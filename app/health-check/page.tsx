@@ -1,7 +1,10 @@
 // src/app/health-check/page.tsx
 'use client'; // This is a Client Component because it uses useEffect and useState
 
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
+
+export const runtime = 'edge';
 
 // Define types for better type safety
 interface HealthData {
@@ -31,6 +34,7 @@ export default function HealthCheckPage() {
                         errorText = await response.text();
                     } catch (e) {
                         // If reading text fails, use status text
+                        console.error(e)
                         errorText = response.statusText;
                     }
                     console.log('❌ Error response body:', errorText);
@@ -104,21 +108,11 @@ export default function HealthCheckPage() {
                 <li>Check detailed error logs</li>
             </ol>
 
-            {/* Note: The enhanced:img tag is Svelte-specific. Using a standard img tag in React/Next.js */}
-            {/* Also note: The URL for the image had extra spaces which have been removed */}
-            <img
+            <Image
                 src="https://r2-worker-proxy.joykarmakar987654321.workers.dev/uploads/0197d626-bb8e-7b67-a6af-4f357bc858f8/79f49a819e1547c2af190d042c5f7d40.webp"
                 alt=""
-            // You might want to add width, height, and other props for better image handling in Next.js
-            // For example, using next/image for optimization (requires the domain to be configured in next.config.js)
-            // If using next/image, you would need to configure remote patterns in next.config.js
-            // import Image from 'next/image';
-            // <Image
-            //   src="https://r2-worker-proxy.joykarmakar987654321.workers.dev/uploads/0197d626-bb8e-7b67-a6af-4f357bc858f8/79f49a819e1547c2af190d042c5f7d40.webp"
-            //   alt=""
-            //   width={500}
-            //   height={300}
-            // />
+                width={500}
+                height={300}
             />
         </div>
     );
