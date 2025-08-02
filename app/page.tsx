@@ -1,5 +1,7 @@
 // src/app/page.tsx (or src/app/businesses/page.tsx)
 
+export const runtime = 'edge';
+
 import { Business } from '@/lib/types';
 import PropertyCard from '@/components/PropertyCard';
 import Image from 'next/image';
