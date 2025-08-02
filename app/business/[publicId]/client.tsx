@@ -71,8 +71,8 @@ export default function BusinessPage({ business, services = [] }: BusinessPagePr
               <Image
                 src="https://archive.org/details/placeholder-image"
                 alt="No images available"
-                width={400}
-                height={300}
+                width={200}
+                height={150}
                 className="max-w-md rounded-3xl opacity-50"
                 quality={50}
               />
@@ -111,8 +111,8 @@ export default function BusinessPage({ business, services = [] }: BusinessPagePr
                     alt={service.name}
                     fill
                     className={styles.serviceImage}
-                    width={400}
-                    height={300}
+                    width={200}
+                    height={150}
                     quality={50}
                   />
                 </div>

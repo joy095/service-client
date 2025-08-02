@@ -44,8 +44,8 @@ export default function PropertyCard({ business }: PropertyCardProps) {
                 <Image
                     src={imageSrc}
                     alt={business.name}
-                    width={400}
-                    height={200}
+                    width={200}
+                    height={100}
                     quality={50}
                     className="w-full h-full object-cover"
                     onError={handleImageError}

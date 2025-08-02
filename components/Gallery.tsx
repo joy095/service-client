@@ -52,8 +52,8 @@ export default function Gallery({ images }: GalleryProps) {
         <Image
           src={images[currentIndex]?.url || '/static/image-placeholder.svg'}
           alt={images[currentIndex]?.alt || 'Main Image'}
-          width={690}
-          height={450}
+          width={340}
+          height={225}
           quality={50}
           className="w-full h-full object-cover"
         />
