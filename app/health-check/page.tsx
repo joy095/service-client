@@ -111,8 +111,7 @@ export default function HealthCheckPage() {
             <Image
                 src="https://r2-worker-proxy.joykarmakar987654321.workers.dev/uploads/0197d626-bb8e-7b67-a6af-4f357bc858f8/79f49a819e1547c2af190d042c5f7d40.webp"
                 alt=""
-                width={250}
-                height={150}
+                fill
                 quality={50}
             />
         </div>

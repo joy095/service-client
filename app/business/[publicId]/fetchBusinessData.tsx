@@ -4,7 +4,7 @@ export async function fetchBusinessData({ params }: PageProps): Promise<{
     business?: ApiBusiness;
     services: ApiService[];
 }>  {
-    const API_BASE = process.env.API_URL || 'http://localhost:3001';
+    const API_BASE = process.env.API_URL;
 
     // Await params to access its properties
     const { publicId } = await params;
