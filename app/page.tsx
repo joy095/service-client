@@ -1,103 +1,124 @@
-import Image from "next/image";
+// src/app/page.tsx (or src/app/businesses/page.tsx)
 
-export default function Home() {
+import { Business } from '@/lib/types';
+import PropertyCard from '@/components/PropertyCard';
+
+// Define the API response types
+interface ApiBusinessImage {
+  businessId: string;
+  imageId: string;
+  position: number;
+  objectName: string;
+  createdAt: string;
+}
+
+interface ApiBusiness {
+  id: string;
+  name: string;
+  category: string;
+  address: string;
+  city: string;
+  state: string;
+  country: string;
+  postalCode: string;
+  Latitude: number;
+  Longitude: number;
+  createdAt: string;
+  updatedAt: string;
+  isActive: boolean;
+  ownerId: string;
+  publicId: string;
+  images?: ApiBusinessImage[];
+}
+
+interface ApiResponse {
+  businesses: ApiBusiness[];
+}
+
+// Server-side data fetching function
+async function fetchBusinesses(): Promise<Business[]> {
+  const API_URL = process.env.API_URL || 'http://localhost:3001';
+
+  if (!API_URL) {
+    console.error('API_URL environment variable is not set');
+    return [];
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/business`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      next: { revalidate: 60 }
+    });
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch businesses: ${res.status} ${res.statusText}`);
+    }
+
+    const data: ApiResponse = await res.json();
+
+    // Transform the API response into the expected Business type
+    const businesses: Business[] = data.businesses.map((business) => ({
+      id: business.id,
+      name: business.name,
+      category: business.category,
+      address: business.address,
+      city: business.city,
+      state: business.state,
+      country: business.country,
+      postalCode: business.postalCode,
+      Latitude: business.Latitude,
+      Longitude: business.Longitude,
+      createdAt: business.createdAt,
+      updatedAt: business.updatedAt,
+      isActive: business.isActive,
+      ownerId: business.ownerId,
+      publicId: business.publicId,
+      images: (business.images ?? []).map((img) => ({
+        businessId: img.businessId,
+        imageId: img.imageId,
+        position: img.position,
+        objectName: img.objectName,
+        createdAt: img.createdAt,
+      }))
+    }));
+
+    return businesses;
+  } catch (error) {
+    console.error('Error loading businesses:', error);
+    return [];
+  }
+}
+
+// Server Component - runs entirely on the server
+export default async function BusinessesPage() {
+  const businesses = await fetchBusinesses();
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="container mx-auto p-4">
+      <h1 className="text-3xl mb-2 text-gray-800">Find your perfect stay</h1>
+      <p className="text-gray-600 mb-8">Discover unique homes and experiences around the world</p>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {businesses.length === 0 ? (
+        <div className="text-center">
+          <p className="mb-4">No businesses found</p>
+          <img
+            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRLat8bZvhXD3ChSXyzGsFVh6qgplm1KhYPKA&s"
+            alt="No image available"
+            className="h-48 w-full rounded-t object-cover mx-auto"
+            width={500}
+            height={200}
+          />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 my-8">
+          {businesses.map((business) => (
+            <PropertyCard key={business.publicId} business={business} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

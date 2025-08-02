@@ -1,0 +1,116 @@
+/* components/SearchBar.module.css */
+.bar {
+  width: 650px;
+  background: white;
+  box-shadow: 0 0 5px hsl(0 0% 78%);
+  height: 55px;
+  border-radius: 100vw;
+  display: flex;
+  justify-content: center;
+  font-size: 0.6rem;
+  border: 1px solid hsl(0 0% 94%);
+}
+
+.bar div {
+  border-radius: inherit;
+  padding: 0.8rem 1.5rem;
+  transition: background 250ms ease;
+}
+
+.bar div:hover {
+  background: hsl(0 0% 94%);
+}
+
+.location {
+  width: 34%;
+}
+
+.checkIn,
+.checkOut,
+.guests {
+  width: 22%;
+}
+
+.input {
+  color: black;
+}
+
+.label {
+  color: black;
+}
+
+.inputField {
+  background: none;
+  border: none;
+  padding: 0.2rem 0 0 0;
+  font: 16px;
+  color: gray;
+}
+
+.inputField:focus {
+  outline: none;
+}
+
+.inputField::placeholder {
+  font-size: 0.75rem;
+}
+
+.guests {
+  position: relative;
+}
+
+.searchIcon {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  background: #ff385c;
+  color: white;
+  font-size: 0.8rem;
+  padding: 0.7rem;
+  border-radius: 50%;
+}
+
+.bar > div {
+  position: relative;
+}
+
+.bar > div::before {
+  position: absolute;
+  content: "";
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 55%;
+  background: hsl(0 0% 90%);
+}
+
+.bar > div:first-child::before {
+  background: transparent;
+}
+
+.bar > div:hover::before {
+  background: transparent;
+}
+
+@media (max-width: 768px) {
+  .bar {
+    width: 100%;
+    flex-direction: column;
+    height: auto;
+    border-radius: 1rem;
+  }
+
+  .location,
+  .checkIn,
+  .checkOut,
+  .guests {
+    width: 100%;
+    padding: 1rem;
+  }
+
+  .bar > div::before {
+    display: none;
+  }
+}

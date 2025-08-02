@@ -1,0 +1,111 @@
+.navbar {
+  background: linear-gradient(90deg, #ffffff 0%, #ffffff 100%);
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 5px rgba(207, 207, 207, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  color: white;
+}
+
+.navContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #0f8;
+  text-decoration: none;
+  transition: transform 0.3s ease;
+}
+
+.logo:hover {
+  transform: scale(1.05);
+}
+
+.handBurger {
+  display: flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: #ebebeb;
+}
+
+.handBurger:hover {
+  background-color: #e7e7e7;
+}
+
+.handBurger:active {
+  scale: 0.95;
+}
+
+.menuContainer {
+  opacity: 0;
+  position: absolute;
+  top: 3rem;
+  right: 0;
+  height: 0;
+  width: 0;
+  overflow: hidden;
+  padding: 0.5rem 0;
+  background: #ffffff;
+  box-shadow: 0 3px 5px rgb(231, 231, 231);
+  border-radius: 10px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.divide {
+  position: relative;
+}
+
+.divide::after {
+  position: absolute;
+  content: "";
+  left: 0;
+  right: 0;
+  bottom: -8px;
+  width: 85%;
+  margin: 0 auto;
+  height: 1px;
+  background: hsl(0 0% 90%);
+}
+
+.menuContainer button,
+.menuContainer a {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: none;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 100%;
+  align-self: self-start;
+  text-align: left;
+  position: relative;
+  font-size: 0.9rem;
+}
+
+.menuContainer button:hover,
+.menuContainer a:hover {
+  background-color: #f0f0f0;
+}
+
+.menuContainerToggled {
+  opacity: 1;
+  height: auto;
+  width: 12rem;
+}
+
+.searchContainer {
+  display: flex;
+  justify-content: center;
+}
