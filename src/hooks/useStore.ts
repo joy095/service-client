@@ -1,7 +1,7 @@
 // src/hooks/useStore.ts
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export function useStore() {
     const [isFormOpen, setIsFormOpen] = useState(false);

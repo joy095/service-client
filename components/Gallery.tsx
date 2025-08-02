@@ -43,7 +43,7 @@ export default function Gallery({ images }: GalleryProps) {
     if (thumbnail) {
       thumbnail.scrollIntoView({ block: 'nearest' });
     }
-  }, []);
+  }, [currentIndex]);
 
   return (
     <div className={styles.galleryContainer}>

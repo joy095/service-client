@@ -2,6 +2,7 @@
 
 import { Business } from '@/lib/types';
 import PropertyCard from '@/components/PropertyCard';
+import Image from 'next/image';
 
 // Define the API response types
 interface ApiBusinessImage {
@@ -76,6 +77,8 @@ async function fetchBusinesses(): Promise<Business[]> {
       isActive: business.isActive,
       ownerId: business.ownerId,
       publicId: business.publicId,
+      // Add imageId from the first image if available
+      imageId: business.images?.[0]?.imageId || '',
       images: (business.images ?? []).map((img) => ({
         businessId: img.businessId,
         imageId: img.imageId,
@@ -104,8 +107,8 @@ export default async function BusinessesPage() {
       {businesses.length === 0 ? (
         <div className="text-center">
           <p className="mb-4">No businesses found</p>
-          <img
-            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRLat8bZvhXD3ChSXyzGsFVh6qgplm1KhYPKA&s"
+          <Image
+            src="/img/placeholder.webp"
             alt="No image available"
             className="h-48 w-full rounded-t object-cover mx-auto"
             width={500}

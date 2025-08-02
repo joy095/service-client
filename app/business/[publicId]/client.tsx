@@ -1,4 +1,4 @@
-// src/app/business/[publicId]/page.tsx
+// src/app/business/[publicId]/client.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,40 +6,8 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Gallery from '@/components/Gallery';
 import styles from '@/css/BusinessPage.module.css';
+import { ApiBusiness, ApiService } from './types';
 
-// Define TypeScript interfaces
-interface BusinessImage {
-  imageId?: string;
-  objectName?: string;
-  position?: number;
-}
-
-interface Business {
-  id?: string;
-  publicId?: string;
-  name?: string;
-  description?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  postalCode?: string;
-  Latitude?: number;
-  Longitude?: number;
-  isActive?: boolean;
-  images?: BusinessImage[];
-  [key: string]: any;
-}
-
-interface Service {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  durationMinutes: number;
-  objectName?: string;
-  [key: string]: any;
-}
 
 interface ImageType {
   id: string;
@@ -50,39 +18,10 @@ interface ImageType {
 
 // Props interface
 interface BusinessPageProps {
-  business?: Business;
-  services?: Service[];
+  business?: ApiBusiness;
+  services?: ApiService[];
 }
 
-// ImageGallery component (simplified version)
-function ImageGallery({ images }: { images: ImageType[] }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  if (images.length === 0) return null;
-
-  return (
-    <div className="relative w-full h-96 rounded-3xl overflow-hidden">
-      <Image
-        src={images[currentIndex]?.url || '/static/image-placeholder.svg'}
-        alt={images[currentIndex]?.alt || 'Business image'}
-        fill
-        className="object-cover"
-      />
-      {images.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-          {images.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
-              className={`w-3 h-3 rounded-full ${index === currentIndex ? 'bg-white' : 'bg-white/50'}`}
-              aria-label={`Go to image ${index + 1}`}
-            />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function BusinessPage({ business, services = [] }: BusinessPageProps) {
   const router = useRouter();

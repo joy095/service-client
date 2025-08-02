@@ -1,8 +1,21 @@
 // src/components/Form.tsx
 'use client';
 
+import { AuthState } from '@/lib/types';
 import { Backpack, Cross, Eye, EyeClosed, Loader } from 'lucide-react';
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent } from 'react';
+
+interface ApiError {
+    message?: string;
+    // Add other potential error fields here if they exist in your API responses
+}
+
+interface UserStatusResponse {
+    status: string;
+    // Add other potential fields from the response if they exist
+}
+
+
 
 // Mock store implementation - Replace with your actual state management (e.g., Context API, Zustand)
 let isFormOpenState = true; // Initially assume it's open based on the Svelte logic
@@ -13,7 +26,7 @@ const setIsFormOpen = (open: boolean) => {
 };
 
 // Mock auth login function - Replace with your actual auth logic
-const authLogin = (user: any) => {
+const authLogin = (user: AuthState) => {
     console.log('User logged in:', user);
     // Update your auth state/context here
 };
@@ -60,10 +73,10 @@ export default function Form() {
 
                 if (!res.ok) {
                     const data = await res.json();
-                    throw new Error(data.message || 'Something went wrong.');
+                    throw new Error((data as { message?: string })?.message || 'Something went wrong.');
                 }
 
-                const { status } = await res.json();
+                const { status } = await res.json() as UserStatusResponse;
                 setUserStatus(status);
 
                 if (status === 'Pending') {
@@ -77,7 +90,7 @@ export default function Form() {
 
                     if (!resendRes.ok) {
                         const data = await resendRes.json();
-                        throw new Error(data.message || 'Failed to resend OTP.');
+                        throw new Error((data as ApiError)?.message || 'Failed to resend OTP.');
                     }
                     setStep('otp');
                 } else if (status === 'Verified') {
@@ -102,7 +115,7 @@ export default function Form() {
 
                 if (!res.ok) {
                     const data = await res.json();
-                    throw new Error(data.message || 'Registration failed.');
+                    throw new Error((data as ApiError)?.message || 'Registration failed.');
                 }
                 // Backend should set access/refresh token in HttpOnly cookie
                 setStep('otp');
@@ -116,7 +129,7 @@ export default function Form() {
 
                 if (!res.ok) {
                     const data = await res.json();
-                    throw new Error(data.message || 'Invalid OTP.');
+                    throw new Error((data as ApiError)?.message || 'Invalid OTP.');
                 }
                 setStep('password');
             } else if (step === 'password') {
@@ -151,7 +164,7 @@ export default function Form() {
 
                 if (!res.ok) {
                     const data = await res.json();
-                    throw new Error(data.message || 'Failed to send OTP.');
+                    throw new Error((data as ApiError)?.message || 'Failed to send OTP.');
                 }
                 setStep('forgot-otp');
             } else if (step === 'forgot-otp') {
@@ -168,7 +181,7 @@ export default function Form() {
 
                 if (!res.ok) {
                     const data = await res.json();
-                    throw new Error(data.message || 'Failed to reset password.');
+                    throw new Error((data as ApiError)?.message || 'Failed to reset password.');
                 }
                 setStep('password'); // User can now log in
             } else if (step === 'reset-password') {
@@ -181,13 +194,20 @@ export default function Form() {
 
                 if (!res.ok) {
                     const data = await res.json();
-                    throw new Error(data.message || 'Failed to reset password.');
+                    throw new Error((data as ApiError)?.message || 'Failed to reset password.');
                 }
                 setStep('password');
             }
-        } catch (err: any) {
-            setError(err.message || 'Something went wrong.');
-            console.error("Form submission error:", err); // Log for debugging
+        } catch (err: unknown) {
+            // Type guard to check if err is an Error instance
+            if (err instanceof Error) {
+                setError(err.message || 'Something went wrong.');
+                console.error("Form submission error:", err);
+            } else {
+                // Handle non-Error objects (though this is rare)
+                setError('Something went wrong.');
+                console.error("Form submission error:", err);
+            }
         } finally {
             setIsLoading(false);
         }

@@ -1,7 +1,7 @@
 // src/components/Navbar.tsx
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Search from './Search';
 import { AlignJustify, CircleUser, Info } from 'lucide-react';
 import Link from 'next/link';
@@ -9,8 +9,7 @@ import styles from '@/css/Navbar.module.css';
 import Form from './Form';
 
 // Mock store implementation since you're not using global state
-let isFormOpen = false;
-let isAuthenticated = false;
+const isAuthenticated = false;
 
 // Mock logout function
 const logout = () => {
@@ -23,19 +22,19 @@ export default function Navbar() {
     const [formOpen, setFormOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
-    function handleClickOutside(event: MouseEvent) {
+    const handleClickOutside = useCallback((event: MouseEvent) => {
         const target = event.target as Node;
         if (isMenuOpen && menuRef.current && !menuRef.current.contains(target)) {
             setIsMenuOpen(false);
         }
-    }
+    }, [isMenuOpen]);
 
     useEffect(() => {
         document.addEventListener('click', handleClickOutside);
         return () => {
             document.removeEventListener('click', handleClickOutside);
         };
-    }, [isMenuOpen]);
+    }, [handleClickOutside]);
 
     return (
         <>
@@ -76,8 +75,7 @@ export default function Navbar() {
                                     <Link href="/login" className={styles.divide}>Become a professional</Link>
 
                                     <button onClick={() => {
-                                        isFormOpen = !isFormOpen;
-                                        setFormOpen(isFormOpen);
+                                        setFormOpen(prev => !prev);
                                     }}>Log in or sign up</button>
                                 </>
                             )}
