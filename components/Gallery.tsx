@@ -52,7 +52,8 @@ export default function Gallery({ images }: GalleryProps) {
         <Image
           src={images[currentIndex]?.url || '/static/image-placeholder.svg'}
           alt={images[currentIndex]?.alt || 'Main Image'}
-          fill
+          width={650}
+          height={200}
           quality={70}
           className="w-full h-full object-cover"
         />
@@ -69,7 +70,8 @@ export default function Gallery({ images }: GalleryProps) {
             <Image
               src={image.url}
               alt={image.alt}
-              fill
+              height={80}
+              width={80}
               quality={70}
               className="w-full h-full object-cover"
             />

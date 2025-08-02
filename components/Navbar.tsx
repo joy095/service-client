@@ -6,20 +6,23 @@ import Search from './Search';
 import { AlignJustify, CircleUser, Info } from 'lucide-react';
 import Link from 'next/link';
 import styles from '@/css/Navbar.module.css';
-import Form from './Form';
+import Form from './Form'; // Make sure the path is correct
 
 // Mock store implementation since you're not using global state
-const isAuthenticated = false;
-
-// Mock logout function
-const logout = () => {
-    console.log('Logout function called');
-    // Implement your actual logout logic here
+// const isAuthenticated = false; // You might want to manage this state properly
+const useAuth = () => { // Example of managing auth state locally or via context
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    // Mock login/logout functions or integrate with your auth system
+    const login = () => setIsAuthenticated(true);
+    const logout = () => setIsAuthenticated(false);
+    return { isAuthenticated, login, logout };
 };
 
 export default function Navbar() {
+    const { isAuthenticated, logout } = useAuth(); // Use the auth hook/state
+
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [formOpen, setFormOpen] = useState(false);
+    const [formOpen, setFormOpen] = useState(false); // This is the correct state to manage Form visibility
     const menuRef = useRef<HTMLDivElement>(null);
 
     const handleClickOutside = useCallback((event: MouseEvent) => {
@@ -35,6 +38,11 @@ export default function Navbar() {
             document.removeEventListener('click', handleClickOutside);
         };
     }, [handleClickOutside]);
+
+    // Function to handle closing the form
+    const handleFormClose = () => {
+        setFormOpen(false);
+    };
 
     return (
         <>
@@ -75,7 +83,7 @@ export default function Navbar() {
                                     <Link href="/login" className={styles.divide}>Become a professional</Link>
 
                                     <button onClick={() => {
-                                        setFormOpen(prev => !prev);
+                                        setFormOpen(true); // Set to true to open
                                     }}>Log in or sign up</button>
                                 </>
                             )}
@@ -88,7 +96,8 @@ export default function Navbar() {
                 </div>
             </nav>
 
-            {formOpen && <Form />}
+            {/* Render Form conditionally and pass the onClose handler */}
+            {formOpen && <Form onClose={handleFormClose} />}
         </>
     );
 }
