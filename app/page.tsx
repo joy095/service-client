@@ -113,7 +113,7 @@ export default async function BusinessesPage() {
             src="/img/placeholder.webp"
             alt="No image available"
             className="h-48 w-full rounded-t object-cover mx-auto"
-            width={500}
+            width={290}
             height={200}
           />
         </div>

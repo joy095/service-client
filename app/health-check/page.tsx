@@ -113,6 +113,7 @@ export default function HealthCheckPage() {
                 alt=""
                 width={500}
                 height={300}
+                quality={50}
             />
         </div>
     );

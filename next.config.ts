@@ -12,13 +12,13 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   images: {
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'r2-worker-proxy.joykarmakar987654321.workers.dev',
       },
     ],
-    formats: ['image/avif', 'image/webp'],
   }
 
 };

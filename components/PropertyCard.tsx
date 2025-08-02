@@ -46,6 +46,7 @@ export default function PropertyCard({ business }: PropertyCardProps) {
                     alt={business.name}
                     width={400}
                     height={200}
+                    quality={50}
                     className="w-full h-full object-cover"
                     onError={handleImageError}
                     loading='lazy'

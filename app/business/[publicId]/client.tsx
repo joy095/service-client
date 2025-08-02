@@ -74,6 +74,7 @@ export default function BusinessPage({ business, services = [] }: BusinessPagePr
                 width={400}
                 height={300}
                 className="max-w-md rounded-3xl opacity-50"
+                quality={50}
               />
             </div>
           ) : (
@@ -110,6 +111,9 @@ export default function BusinessPage({ business, services = [] }: BusinessPagePr
                     alt={service.name}
                     fill
                     className={styles.serviceImage}
+                    width={400}
+                    height={300}
+                    quality={50}
                   />
                 </div>
                 <div className={styles.serviceOverlay}>
