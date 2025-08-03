@@ -11,26 +11,24 @@
 			objectName: string;
 		}[];
 	};
-
 </script>
 
 <a href={`/business/${business.publicId}`} class="property-card">
-	{#if business.images?.length > 0 && business.images[0].objectName}
+	{#if business?.images?.length > 0 && business.images[0]?.objectName}
 		<img
-			src={business.images[0].objectName}
+			src="{import.meta.env.VITE_IMAGE_URL}/{business.images[0].objectName}"
 			alt={business.name}
 			class="h-48 w-full rounded-t object-cover"
-			on:error={(e) =>
-				((e.currentTarget as HTMLImageElement).src =
-					'https://images.unsplash.com/photo-1575936123452-b67c3203c357?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aW1hZ2V8ZW58MHx8MHx8fDA%3D')}
+			on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/image-placeholder.svg')}
 		/>
 	{:else}
 		<img
-			src="https://images.unsplash.com/photo-1575936123452-b67c3203c357?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aW1hZ2V8ZW58MHx8MHx8fDA%3D"
+			src="/image-placeholder.svg"
 			alt="No image available"
 			class="h-48 w-full rounded-t object-cover"
 		/>
 	{/if}
+
 	<div class="details">
 		<div class="price-type">
 			<h3>{business.name}</h3>

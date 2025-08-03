@@ -35,7 +35,11 @@
 <div class="gallery-container">
 	<!-- Main Image -->
 	<div class="main-image">
-		<img src={images[currentIndex].url} alt={images[currentIndex].alt} loading="lazy" />
+		<img
+			src="{import.meta.env.VITE_IMAGE_URL}/{images[currentIndex].url}"
+			alt={images[currentIndex].alt}
+			loading="lazy"
+		/>
 	</div>
 
 	<!-- Thumbnails (Scrollable, No Visible Scrollbar) -->
@@ -46,7 +50,7 @@
 				class:active={currentIndex === image.index}
 				on:click={() => changeImage(image.index)}
 			>
-				<img src={image.url} alt={image.alt} loading="lazy" />
+				<img src="{import.meta.env.VITE_IMAGE_URL}/{image.url}" alt={image.alt} loading="lazy" />
 			</div>
 		{/each}
 	</div>

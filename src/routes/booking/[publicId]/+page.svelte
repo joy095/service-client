@@ -112,7 +112,7 @@
 					{#if business.images?.[0]?.objectName}
 						<img
 							class="h-8 object-cover"
-							src={business.images[0].objectName}
+							src="{import.meta.env.VITE_IMAGE_URL}/{business.images[0].objectName}"
 							alt={`Logo of ${business.name}`}
 							loading="lazy"
 						/>
@@ -130,7 +130,7 @@
 							<div class="flex items-center gap-3">
 								<img
 									class="h-6 w-6 rounded-full object-cover"
-									src="/test.jpg"
+									src="/image-placeholder.svg"
 									alt="Provider avatar"
 								/>
 								<span class="text-sm font-medium">Jeremy Philips</span>
