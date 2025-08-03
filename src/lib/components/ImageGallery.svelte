@@ -33,20 +33,18 @@
 </script>
 
 <div class="gallery-container">
-	<!-- Main Image with AVIF or WebP optimization -->
+	<!-- Main Image -->
 	<div class="main-image">
 		{#if images.length > 0}
-			<!-- <p class="text-sm text-red-500">
-				URL: {`${import.meta.env.VITE_IMAGE_URL}/${images[currentIndex].url}`}
-			</p> -->
 			{#key images[currentIndex].id}
 				<SecureImage
 					src={`${import.meta.env.VITE_IMAGE_URL}/${images[currentIndex].url}`}
 					alt={images[currentIndex].alt}
-					width={700}
-					height={400}
-					format="avif"
-					className="w-full h-[30rem] object-cover rounded-lg"
+					width={1200}
+					height={800}
+					crop={true}
+					quality={85}
+					className="w-full h-[25rem] md:h-[30rem] object-cover rounded-lg"
 				/>
 			{/key}
 		{:else}
@@ -63,13 +61,19 @@
 				class="thumbnail"
 				class:active={currentIndex === index}
 				on:click={() => changeImage(index)}
+				role="button"
+				aria-label={`View image ${index + 1}`}
+				tabindex="0"
+				on:keydown={(e) => {
+					if (e.key === 'Enter' || e.key === ' ') changeImage(index);
+				}}
 			>
 				<SecureImage
 					src={`${import.meta.env.VITE_IMAGE_URL}/${image.url}`}
 					alt={image.alt}
-					width={100}
-					height={100}
-					format="webp"
+					width={150}
+					height={150}
+					quality={85}
 					className="rounded border h-full w-full object-cover"
 				/>
 			</div>
@@ -78,105 +82,80 @@
 </div>
 
 <style>
-	/* ========== Main Gallery Layout ========== */
 	.gallery-container {
 		display: flex;
-		gap: 2rem;
-		padding: 2rem;
+		flex-direction: row;
+		gap: 1.5rem;
+		padding: 1.5rem;
 	}
 
-	/* Main Image */
 	.main-image {
-		width: 90%;
-		border-radius: 1rem;
-		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		flex: 1;
+		border-radius: 0.75rem;
 		overflow: hidden;
-		position: relative;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 	}
 
-	/* Thumbnails Container */
 	.thumbnails {
-		width: 10%;
-		min-width: 80px;
+		width: 120px;
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
-		overflow-y: auto; /* Enable scroll */
-		scrollbar-width: none; /* Firefox: hide scrollbar */
-		-ms-overflow-style: none; /* IE/Edge: hide scrollbar */
-		scroll-behavior: smooth; /* Smooth scroll */
-		position: relative;
-		border-radius: 1rem;
+		gap: 0.75rem;
+		overflow-y: auto;
+		scrollbar-width: none;
+		-ms-overflow-style: none;
+		scroll-behavior: smooth;
 		padding: 0.5rem 0;
 	}
 
 	.thumbnails::-webkit-scrollbar {
-		display: none; /* Chrome/Safari: hide scrollbar */
+		display: none;
 	}
 
-	/* Thumbnail Style */
 	.thumbnail {
-		position: relative;
-		border-radius: 1rem;
-		height: 5rem;
+		width: 100%;
+		height: 100px;
+		border-radius: 0.5rem;
 		overflow: hidden;
 		cursor: pointer;
-		transition:
-			transform 0.2s ease,
-			box-shadow 0.2s ease;
-		flex-shrink: 0; /* Prevent shrinking */
+		transition: all 0.2s ease;
+		flex-shrink: 0;
+		position: relative;
+		border: 2px solid transparent;
 	}
 
-	.thumbnail img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-
-	/* Active Thumbnail Indicator */
-	.thumbnail.active::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background: rgba(0, 123, 255, 0.2);
-		border: 2px solid #007bff;
-		z-index: 1;
-		border-radius: 1rem;
+	.thumbnail.active {
+		border-color: #007bff;
+		box-shadow:
+			0 0 0 2px white,
+			0 0 0 4px #007bff;
 	}
 
 	.thumbnail:hover {
-		transform: scale(1.05);
+		transform: scale(1.03);
 		box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 	}
 
-	/* Responsive Design */
+	/* Responsive */
 	@media (max-width: 768px) {
 		.gallery-container {
 			flex-direction: column;
 			padding: 1rem;
 		}
 
-		.main-image {
-			width: 100%;
-		}
-
-		.main-image img {
-			height: 20rem;
-		}
-
 		.thumbnails {
 			width: 100%;
-			max-height: 80px;
 			flex-direction: row;
 			overflow-x: auto;
 			overflow-y: hidden;
-			gap: 0.5rem;
+			max-height: 120px;
+			gap: 0.75rem;
 			padding: 0.5rem 0;
 		}
 
 		.thumbnail {
-			height: 80px;
-			width: 80px;
+			width: 100px;
+			height: 100px;
 		}
 	}
 </style>
