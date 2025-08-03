@@ -28,5 +28,7 @@ export const load: PageServerLoad = async ({ fetch, params }) => {
         objectName: srv.objectName || null
     }));
 
+    console.log(services)
+
     return { business, services };
 };
