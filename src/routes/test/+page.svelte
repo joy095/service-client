@@ -77,4 +77,14 @@
 		src="https://r2-worker-proxy.joykarmakar987654321.workers.dev/uploads/0197d626-bb8e-7b67-a6af-4f357bc858f8/79f49a819e1547c2af190d042c5f7d40.webp"
 		alt=""
 	/>
+
+	<img
+		src="https://mail-2.pages.dev/api/image?key=uploads/0197d626-bb8e-7b67-a6af-4f357bc858f8/04be8538610f420e832044d79fc9c37b.webp"
+		alt="No r2 image"
+	/>
+
+	<img
+		src="https://www.bigfootdigital.co.uk/wp-content/uploads/2020/07/image-optimisation-scaled.jpg"
+		alt="test img"
+	/>
 </div>

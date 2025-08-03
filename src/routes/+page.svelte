@@ -12,9 +12,9 @@
 			<p>No businesses found</p>
 		</div>
 		<img
-			src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRLat8bZvhXD3ChSXyzGsFVh6qgplm1KhYPKA&s"
+			src="/image-placeholder.svg"
 			alt="No image available"
-			class="h-48 w-full rounded-t object-cover"
+			class="h-48 w-48 rounded-t object-cover"
 		/>
 	{:else}
 		<div class="property-grid">
