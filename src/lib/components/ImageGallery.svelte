@@ -1,18 +1,19 @@
 <script lang="ts">
 	import type { Image } from '$lib/types';
 	import { onMount } from 'svelte';
+	import SecureImage from '$lib/components/SecureImage.svelte';
 
 	export let images: Image[] = [];
 
 	let currentIndex = 0;
+	$: if (images.length === 0) currentIndex = 0;
+	$: if (currentIndex >= images.length) currentIndex = Math.max(0, images.length - 1);
 	let thumbnailsContainer: HTMLDivElement;
 
-	// Change image and scroll thumbnail into view
 	function changeImage(index: number) {
 		if (index < 0 || index >= images.length) return;
 		currentIndex = index;
 
-		// Smooth scroll active thumbnail into view
 		const thumbnail = thumbnailsContainer.children[index] as HTMLElement;
 		if (thumbnail) {
 			thumbnail.scrollIntoView({
@@ -23,7 +24,6 @@
 		}
 	}
 
-	// Auto-scroll to active thumbnail on mount
 	onMount(() => {
 		const thumbnail = thumbnailsContainer.children[currentIndex] as HTMLElement;
 		if (thumbnail) {
@@ -33,24 +33,45 @@
 </script>
 
 <div class="gallery-container">
-	<!-- Main Image -->
+	<!-- Main Image with AVIF or WebP optimization -->
 	<div class="main-image">
-		<img
-			src="{import.meta.env.VITE_IMAGE_URL}/{images[currentIndex].url}"
-			alt={images[currentIndex].alt}
-			loading="lazy"
-		/>
+		{#if images.length > 0}
+			<!-- <p class="text-sm text-red-500">
+				URL: {`${import.meta.env.VITE_IMAGE_URL}/${images[currentIndex].url}`}
+			</p> -->
+			{#key images[currentIndex].id}
+				<SecureImage
+					src={`${import.meta.env.VITE_IMAGE_URL}/${images[currentIndex].url}`}
+					alt={images[currentIndex].alt}
+					width={700}
+					height={400}
+					format="avif"
+					className="w-full h-[30rem] object-cover rounded-lg"
+				/>
+			{/key}
+		{:else}
+			<div class="flex h-full w-full items-center justify-center rounded-lg bg-gray-200">
+				<p class="text-gray-500">No images available</p>
+			</div>
+		{/if}
 	</div>
 
-	<!-- Thumbnails (Scrollable, No Visible Scrollbar) -->
+	<!-- Thumbnails -->
 	<div class="thumbnails" bind:this={thumbnailsContainer}>
-		{#each images as image (image.id)}
+		{#each images as image, index (image.id)}
 			<div
 				class="thumbnail"
-				class:active={currentIndex === image.index}
-				on:click={() => changeImage(image.index)}
+				class:active={currentIndex === index}
+				on:click={() => changeImage(index)}
 			>
-				<img src="{import.meta.env.VITE_IMAGE_URL}/{image.url}" alt={image.alt} loading="lazy" />
+				<SecureImage
+					src={`${import.meta.env.VITE_IMAGE_URL}/${image.url}`}
+					alt={image.alt}
+					width={100}
+					height={100}
+					format="webp"
+					className="rounded border h-full w-full object-cover"
+				/>
 			</div>
 		{/each}
 	</div>
@@ -71,15 +92,6 @@
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 		overflow: hidden;
 		position: relative;
-	}
-
-	.main-image img {
-		width: 100%;
-		height: 30rem;
-		object-fit: cover;
-		transition:
-			opacity 0.4s ease,
-			transform 0.4s ease;
 	}
 
 	/* Thumbnails Container */

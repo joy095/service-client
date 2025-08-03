@@ -1,4 +1,6 @@
 <script lang="ts">
+	import SecureImage from './SecureImage.svelte';
+
 	export let business: {
 		name: string;
 		category: string;
@@ -15,10 +17,13 @@
 
 <a href={`/business/${business.publicId}`} class="property-card">
 	{#if business?.images?.length > 0 && business.images[0]?.objectName}
-		<img
+		<SecureImage
 			src="{import.meta.env.VITE_IMAGE_URL}/{business.images[0].objectName}"
 			alt={business.name}
-			class="h-48 w-full rounded-t object-cover"
+			width={300}
+			height={200}
+			format="avif"
+			className="h-48 w-full rounded-t object-cover"
 			on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/image-placeholder.svg')}
 		/>
 	{:else}
