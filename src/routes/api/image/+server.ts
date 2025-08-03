@@ -1,10 +1,11 @@
-// src/routes/api/image/+server.ts
 export const GET = async ({ url, platform }) => {
+    console.log('Function triggered');
+
     const key = url.searchParams.get('key');
     if (!key) return new Response('Missing key', { status: 400 });
 
     const object = await platform.env.R2_BUCKET_NAME.get(key);
-    if (!object) return new Response('Not found', { status: 404 });
+    if (!object) return new Response('Not found in R2', { status: 404 });
 
     return new Response(object.body, {
         headers: {
