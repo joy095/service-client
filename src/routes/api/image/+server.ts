@@ -8,7 +8,7 @@ export const onRequest: PagesFunction = async ({ request, env }) => {
         return new Response("Missing key", { status: 400 });
     }
 
-    const object = await env.MY_BUCKET.get(key);
+    const object = await env.R2_BUCKET.get(key);
     if (!object || !object.body) {
         return new Response("Not found in R2", { status: 404 });
     }
