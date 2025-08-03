@@ -1,6 +1,8 @@
 // src/routes/api/signed-imgproxy/+server.ts
-import { env } from '$env/dynamic/private'; // Use static since env is known at build time
+import type { RequestHandler } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
 
+// --- Environment Setup ---
 const keyHex = env.IMAGE_PROXY_KEY;
 const saltHex = env.IMAGE_PROXY_SALT;
 const baseUrl = env.IMAGE_PROXY_URL;
@@ -12,12 +14,19 @@ if (!keyHex || !saltHex || !baseUrl) {
 const key = hexToUint8Array(keyHex);
 const salt = hexToUint8Array(saltHex);
 
+// --- Type Definitions ---
+type Format = 'avif' | 'webp' | 'jpeg' | 'png';
+type Gravity =
+    | 'ce' | 'north' | 'south' | 'east' | 'west'
+    | 'north_east' | 'north_west' | 'south_east' | 'south_west'
+    | 'sm' | 'so' | 'et'
+    | `object:${string}`
+    | `fp:${string}:${string}`;
+
+// --- Helpers ---
 function hexToUint8Array(hex: string): Uint8Array {
-    if (hex.length % 2 !== 0) {
-        throw new Error('Invalid hex string: odd length');
-    }
-    if (!/^[0-9a-fA-F]*$/.test(hex)) {
-        throw new Error('Invalid hex string: contains non-hex characters');
+    if (hex.length % 2 !== 0 || !/^[0-9a-fA-F]+$/.test(hex)) {
+        throw new Error('Invalid hex string');
     }
     const bytes = new Uint8Array(hex.length / 2);
     for (let i = 0; i < bytes.length; i++) {
@@ -27,26 +36,43 @@ function hexToUint8Array(hex: string): Uint8Array {
 }
 
 function encodeUrlSafeBase64(buffer: ArrayBuffer): string {
-    const uint8 = new Uint8Array(buffer);
-    let str = '';
-    for (let i = 0; i < uint8.length; i++) {
-        str += String.fromCharCode(uint8[i]);
-    }
-    return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const binary = String.fromCharCode(...new Uint8Array(buffer));
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-async function generateSignedUrl(imageUrl: string, transformation: string, format: string): Promise<string> {
-    if (!imageUrl || !transformation || !format) {
-        throw new Error('Missing required parameters');
-    }
+function isValidFormat(f: string): f is Format {
+    return ['avif', 'webp', 'jpeg', 'png'].includes(f);
+}
+
+function isValidGravity(g: string): g is Gravity {
+    const base = [
+        'ce', 'north', 'south', 'east', 'west',
+        'north_east', 'north_west', 'south_east', 'south_west',
+        'sm', 'so', 'et'
+    ];
+    return base.includes(g) || g.startsWith('object:') || g.startsWith('fp:');
+}
+
+function parseNumber(value: string | null): number | null {
+    if (!value) return null;
+    const parsed = parseInt(value, 10);
+    return isNaN(parsed) ? null : parsed;
+}
+
+// --- Signing Logic ---
+async function generateSignedUrl(
+    imageUrl: string,
+    transformation: string,
+    format: Format
+): Promise<string> {
     if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
         imageUrl = `https://${imageUrl}`;
     }
 
     const path = `/${transformation}/plain/${encodeURIComponent(imageUrl)}@${format}`;
-
     const enc = new TextEncoder();
     const data = new Uint8Array([...salt, ...enc.encode(path)]);
+
     const cryptoKey = await crypto.subtle.importKey(
         'raw',
         key,
@@ -60,34 +86,71 @@ async function generateSignedUrl(imageUrl: string, transformation: string, forma
     return `${baseUrl}/${encodedSig}${path}`;
 }
 
-export async function GET({ url }) {
+// --- GET handler ---
+export const GET: RequestHandler = async ({ url }) => {
     try {
         const src = url.searchParams.get('src');
-        const width = url.searchParams.get('width');
-        const height = url.searchParams.get('height');
-        let format = url.searchParams.get('format'); // ← 'avif', 'webp', etc.
+        const width = parseNumber(url.searchParams.get('width'));
+        const height = parseNumber(url.searchParams.get('height'));
 
-        if (!src || !width || !height || !format) {
+        const rawFormat = url.searchParams.get('format')?.trim().toLowerCase() ?? '';
+        const rawGravity = url.searchParams.get('gravity')?.trim().toLowerCase() ?? null;
+        const rawQuality = url.searchParams.get('quality');
+
+        if (!src || !width || !height || !rawFormat) {
             return new Response('Missing required parameters', { status: 400 });
         }
 
-        // 🔽 Sanitize format
-        format = format.trim().toLowerCase();
-        if (!['avif', 'webp', 'jpeg', 'jpg', 'png'].includes(format)) {
+        // Handle 'jpg' alias
+        const normalizedFormat = rawFormat === 'jpg' ? 'jpeg' : rawFormat;
+
+        if (!isValidFormat(normalizedFormat)) {
             return new Response('Invalid format', { status: 400 });
         }
+        const format: Format = normalizedFormat;
 
-        // Handle jpg → jpeg for imgproxy
-        if (format === 'jpg') format = 'jpeg';
+        // Handle gravity
+        // --- Inside GET handler ---
+        // Handle gravity and crop
+        const rawCrop = url.searchParams.get('crop');
+        const crop = rawCrop === 'true';
+        const gravity: Gravity | null = rawGravity && isValidGravity(rawGravity) ? rawGravity : null;
 
-        const transformation = `rs:fit:${width}:${height}`;
+        let transformation = '';
+
+        // Prioritize explicit gravity for cropping.
+        // If no gravity, use crop flag for simple center crop.
+        // Otherwise, resize to fit.
+        if (gravity) {
+            // Use cropping with specified gravity
+            transformation = `c:${width}:${height}:${gravity}`;
+        } else if (crop) {
+            // Use simple center crop if crop=true but no gravity specified
+            transformation = `c:${width}:${height}`; // Implies 'ce' gravity
+        } else {
+            // Default to resize to fit
+            transformation = `rs:fit:${width}:${height}`;
+        }
+        // --- End adjustment ---
+
+        // Handle quality
+        const quality = parseNumber(rawQuality);
+        if (rawQuality !== null && rawQuality !== '' && (quality === null || quality < 1 || quality > 100)) {
+            console.warn(`Invalid quality value '${rawQuality}' provided, ignoring.`);
+        }
+
+        if (quality && ['jpeg', 'webp', 'avif'].includes(format)) {
+            transformation += `/q:${quality}`;
+        }
+
+
         const signedUrl = await generateSignedUrl(src, transformation, format);
 
         return new Response(JSON.stringify({ url: signedUrl }), {
             headers: { 'Content-Type': 'application/json' }
         });
-    } catch (e) {
-        console.error(e);
+    } catch (err) {
+        console.error('API Error:', err);
         return new Response('Failed to generate signed URL', { status: 500 });
     }
-}
+};

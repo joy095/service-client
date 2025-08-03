@@ -22,7 +22,7 @@
 			alt={business.name}
 			width={300}
 			height={200}
-			format="avif"
+			quality={85}
 			className="h-48 w-full rounded-t object-cover"
 			on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/image-placeholder.svg')}
 		/>

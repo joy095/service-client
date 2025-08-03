@@ -4,6 +4,7 @@
 	import { cubicOut } from 'svelte/easing';
 	import ImageGallery from '$lib/components/ImageGallery.svelte';
 	import type { Image } from '$lib/types/index.js';
+	import SecureImage from '$lib/components/SecureImage.svelte';
 	// import Map from '$lib/components/Map.svelte';
 
 	export let data;
@@ -54,12 +55,15 @@
 					in:slide={{ duration: 600, delay: Number(service.id) * 100, easing: cubicOut }}
 				>
 					<div class="service-image-wrapper">
-						<img
-							loading="lazy"
+						<SecureImage
 							src="{import.meta.env.VITE_IMAGE_URL}/{service.objectName}"
 							alt={service.name}
-							class="service-image"
+							width={450}
+							height={320}
+							quality={85}
+							className="h-[15rem] object-cover"
 						/>
+
 						<div class="service-overlay">
 							<a href="/booking/{business.publicId}?service={service.id}" class="cta-button"
 								>Book Now</a
@@ -236,17 +240,6 @@
 	.service-image-wrapper {
 		position: relative;
 		overflow: hidden;
-	}
-
-	.service-image {
-		width: 100%;
-		height: 240px;
-		object-fit: cover;
-		transition: var(--transition);
-	}
-
-	.service-card:hover .service-image {
-		transform: scale(1.1);
 	}
 
 	.service-overlay {
