@@ -30,11 +30,12 @@
 		price: data.service?.price || 0,
 		duration: data.service?.duration || 30,
 		image: null as File | null,
-		imageUrl: data.service?.imageUrl || ''
+		imageUrl: data.service?.imageUrl || '',
+		imagePreviewUrl: ''
 	};
 
 	// Original data for comparison
-	let originalData = { ...formData };
+	let originalData = structuredClone(formData);
 
 	// Steps configuration
 	const steps = [
@@ -62,18 +63,38 @@
 	}
 
 	// Handle file input change
-	function handleImageChange(e: Event) {
-		const target = e.target as HTMLInputElement;
-		if (target.files && target.files[0]) {
-			formData.image = target.files[0];
+	function handleImageChange(event: Event): void {
+		const target = event.target as HTMLInputElement;
+		const file = target.files?.[0];
+
+		if (file) {
+			// Check file size (10MB limit)
+			if (file.size > 10 * 1024 * 1024) {
+				error = 'Image size must be less than 10MB';
+				target.value = '';
+				return;
+			}
+
+			// Revoke previous preview URL if exists
+			if (formData.imagePreviewUrl) {
+				URL.revokeObjectURL(formData.imagePreviewUrl);
+			}
+
+			// Set the new file
+			formData.image = file;
+
 			// Create preview URL
-			const reader = new FileReader();
-			reader.onload = (e) => {
-				formData.imageUrl = e.target?.result as string;
-			};
-			reader.readAsDataURL(target.files[0]);
+			const imageUrl = URL.createObjectURL(file);
+			formData.imagePreviewUrl = imageUrl;
 		}
 	}
+
+	// Clean up object URLs to prevent memory leaks
+	onDestroy(() => {
+		if (formData.imagePreviewUrl) {
+			URL.revokeObjectURL(formData.imagePreviewUrl);
+		}
+	});
 
 	// Form enhancement for loading states
 	const enhanceOptions = () => {
@@ -84,7 +105,7 @@
 			if (result?.type === 'success') {
 				success = true;
 				// Update original data to match current form data
-				originalData = { ...formData };
+				originalData = structuredClone(formData);
 				// Show success message for 3 seconds then reload
 				setTimeout(() => {
 					window.location.reload();
@@ -99,7 +120,7 @@
 	function formatCurrency(amount: number): string {
 		return new Intl.NumberFormat('en-US', {
 			style: 'currency',
-			currency: 'USD'
+			currency: 'INR'
 		}).format(amount);
 	}
 
@@ -129,17 +150,6 @@
 			(!!formData.imageUrl || !!formData.image)
 		);
 	}
-
-	let previewUrl: string | null = null;
-
-	$: if (formData.image) {
-		if (previewUrl) URL.revokeObjectURL(previewUrl);
-		previewUrl = URL.createObjectURL(formData.image);
-	}
-
-	onDestroy(() => {
-		if (previewUrl) URL.revokeObjectURL(previewUrl);
-	});
 </script>
 
 <div class="mx-auto max-w-4xl p-4 sm:p-6">
@@ -204,7 +214,7 @@
 			{/if}
 
 			<!-- Step 1: Service Details -->
-			{#if currentStep === 0}
+			<div class:hidden={currentStep !== 0}>
 				<div class="space-y-8">
 					<div>
 						<h2 class="text-2xl font-bold text-gray-900">Service Details</h2>
@@ -213,8 +223,11 @@
 
 					<div class="grid grid-cols-1 gap-6">
 						<div>
-							<label class="mb-2 block text-sm font-semibold text-gray-700">Service Name *</label>
+							<label for="service-name" class="mb-2 block text-sm font-semibold text-gray-700"
+								>Service Name *</label
+							>
 							<input
+								id="service-name"
 								type="text"
 								name="name"
 								bind:value={formData.name}
@@ -225,8 +238,12 @@
 						</div>
 
 						<div>
-							<label class="mb-2 block text-sm font-semibold text-gray-700">Description *</label>
+							<label
+								for="service-description"
+								class="mb-2 block text-sm font-semibold text-gray-700">Description *</label
+							>
 							<textarea
+								id="service-description"
 								name="description"
 								bind:value={formData.description}
 								required
@@ -237,7 +254,7 @@
 						</div>
 
 						<div>
-							<label class="mb-2 block text-sm font-semibold text-gray-700">
+							<label for="service-image" class="mb-2 block text-sm font-semibold text-gray-700">
 								Service Image *
 								{#if isEditing && formData.imageUrl}
 									<span class="ml-2 text-xs font-normal text-gray-500"
@@ -250,11 +267,11 @@
 									<div class="flex-shrink-0">
 										<img
 											src={formData.imageUrl}
-											alt="Current service image"
+											alt="Current service"
 											class="h-32 w-32 rounded-xl border-2 border-gray-200 object-cover"
 											on:error={() => (formData.imageUrl = '')}
 										/>
-										<p class="mt-2 text-center text-xs text-gray-500">Current Image</p>
+										<p class="mt-2 text-center text-xs text-gray-500">Current</p>
 									</div>
 								{/if}
 
@@ -263,29 +280,41 @@
 										class="flex justify-center rounded-xl border-2 border-dashed border-gray-300 px-6 pt-5 pb-6 transition-colors hover:border-blue-400"
 									>
 										<div class="space-y-1 text-center">
-											<svg
-												class="mx-auto h-12 w-12 text-gray-400"
-												stroke="currentColor"
-												fill="none"
-												viewBox="0 0 48 48"
-												aria-hidden="true"
-											>
-												<path
-													d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-													stroke-width="2"
-													stroke-linecap="round"
-													stroke-linejoin="round"
+											<!-- Show image preview if available -->
+											{#if formData.imagePreviewUrl}
+												<img
+													src={formData.imagePreviewUrl}
+													alt="Preview"
+													class="mx-auto h-32 w-32 rounded-md object-cover"
 												/>
-											</svg>
+											{:else}
+												<svg
+													class="mx-auto h-12 w-12 text-gray-400"
+													stroke="currentColor"
+													fill="none"
+													viewBox="0 0 48 48"
+													aria-hidden="true"
+												>
+													<path
+														d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+													/>
+												</svg>
+											{/if}
+
 											<div class="flex text-sm text-gray-600">
 												<label
+													for="service-image-input"
 													class="relative cursor-pointer rounded-md bg-white font-medium text-blue-600 hover:text-blue-500"
 												>
-													<span>{formData.image ? 'Change Image' : 'Upload a file'}</span>
+													<span>{formData.image ? 'Change' : 'Upload a file'}</span>
 													<input
+														id="service-image-input"
 														type="file"
 														name="image"
-														accept="image/*"
+														accept="image/png, image/jpeg, image/jpg"
 														class="sr-only"
 														on:change={handleImageChange}
 														required={!isEditing || !formData.imageUrl}
@@ -296,6 +325,7 @@
 											<p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
 										</div>
 									</div>
+
 									{#if formData.image}
 										<p class="mt-2 text-sm text-gray-600">
 											Selected: <span class="font-medium">{formData.image.name}</span>
@@ -306,10 +336,10 @@
 						</div>
 					</div>
 				</div>
-			{/if}
+			</div>
 
 			<!-- Step 2: Pricing -->
-			{#if currentStep === 1}
+			<div class:hidden={currentStep !== 1}>
 				<div class="space-y-8">
 					<div>
 						<h2 class="text-2xl font-bold text-gray-900">Pricing & Duration</h2>
@@ -318,12 +348,15 @@
 
 					<div class="grid grid-cols-1 gap-6 md:grid-cols-2">
 						<div>
-							<label class="mb-2 block text-sm font-semibold text-gray-700">Price (USD) *</label>
+							<label for="service-price" class="mb-2 block text-sm font-semibold text-gray-700"
+								>Price (INR) *</label
+							>
 							<div class="relative">
 								<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-									<span class="font-medium text-gray-500">$</span>
+									<span class="font-medium text-gray-500">₹</span>
 								</div>
 								<input
+									id="service-price"
 									type="number"
 									name="price"
 									bind:value={formData.price}
@@ -345,17 +378,18 @@
 												: 'border-gray-300 text-gray-700 hover:bg-gray-50'
 										}`}
 									>
-										${price}
+										₹{price}
 									</button>
 								{/each}
 							</div>
 						</div>
 
 						<div>
-							<label class="mb-2 block text-sm font-semibold text-gray-700"
+							<label for="service-duration" class="mb-2 block text-sm font-semibold text-gray-700"
 								>Duration (minutes) *</label
 							>
 							<input
+								id="service-duration"
 								type="number"
 								name="duration"
 								bind:value={formData.duration}
@@ -399,10 +433,10 @@
 						</div>
 					</div>
 				</div>
-			{/if}
+			</div>
 
 			<!-- Step 3: Preview -->
-			{#if currentStep === 2}
+			<div class:hidden={currentStep !== 2}>
 				<div class="space-y-8">
 					<div>
 						<h2 class="text-2xl font-bold text-gray-900">Review Your Service</h2>
@@ -419,9 +453,7 @@
 						<div class="flex flex-col gap-6 sm:flex-row">
 							<div class="flex-shrink-0">
 								{#if formData.imageUrl || formData.image}
-									{@const imageUrl = formData.image
-										? URL.createObjectURL(formData.image)
-										: formData.imageUrl}
+									{@const imageUrl = formData.image ? formData.imagePreviewUrl : formData.imageUrl}
 									<img
 										src={imageUrl}
 										alt="Service preview"
@@ -483,7 +515,7 @@
 						</div>
 					{/if}
 				</div>
-			{/if}
+			</div>
 
 			<!-- Navigation Buttons -->
 			<div class="mt-10 flex flex-col justify-between gap-4 sm:flex-row">
@@ -517,8 +549,6 @@
 					{:else}
 						<button
 							type="submit"
-							name="action"
-							value={isEditing ? 'update' : 'create'}
 							disabled={loading || (isEditing && !hasChanges()) || !isFormComplete()}
 							class={`flex items-center gap-2 rounded-xl px-8 py-3 font-medium transition-all ${
 								loading || (isEditing && !hasChanges()) || !isFormComplete()
@@ -627,23 +657,3 @@
 		</form>
 	</div>
 </div>
-
-<style>
-	:global(input:focus, textarea:focus) {
-		outline: none;
-	}
-
-	/* Custom spinner animation */
-	@keyframes spin {
-		0% {
-			transform: rotate(0deg);
-		}
-		100% {
-			transform: rotate(360deg);
-		}
-	}
-
-	.animate-spin {
-		animation: spin 1s linear infinite;
-	}
-</style>

@@ -9,7 +9,7 @@ export interface Business {
     postalCode: string;
     imageId: string | null;
     latitude: number;
-    latitude: number;
+    longitude: number;
     createdAt: string | null;
     updatedAt: string | null;
     isActive: boolean;
