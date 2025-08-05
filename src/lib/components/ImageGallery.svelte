@@ -34,25 +34,23 @@
 
 <div class="gallery-container">
 	<!-- Main Image -->
-	<div class="main-image">
-		{#if images.length > 0}
-			{#key images[currentIndex].id}
-				<SecureImage
-					src={`${import.meta.env.VITE_IMAGE_URL}/${images[currentIndex].url}`}
-					alt={images[currentIndex].alt}
-					width={1200}
-					height={800}
-					crop={true}
-					quality={85}
-					className="w-full h-[25rem] md:h-[30rem] object-cover rounded-lg"
-				/>
-			{/key}
-		{:else}
-			<div class="flex h-full w-full items-center justify-center rounded-lg bg-gray-200">
-				<p class="text-gray-500">No images available</p>
-			</div>
-		{/if}
-	</div>
+	{#if images.length > 0}
+		{#key images[currentIndex].id}
+			<SecureImage
+				src={`${import.meta.env.VITE_IMAGE_URL}/${images[currentIndex].url}`}
+				alt={images[currentIndex].alt}
+				width={800}
+				height={600}
+				crop={true}
+				quality={85}
+				className="w-full h-[25rem] object-cover rounded-lg"
+			/>
+		{/key}
+	{:else}
+		<div class="flex h-full w-full items-center justify-center rounded-lg bg-gray-200">
+			<p class="text-gray-500">No images available</p>
+		</div>
+	{/if}
 
 	<!-- Thumbnails -->
 	<div class="thumbnails" bind:this={thumbnailsContainer}>
@@ -86,14 +84,7 @@
 		display: flex;
 		flex-direction: row;
 		gap: 1.5rem;
-		padding: 1.5rem;
-	}
-
-	.main-image {
-		flex: 1;
-		border-radius: 0.75rem;
-		overflow: hidden;
-		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+		max-height: 25rem;
 	}
 
 	.thumbnails {
@@ -105,7 +96,6 @@
 		scrollbar-width: none;
 		-ms-overflow-style: none;
 		scroll-behavior: smooth;
-		padding: 0.5rem 0;
 	}
 
 	.thumbnails::-webkit-scrollbar {

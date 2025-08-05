@@ -20,9 +20,8 @@
 		<SecureImage
 			src="{import.meta.env.VITE_IMAGE_URL}/{business.images[0].objectName}"
 			alt={business.name}
-			width={300}
-			height={200}
-			quality={85}
+			width={600}
+			height={400}
 			className="h-48 w-full rounded-t object-cover"
 			on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/image-placeholder.svg')}
 		/>

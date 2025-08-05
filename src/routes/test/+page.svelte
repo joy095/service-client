@@ -1,4 +1,5 @@
 <script>
+	import SecureImage from '$lib/components/SecureImage.svelte';
 	import { onMount } from 'svelte';
 
 	let healthData = null;
@@ -74,14 +75,15 @@
 	</ol>
 
 	<img
-		src="https://r2-worker-proxy.joykarmakar987654321.workers.dev/uploads/0197d626-bb8e-7b67-a6af-4f357bc858f8/79f49a819e1547c2af190d042c5f7d40.webp"
+		src="https://r2-worker-proxy.joykarmakar987654321.workers.dev/uploads/0197d626-bb8e-7b67-a6af-4f357bc858f8/0772cb1e395547d0a8262048fdf6186f.webp"
 		class="h-20 w-28"
 		alt=""
 	/>
 
-	<img
-		src="https://mail-2.pages.dev/api/image?key=uploads/0197d626-bb8e-7b67-a6af-4f357bc858f8/04be8538610f420e832044d79fc9c37b.webp"
+	<SecureImage
+		src="https://plus.unsplash.com/premium_photo-1664474619075-644dd191935f?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8aW1hZ2V8ZW58MHx8MHx8fDA%3D"
 		alt="No r2 image"
-		class="h-20 w-28"
+		quality={10}
+		className="h-20 w-28"
 	/>
 </div>
