@@ -131,8 +131,8 @@ export const actions: Actions = {
                     const normalizedOriginalData = {
                         name: originalBusinessData.name ?? '',
                         category: originalBusinessData.category ?? '',
-                        latitude: parseFloat(originalBusinessData.Latitude) || 0,
-                        longitude: parseFloat(originalBusinessData.Longitude) || 0,
+                        latitude: parseFloat(originalBusinessData.latitude) || 0,
+                        longitude: parseFloat(originalBusinessData.longitude) || 0,
                         address: originalBusinessData.address ?? '',
                         city: originalBusinessData.city ?? '',
                         state: originalBusinessData.state ?? '',

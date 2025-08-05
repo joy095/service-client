@@ -6,6 +6,7 @@
 	import formatDate from '$lib/dateFormat';
 	import { goto } from '$app/navigation';
 	import { createEventDispatcher } from 'svelte'; // Import createEventDispatcher
+	import SecureImage from './SecureImage.svelte';
 
 	export let business: Business;
 
@@ -78,11 +79,11 @@
 	<div class="property-card">
 		<div class="relative">
 			{#if business.images?.length > 0 && business.images[0].objectName}
-				<img
+				<SecureImage
 					src="{import.meta.env.VITE_IMAGE_URL}/{business.images[0].objectName}"
 					alt={business.name}
 					on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/image-placeholder.svg')}
-					class="h-48 w-full rounded-t object-cover"
+					className="h-[25rem] w-full rounded-md object-cover"
 				/>
 			{:else}
 				<div class="h-[25rem] w-full rounded-md bg-gray-200 object-cover"></div>
@@ -124,11 +125,14 @@
 			</button>
 
 			{#if business.images?.length > 0 && business.images[0].objectName}
-				<img
+				<SecureImage
 					src="{import.meta.env.VITE_IMAGE_URL}/{business.images[0].objectName}"
 					alt={business.name}
-					class="popup-image"
+					className="h-[8rem] w-[8rem] rounded-md popup-image"
 					on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/image-placeholder.svg')}
+					width={128}
+					height={128}
+					quality={85}
 				/>
 			{:else}
 				<div class="popup-image bg-gray-200"></div>

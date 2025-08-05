@@ -35,8 +35,8 @@
 	let formData = $state({
 		name: businessData?.name ?? '',
 		category: businessData?.category ?? '',
-		latitude: businessData?.Latitude?.toString() ?? '',
-		longitude: businessData?.Longitude?.toString() ?? '',
+		latitude: businessData?.latitude?.toString() ?? '',
+		longitude: businessData?.latitude?.toString() ?? '',
 		address: businessData?.address ?? '',
 		city: businessData?.city ?? '',
 		state: businessData?.state ?? '',

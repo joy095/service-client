@@ -3,6 +3,7 @@
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores'; // Import page store to get data
+	import SecureImage from '$lib/components/SecureImage.svelte';
 	import Icon from '@iconify/svelte';
 	import { onDestroy, onMount } from 'svelte';
 	import { get } from 'svelte/store'; // Import get to access page store value
@@ -346,10 +347,10 @@
 							<div
 								class="image-container relative h-full w-full overflow-hidden rounded-md bg-gray-100"
 							>
-								<img
-									src={preview.src}
+								<SecureImage
+									src="{import.meta.env.VITE_IMAGE_URL}/{preview.src}"
 									alt={preview.name}
-									class={`h-[15rem] w-full ${objectFits[index] || 'object-cover'}`}
+									className={`w-full ${index === 0 ? 'h-[25rem]' : 'h-[15rem]'} ${objectFits[index] || 'object-cover'}`}
 									on:load={(e) => handleLoad(e, index)}
 								/>
 							</div>
@@ -436,10 +437,7 @@
 	.first-image {
 		grid-column: span 2;
 	}
-	.first-image div > img {
-		object-fit: cover;
-		height: 25rem;
-	}
+
 	.first-image .image-container::before {
 		content: 'Cover image';
 		position: absolute;

@@ -90,9 +90,9 @@
 	</section>
 
 	<!-- Map -->
-	{#if business.Latitude && business.Longitude !== 0}
+	{#if business.latitude && business.latitude !== 0}
 		<iframe
-			src={`https://maps.google.com/maps?q=${business.Latitude},${business.Longitude} (${encodeURIComponent(business.name)})&z=16&output=embed`}
+			src={`https://maps.google.com/maps?q=${business.latitude},${business.latitude} (${encodeURIComponent(business.name)})&z=16&output=embed`}
 			class="mt-10 h-[30rem] w-full rounded-md rounded-md"
 			style="border:0;"
 			loading="lazy"
