@@ -8,8 +8,8 @@ export interface Business {
     country: string;
     postalCode: string;
     imageId: string | null;
-    Latitude: number;
-    Longitude: number;
+    latitude: number;
+    latitude: number;
     createdAt: string | null;
     updatedAt: string | null;
     isActive: boolean;

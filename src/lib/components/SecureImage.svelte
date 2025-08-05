@@ -87,6 +87,22 @@
 		return null;
 	}
 
+	async function fetchSignedUrls(imageSrc: string, effectiveGravity: string | null) {
+		const avifPromises = breakpoints.map(async (bp) => ({
+			media: bp.media,
+			srcset:
+				(await getSignedUrl(imageSrc, bp.width, bp.height, 'avif', effectiveGravity, quality)) || ''
+		}));
+
+		const webpPromises = breakpoints.map(async (bp) => ({
+			media: bp.media,
+			srcset:
+				(await getSignedUrl(imageSrc, bp.width, bp.height, 'webp', effectiveGravity, quality)) || ''
+		}));
+
+		return Promise.all([...avifPromises, ...webpPromises]);
+	}
+
 	$: if (browser && src) {
 		const key = `${src}-${width}-${height}-${format}-${crop}-${gravity}-${quality}`;
 		if (key !== lastKey) {
@@ -98,21 +114,7 @@
 					// Type is string | null, compatible with getSignedUrl's grav param
 					const effectiveGravity = gravity || (crop ? 'ce' : null);
 
-					const avifPromises = breakpoints.map(async (bp) => ({
-						media: bp.media,
-						srcset:
-							(await getSignedUrl(src, bp.width, bp.height, 'avif', effectiveGravity, quality)) ||
-							''
-					}));
-
-					const webpPromises = breakpoints.map(async (bp) => ({
-						media: bp.media,
-						srcset:
-							(await getSignedUrl(src, bp.width, bp.height, 'webp', effectiveGravity, quality)) ||
-							''
-					}));
-
-					const results = await Promise.all([...avifPromises, ...webpPromises]);
+					const results = await fetchSignedUrls(src, effectiveGravity);
 
 					avifSources = results.slice(0, breakpoints.length);
 					webpSources = results.slice(breakpoints.length);

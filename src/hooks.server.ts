@@ -6,7 +6,5 @@ export const handle: Handle = async ({ event, resolve }) => {
         return new Response(null, { status: 204 });
     }
 
-    event.locals.env = (event.platform as { env: App.Locals['env'] })?.env;
-
     return resolve(event);
 };

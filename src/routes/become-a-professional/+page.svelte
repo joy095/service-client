@@ -182,7 +182,7 @@
 <div class="min-h-screen bg-gray-50 px-4 py-12">
 	<div class="mx-auto max-w-3xl">
 		<div class="mb-10 text-center">
-			<h1 class="mb-3 text-3xl font-bold text-gray-900 md:text-4xl">Create Your Service</h1>
+			<h1 class="mb-3 text-3xl font-bold text-gray-900 md:text-4xl">Create your business</h1>
 			<p class="text-base text-gray-600">Set up your business profile in a few simple steps</p>
 		</div>
 
