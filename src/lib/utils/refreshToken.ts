@@ -1,5 +1,5 @@
 // src/lib/utils/refreshToken.ts
-import { initializeFromServer, logout } from '$lib/store/authStore';
+import { initializeFromServer, logout } from '$lib/stores/authStore';
 
 export async function tryRefreshToken(): Promise<void> {
     try {

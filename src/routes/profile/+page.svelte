@@ -1,7 +1,7 @@
 <script lang="ts">
 	import PendingBusinessCard from '$lib/components/PendingBusinessCard.svelte';
 	import { userPendingBusiness } from '$lib/store';
-	import { initializeFromServer } from '$lib/store/authStore';
+	import { initializeFromServer } from '$lib/stores/authStore';
 	import type { User, Business } from '$lib/types';
 	import { tryRefreshToken } from '$lib/utils/refreshToken';
 	import { onMount } from 'svelte';

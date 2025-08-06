@@ -2,12 +2,14 @@
 	import Header from '$lib/components/Header.svelte';
 	import { onMount } from 'svelte';
 	import '../app.css';
-	import { initializeFromServer } from '$lib/store/authStore';
-	import type { User } from '$lib/types';
+	import { initializeFromServer } from '$lib/stores/authStore';
+
+	import { setBusiness } from '$lib/stores/businessStore';
+	import type { User, Business } from '$lib/types';
 	import { tryRefreshToken } from '$lib/utils/refreshToken';
 	import Footer from '$lib/components/Footer.svelte';
 
-	export let data: { user: User | null };
+	export let data: { user: User | null; businessData: Business | null };
 
 	onMount(() => {
 		if (data.user) {
@@ -15,11 +17,17 @@
 		} else {
 			tryRefreshToken();
 		}
+
+		if (data.businessData) {
+			setBusiness(data.businessData);
+		} else {
+			setBusiness(null);
+		}
 	});
 </script>
 
 <div class="app-container">
-	<Header />
+	<Header {data} />
 	<main>
 		<slot />
 	</main>
@@ -29,7 +37,5 @@
 <style>
 	.app-container {
 		min-height: 100vh;
-		display: flex;
-		flex-direction: column;
 	}
 </style>

@@ -2,7 +2,7 @@
 	import Icon from '@iconify/svelte';
 	import { fade } from 'svelte/transition';
 	import { isFormOpen } from '$lib/store';
-	import { login as authLogin } from '$lib/store/authStore';
+	import { login as authLogin } from '$lib/stores/authStore';
 	import { invalidateAll } from '$app/navigation';
 
 	let email = '';

@@ -7,7 +7,14 @@
 	import Search from './Search.svelte';
 	import Form from './Form.svelte';
 	import { logout } from '$lib/auth/logout';
-	import { isAuthenticated } from '$lib/store/authStore';
+	import { isAuthenticated } from '$lib/stores/authStore';
+	import { hasBusiness } from '$lib/stores/businessStore';
+	import type { Business, User } from '$lib/types';
+
+	export let data: {
+		user: User | null;
+		businessData: Business | null;
+	};
 
 	let isMenuOpen = false;
 	let menuRef: HTMLDivElement | null = null;
@@ -36,37 +43,64 @@
 	<div class="nav-container container mx-auto">
 		<a href="/" class="logo">PremiumApp</a>
 
-		<div class="relative" bind:this={menuRef}>
-			<button
-				class="hand-burger flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#EBEBEB] hover:bg-[#e7e7e7]"
-				on:click={() => (isMenuOpen = !isMenuOpen)}
-			>
-				<Icon class="h-5 w-5 text-black" icon="material-symbols:menu-rounded" />
-			</button>
-
-			<div class:toggled={isMenuOpen} class="menu-container">
-				<a class="divide flex items-center gap-2" href="/">
-					<Icon icon="material-symbols:help-outline-rounded" width="24" height="24" />
-					Help center
+		<div class="flex items-center gap-2">
+			{#if $isAuthenticated && $hasBusiness}
+				<a
+					href="/dashboard"
+					class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
+				>
+					Switch to dashboard
 				</a>
+			{/if}
 
-				{#if $isAuthenticated}
-					<a href="/become-a-professional" class="divide">Become a professional</a>
-
-					<div class="divide flex flex-col">
-						<a href="/profile" class=" flex items-center gap-2">
-							<Icon icon="mdi:account-circle" width="24" height="24" />
-							Profile
-						</a>
-
-						<a href="/settings"> Account settings </a>
-					</div>
-					<button on:click={logout}>Logout</button>
-				{:else}
-					<a href="/login" class="divide">Become a professional</a>
-
-					<button on:click={() => isFormOpen.set(!get(isFormOpen))}>Log in or sign up</button>
+			{#if $isAuthenticated}
+				{#if data.user}
+					<a
+						href="/profile"
+						class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 font-bold text-gray-700"
+					>
+						{data.user.firstName?.charAt(0).toUpperCase()}
+					</a>
 				{/if}
+			{/if}
+
+			<div class="relative" bind:this={menuRef}>
+				<button
+					class="hand-burger flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#EBEBEB] hover:bg-[#e7e7e7]"
+					on:click={() => (isMenuOpen = !isMenuOpen)}
+				>
+					<Icon class="h-5 w-5 text-black" icon="material-symbols:menu-rounded" />
+				</button>
+
+				<div class:toggled={isMenuOpen} class="menu-container">
+					<a class="divide flex items-center gap-2" href="/">
+						<Icon icon="material-symbols:help-outline-rounded" width="24" height="24" />
+						Help center
+					</a>
+
+					{#if $isAuthenticated && $hasBusiness}
+						<a
+							href="/dashboard"
+							class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
+						>
+							Switch to dashboard
+						</a>
+					{/if}
+
+					{#if $isAuthenticated}
+						<div class="divide flex flex-col">
+							<a href="/profile" class="flex items-center gap-2">
+								<Icon icon="mdi:account-circle" width="24" height="24" />
+								Profile
+							</a>
+							<a href="/settings">Account settings</a>
+						</div>
+						<button on:click={logout}>Logout</button>
+					{:else}
+						<a href="/login" class="divide">Become a professional</a>
+						<button on:click={() => isFormOpen.set(!get(isFormOpen))}> Log in or sign up </button>
+					{/if}
+				</div>
 			</div>
 		</div>
 	</div>
@@ -88,7 +122,6 @@
 		position: sticky;
 		top: 0;
 		z-index: 50;
-		color: white;
 	}
 
 	.nav-container {
