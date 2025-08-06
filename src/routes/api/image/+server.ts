@@ -3,9 +3,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import type { R2ObjectBody } from '@cloudflare/workers-types';
 
 export const GET: RequestHandler = async ({ url, locals }) => {
-    console.log("Debug: locals.env:", locals.env); // Add this
-    console.log("Debug: locals.env?.R2_BUCKET:", locals.env?.R2_BUCKET); // Add this
-
+    
     const key = url.searchParams.get('key');
     if (!key) {
         return new Response('Missing key', { status: 400 });
@@ -18,9 +16,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
     }
 
     const object: R2ObjectBody | null = await locals.env.R2_BUCKET.get(key); // Remove ?. if checked above
-    console.log("Debug: R2 object found:", !!object); // Add this
-    console.log("Debug: R2 object body exists:", !!object?.body); // Add this
-
+ 
     if (!object || !object.body) {
         return new Response('Not found in R2', { status: 404 });
     }

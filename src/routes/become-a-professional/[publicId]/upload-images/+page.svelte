@@ -292,9 +292,7 @@
 
 			// --- Redirect Regardless ---
 
-			let serviceId = 'g';
-
-			goto(`/become-a-professional/${publicId}/service/${serviceId}`);
+			goto(`/business/${publicId}`);
 		} catch (err) {
 			console.error('Submission error:', err);
 			alert(err.message || 'An error occurred while saving changes.');
@@ -348,7 +346,7 @@
 								class="image-container relative h-full w-full overflow-hidden rounded-md bg-gray-100"
 							>
 								<SecureImage
-									src="{import.meta.env.VITE_IMAGE_URL}/{preview.src}"
+									src={preview.file ? preview.src : `${import.meta.env.VITE_IMAGE_URL}/${preview.src.replace(/^\/+/, '')}`}
 									alt={preview.name}
 									className={`w-full ${index === 0 ? 'h-[25rem]' : 'h-[15rem]'} ${objectFits[index] || 'object-cover'}`}
 									on:load={(e) => handleLoad(e, index)}

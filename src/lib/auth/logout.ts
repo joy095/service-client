@@ -1,5 +1,5 @@
 // src/lib/auth/logout.ts
-import { logout as resetStore } from '$lib/store/authStore';
+import { logout as resetStore } from '$lib/stores/authStore';
 import { goto } from '$app/navigation';
 
 export async function logout() {
