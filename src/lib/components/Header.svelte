@@ -81,7 +81,7 @@
 					{#if $isAuthenticated && $hasBusiness}
 						<a
 							href="/dashboard"
-							class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
+							class="px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
 						>
 							Switch to dashboard
 						</a>

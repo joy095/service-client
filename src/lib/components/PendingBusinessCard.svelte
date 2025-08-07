@@ -139,7 +139,7 @@
 			{/if}
 
 			<div class="mb-3 text-center">
-				{#if business.createdAt !== null}
+				{#if business.createdAt !== null && business.isActive == false}
 					<p class="font-semibold">Your listing stated on {formatDate(business.createdAt)}</p>
 				{:else}{/if}
 				<p class="location">{business.city}, {business.state}, {business.country}</p>
