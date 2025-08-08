@@ -78,14 +78,7 @@
 						Help center
 					</a>
 
-					{#if $isAuthenticated && $hasBusiness}
-						<a
-							href="/dashboard"
-							class="px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
-						>
-							Switch to dashboard
-						</a>
-					{/if}
+					<a href="/become-a-professional" class="divide">Become a professional</a>
 
 					{#if $isAuthenticated}
 						<div class="divide flex flex-col">
@@ -97,7 +90,6 @@
 						</div>
 						<button on:click={logout}>Logout</button>
 					{:else}
-						<a href="/login" class="divide">Become a professional</a>
 						<button on:click={() => isFormOpen.set(!get(isFormOpen))}> Log in or sign up </button>
 					{/if}
 				</div>

@@ -22,6 +22,7 @@ export interface Business {
         objectName: string;
         position: number;
     }[]
+    isServiceBusiness: boolean;
 };
 
 export interface BusinessImage {

@@ -1,11 +1,11 @@
 // src/routes/profile/+page.server.ts
 import type { PageServerLoad } from './$types';
-const BASE_URL = 'https://r2-worker-proxy.joykarmakar987654321.workers.dev';
 import type { Business } from '$lib/types';
 import { env } from '$env/dynamic/private';
 
 export const load: PageServerLoad = async ({ fetch }) => {
     try {
+        // Fetch user's businesses
         const res = await fetch(`${env.API_URL}/business/by-user`);
         if (!res.ok) {
             console.error('Failed to fetch businesses:', res.status, res.statusText);
@@ -14,7 +14,6 @@ export const load: PageServerLoad = async ({ fetch }) => {
 
         const data = await res.json();
 
-        // Assert that data has the shape we expect
         if (!isBusinessApiResponse(data)) {
             console.error('Invalid API response structure:', data);
             return { businesses: [] };
@@ -22,24 +21,46 @@ export const load: PageServerLoad = async ({ fetch }) => {
 
         const businesses: Business[] = data.businesses;
 
-        const formattedBusinesses = businesses.map(business => {
-            // Determine PrimaryImageObject based on imageId or images array
-            let primaryImgUrl: string | null = null;
+        // Base URL for images
+        const BASE_URL = 'https://r2-worker-proxy.joykarmakar987654321.workers.dev';
 
-            if (business.imageId && business.imageId.trim() !== '') {
-                primaryImgUrl = BASE_URL + business.imageId;
-            } else if (business.images?.length > 0) {
-                // Optionally use the first image from the images array
-                primaryImgUrl = BASE_URL + business.images[0].objectName;
-            }
+        // Fetch isServiceBusiness status for each business
+        const enhancedBusinesses = await Promise.all(
+            businesses.map(async (business) => {
+                try {
+                    const serviceRes = await fetch(
+                        `${env.API_URL}/is-service-business/${business.publicId}`
+                    );
+                    const isServiceBusiness = await serviceRes.json();
 
-            return {
-                ...business,
-                PrimaryImageObject: primaryImgUrl // Could be null if no image
-            };
-        });
+                    console.log('isServiceBusiness', isServiceBusiness)
+                    return {
+                        ...business,
+                        PrimaryImageObject:
+                            business.imageId && business.imageId.trim()
+                                ? BASE_URL + business.imageId
+                                : business.images?.length > 0
+                                    ? BASE_URL + business.images[0].objectName
+                                    : null,
+                        isServiceBusiness // Add flag to business object
+                    };
 
-        return { businesses: formattedBusinesses };
+                } catch (err) {
+                    console.error(`Failed to fetch service status for ${business.publicId}`, err);
+                    return {
+                        ...business,
+                        PrimaryImageObject:
+                            business.imageId && business.imageId.trim()
+                                ? BASE_URL + business.imageId
+                                : business.images?.length > 0
+                                    ? BASE_URL + business.images[0].objectName
+                                    : null,
+                    };
+                }
+            })
+        );
+
+        return { businesses: enhancedBusinesses };
 
     } catch (error) {
         console.error('Error in +page.server.ts load function:', error);
@@ -47,12 +68,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
     }
 };
 
-// Helper type guard function
+// Type guard remains unchanged
 function isBusinessApiResponse(data: unknown): data is { businesses: Business[] } {
-    return (
-        typeof data === 'object' &&
-        data !== null &&
-        'businesses' in data &&
-        Array.isArray(data.businesses)
-    );
+    return typeof data === 'object' && data !== null && 'businesses' in data && Array.isArray(data.businesses);
 }

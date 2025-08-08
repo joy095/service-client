@@ -5,29 +5,52 @@
 	import Icon from '@iconify/svelte';
 	import formatDate from '$lib/dateFormat';
 	import { goto } from '$app/navigation';
-	import { createEventDispatcher } from 'svelte'; // Import createEventDispatcher
+	import { createEventDispatcher, onMount, onDestroy } from 'svelte';
 	import SecureImage from './SecureImage.svelte';
+	import { browser } from '$app/environment';
+	import { fadeAndSlide } from '$lib/transitions/fadeAndSlide';
 
 	export let business: Business;
 
 	userPendingBusiness.set([business]);
 
-	// State to control popup visibility and confirmation
-	let showPopup = false;
-	let showConfirmDelete = false;
-	let deleting = false; // New state for loading indicator on delete button
-
-	// Create an event dispatcher
+	// Event dispatcher
 	const dispatch = createEventDispatcher();
 
-	// Functions for edit and delete actions
-	function handleEdit() {
-		goto(`/become-a-professional/${business.publicId}/business`);
-		showPopup = false; // Close popup after navigating
+	// Popup states
+	let showMenu = false; // Dropdown menu (Edit/Delete)
+	let showConfirmDelete = false; // Confirmation dialog
+	let deleting = false; // Loading state during delete
+
+	// Close menu on outside click
+	function handleClickOutside(event: MouseEvent) {
+		const target = event.target as Node;
+		if (showMenu && !target.closest('.menu-wrapper')) {
+			showMenu = false;
+			showConfirmDelete = false;
+		}
 	}
 
-	async function handleDeleteConfirm() {
-		deleting = true; // Set loading state to true
+	onMount(() => {
+		if (browser) {
+			document.addEventListener('click', handleClickOutside);
+		}
+	});
+
+	onDestroy(() => {
+		if (browser) {
+			document.removeEventListener('click', handleClickOutside);
+		}
+	});
+
+	// Actions
+	function handleEdit() {
+		showMenu = false;
+		goto(`/become-a-professional/${business.publicId}/business`);
+	}
+
+	async function handleDelete() {
+		deleting = true;
 		try {
 			const response = await fetch(
 				`${import.meta.env.VITE_API_URL}/business/${business.publicId}`,
@@ -41,148 +64,227 @@
 			);
 
 			if (!response.ok) {
-				// Attempt to parse error message from response if available
 				const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
 				throw new Error(errorData.message || 'Failed to delete business');
 			}
 
-			showPopup = false; // Close the popup
-			showConfirmDelete = false; // Reset confirmation state
-
+			showMenu = false;
 			dispatch('businessDeleted', { publicId: business.publicId });
 		} catch (error) {
 			console.error('Error deleting business:', error);
-			// You can add a user-friendly error message here, e.g., using a toast notification
-			// alert(`Error deleting business: ${error.message}`); // Avoid alert(), use a custom modal or toast
+			// Consider using a toast notification instead of alert
 		} finally {
-			deleting = false; // Reset loading state
+			deleting = false;
 		}
 	}
 
-	function togglePopup() {
-		showPopup = !showPopup;
-		if (!showPopup) {
-			showConfirmDelete = false; // Reset confirmation state when closing popup
-		}
+	function confirmDelete() {
+		showConfirmDelete = true;
 	}
 
-	function handleDelete() {
-		showConfirmDelete = true; // Show confirmation buttons
+	function cancelDelete() {
+		showConfirmDelete = false;
 	}
 
-	function handleCancel() {
-		showConfirmDelete = false; // Revert to previous popup state
-	}
+	// console.log(business.isServiceBusiness);
 </script>
 
-<button on:click={togglePopup}>
-	<div class="property-card">
-		<div class="relative">
-			{#if business.images?.length > 0 && business.images[0].objectName}
-				<SecureImage
-					src="{import.meta.env.VITE_IMAGE_URL}/{business.images[0].objectName}"
-					alt={business.name}
-					on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/image-placeholder.svg')}
-					className="h-[25rem] w-full rounded-md object-cover"
-				/>
-			{:else}
-				<div class="h-[25rem] w-full rounded-md bg-gray-200 object-cover"></div>
-			{/if}
+{#if business.isServiceBusiness}
+	<a href="/dashboard/{business.publicId}" class="property-card-link block">
+		<div class="property-card-wrapper relative">
+			<div class="property-card">
+				<div class="relative">
+					<!-- Menu Button -->
+					<div class="menu-wrapper absolute top-2 left-2 z-10" on:click|stopPropagation>
+						<button
+							class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#EBEBEB] hover:bg-[#e7e7e7]"
+							on:click={() => (showMenu = !showMenu)}
+							aria-label="More options"
+						>
+							<Icon class="h-5 w-5 text-black" icon="pepicons-pencil:dots-x" />
+						</button>
 
-			{#if business.isActive != true}
-				<span
-					class="absolute top-5 left-5 flex items-center gap-1 rounded-full bg-white px-3 py-1 text-sm font-semibold text-gray-800"
-				>
-					<div class="h-2 w-2 rounded-full bg-amber-600"></div>
-					In progress
-				</span>
-			{/if}
-		</div>
+						{#if showMenu}
+							<div
+								class="absolute right-0 mt-2 w-28 cursor-auto overflow-hidden rounded-md border border-gray-200 bg-white py-2 text-sm shadow-lg"
+								transition:fadeAndSlide={{
+									duration: 200,
+									easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)'
+								}}
+							>
+								<a
+									class="flex w-full cursor-pointer px-4 py-2 text-left font-medium hover:bg-gray-100"
+									on:click={handleEdit}
+								>
+									Edit
+								</a>
+								<button
+									class="flex w-full cursor-pointer px-4 py-2 text-left font-medium text-red-600 hover:bg-gray-100"
+									on:click={confirmDelete}
+								>
+									Delete
+								</button>
+							</div>
+						{/if}
+					</div>
 
-		<div class="details">
-			<div class="price-type">
-				{#if business.createdAt !== null && business.isActive != true}
-					<p class="font-semibold">Your listing stated on {formatDate(business.createdAt)}</p>
-				{:else}{/if}
+					<!-- Image -->
+					{#if business.images?.length > 0 && business.images[0].objectName}
+						<SecureImage
+							src="{import.meta.env.VITE_IMAGE_URL}/{business.images[0].objectName}"
+							alt={business.name}
+							on:error={(e) =>
+								((e.currentTarget as HTMLImageElement).src = '/image-placeholder.svg')}
+							className="h-[25rem] w-full rounded-md object-cover"
+						/>
+					{:else}
+						<div class="h-[25rem] w-full rounded-md bg-gray-200 object-cover"></div>
+					{/if}
+
+					<!-- Status Badge -->
+					{#if !business.isActive}
+						<span
+							class="absolute top-5 left-5 flex items-center gap-1 rounded-full bg-white px-3 py-1 text-sm font-semibold text-gray-800"
+						>
+							<div class="h-2 w-2 rounded-full bg-amber-600"></div>
+							In progress
+						</span>
+					{/if}
+				</div>
+
+				<!-- Card Details -->
+				<div class="details">
+					<div class="price-type">
+						{#if business.createdAt !== null && !business.isActive}
+							<p class="font-semibold">Your listing started on {formatDate(business.createdAt)}</p>
+						{/if}
+					</div>
+					<p class="location">{business.city}, {business.state}, {business.country}</p>
+				</div>
 			</div>
-			<p class="location">{business.city}, {business.state}, {business.country}</p>
 		</div>
-	</div>
-</button>
+	</a>
+{:else}
+	<!-- Static version (no link) -->
+	<div class="property-card-wrapper relative">
+		<div class="property-card">
+			<div class="relative">
+				<!-- Menu Button -->
+				<div class="menu-wrapper absolute top-2 left-2 z-10" on:click|stopPropagation>
+					<button
+						class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#EBEBEB] hover:bg-[#e7e7e7]"
+						on:click={() => (showMenu = !showMenu)}
+						aria-label="More options"
+					>
+						<Icon class="h-5 w-5 text-black" icon="pepicons-pencil:dots-x" />
+					</button>
 
-{#if showPopup}
-	<div class="popup-overlay" transition:fade={{ duration: 200 }} on:click={togglePopup}>
-		<div
-			class="popup-content relative"
-			transition:slide={{ duration: 300, axis: 'y' }}
-			on:click|stopPropagation
-		>
-			<button
-				class="hand-burger absolute top-5 left-5 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#EBEBEB] hover:bg-[#e7e7e7]"
-				on:click={togglePopup}
-			>
-				<Icon class="h-5 w-5 text-black" icon="material-symbols:close-rounded" />
-			</button>
+					{#if showMenu}
+						<div
+							class="absolute right-0 mt-2 w-28 cursor-auto overflow-hidden rounded-md border border-gray-200 bg-white py-2 text-sm shadow-lg"
+							transition:fadeAndSlide={{
+								duration: 200,
+								easing: 'cubic-bezier(0.25, 0.1, 0.25, 1)'
+							}}
+						>
+							<a
+								class="flex w-full cursor-pointer px-4 py-2 text-left font-medium hover:bg-gray-100"
+								on:click={handleEdit}
+							>
+								Edit
+							</a>
+							<button
+								class="flex w-full cursor-pointer px-4 py-2 text-left font-medium text-red-600 hover:bg-gray-100"
+								on:click={confirmDelete}
+							>
+								Delete
+							</button>
+						</div>
+					{/if}
+				</div>
 
-			{#if business.images?.length > 0 && business.images[0].objectName}
-				<SecureImage
-					src="{import.meta.env.VITE_IMAGE_URL}/{business.images[0].objectName}"
-					alt={business.name}
-					className="h-[8rem] w-[8rem] rounded-md popup-image"
-					on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/image-placeholder.svg')}
-					width={128}
-					height={128}
-					quality={85}
-				/>
-			{:else}
-				<div class="popup-image bg-gray-200"></div>
-			{/if}
+				<!-- Image -->
+				{#if business.images?.length > 0 && business.images[0].objectName}
+					<SecureImage
+						src="{import.meta.env.VITE_IMAGE_URL}/{business.images[0].objectName}"
+						alt={business.name}
+						on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/image-placeholder.svg')}
+						className="h-[25rem] w-full rounded-md object-cover"
+					/>
+				{:else}
+					<div class="h-[25rem] w-full rounded-md bg-gray-200 object-cover"></div>
+				{/if}
 
-			<div class="mb-3 text-center">
-				{#if business.createdAt !== null && business.isActive == false}
-					<p class="font-semibold">Your listing stated on {formatDate(business.createdAt)}</p>
-				{:else}{/if}
+				<!-- Status Badge -->
+				{#if !business.isActive}
+					<span
+						class="absolute top-5 left-5 flex items-center gap-1 rounded-full bg-white px-3 py-1 text-sm font-semibold text-gray-800"
+					>
+						<div class="h-2 w-2 rounded-full bg-amber-600"></div>
+						In progress
+					</span>
+				{/if}
+			</div>
+
+			<!-- Card Details -->
+			<div class="details">
+				<div class="price-type">
+					{#if business.createdAt !== null && !business.isActive}
+						<p class="font-semibold">Your listing started on {formatDate(business.createdAt)}</p>
+					{/if}
+				</div>
 				<p class="location">{business.city}, {business.state}, {business.country}</p>
 			</div>
+		</div>
+	</div>
+{/if}
 
-			<div class="popup-actions">
-				{#if showConfirmDelete}
-					<p class="mb-2 text-center text-xl font-semibold">Remove this listing?</p>
+<!-- Delete Confirmation Modal -->
+{#if showConfirmDelete}
+	<div
+		class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black"
+		transition:fade
+		on:click={cancelDelete}
+	>
+		<div class="w-96 rounded-lg bg-white p-6 text-center shadow-xl" on:click|stopPropagation>
+			<h3 class="mb-4 text-xl font-semibold">Remove this listing?</h3>
+			<p class="mb-6 text-gray-600">This action cannot be undone.</p>
 
-					<button class="edit-btn" on:click={handleDeleteConfirm} disabled={deleting}>
-						{#if deleting}
-							<svg
-								class="h-5 w-5 animate-spin text-white"
-								xmlns="http://www.w3.org/2000/svg"
+			<div class="flex justify-center gap-4">
+				<button
+					class="rounded-lg bg-gray-200 px-4 py-2 font-medium text-gray-800 hover:bg-gray-300"
+					on:click={cancelDelete}
+					disabled={deleting}
+				>
+					Cancel
+				</button>
+				<button
+					class="rounded-lg bg-red-600 px-4 py-2 font-medium text-white hover:bg-red-700 disabled:opacity-70"
+					on:click={handleDelete}
+					disabled={deleting}
+				>
+					{#if deleting}
+						<svg class="mr-2 inline h-5 w-5 animate-spin" viewBox="0 0 24 24">
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
 								fill="none"
-								viewBox="0 0 24 24"
-							>
-								<circle
-									class="opacity-25"
-									cx="12"
-									cy="12"
-									r="10"
-									stroke="currentColor"
-									stroke-width="4"
-								></circle>
-								<path
-									class="opacity-75"
-									fill="currentColor"
-									d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-								></path>
-							</svg>
-							Removing...
-						{:else}
-							Yes, remove
-						{/if}
-					</button>
-					<button class="delete-btn" on:click={handleCancel}>Cancel</button>
-				{:else}
-					<button class="edit-btn" on:click={handleEdit}>Edit listing</button>
-					<button class="delete-btn" on:click={handleDelete}>
-						<Icon icon="wpf:delete" class="h-4 w-4" /> Delete
-					</button>
-				{/if}
+							/>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+							/>
+						</svg>
+						Removing...
+					{:else}
+						Yes, remove
+					{/if}
+				</button>
 			</div>
 		</div>
 	</div>
@@ -296,5 +398,13 @@
 	.delete-btn:hover {
 		color: #000;
 		background-color: rgb(235, 235, 235);
+	}
+
+	.menu-wrapper {
+		position: absolute;
+		top: 0.5rem;
+		left: auto;
+		right: 0.5rem;
+		z-index: 20;
 	}
 </style>
