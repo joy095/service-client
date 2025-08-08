@@ -3,6 +3,8 @@
 	import { get } from 'svelte/store';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import Icon from '@iconify/svelte';
 	import Search from './Search.svelte';
 	import Form from './Form.svelte';
@@ -37,20 +39,47 @@
 			document.removeEventListener('click', handleClickOutside);
 		}
 	});
+
+	$: pathname = $page.url.pathname;
+
+	$: isOnDashboard = pathname.startsWith('/dashboard');
+
+	$: showSwitchLink = $isAuthenticated && $hasBusiness;
+
+	function switchView(href: string) {
+		goto(href);
+	}
 </script>
 
 <nav class="navbar">
 	<div class="nav-container container mx-auto">
-		<a href="/" class="logo">PremiumApp</a>
+		{#if showSwitchLink}
+			{#if isOnDashboard}
+				<a href="/dashboard" class="logo text-xl font-bold">PremiumApp</a>
+			{:else}
+				<a href="/" class="logo text-xl font-bold">PremiumApp</a>
+			{/if}
+		{/if}
 
 		<div class="flex items-center gap-2">
-			{#if $isAuthenticated && $hasBusiness}
-				<a
-					href="/dashboard"
-					class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
-				>
-					Switch to dashboard
-				</a>
+			{#if showSwitchLink}
+				{#if isOnDashboard}
+					<a
+						href="/"
+						on:click|preventDefault={() => switchView('/')}
+						class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
+					>
+						Switch to App
+					</a>
+				{:else}
+					<a
+						href="/dashboard"
+						on:click|preventDefault={() => switchView('/dashboard')}
+						class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
+					>
+						Switch to Dashboard
+					</a>
+				{/if}
 			{/if}
 
 			{#if $isAuthenticated}
