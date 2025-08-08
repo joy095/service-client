@@ -1,17 +1,22 @@
 // src/lib/auth/logout.ts
-import { logout as resetStore } from '$lib/stores/authStore';
+import { logout as logoutStore } from '$lib/stores/authStore'; // your store's logout
 import { goto } from '$app/navigation';
 
 export async function logout() {
     try {
-        await fetch(`${import.meta.env.VITE_API_URL}/logout`, {
+        const response = await fetch('/logout', {
             method: 'POST',
-            credentials: 'include' // sends HttpOnly access_token cookie
+            credentials: 'include'
         });
+
+        if (!response.ok) {
+            console.warn('Failed to log out on server');
+        }
     } catch (err) {
-        console.error('Logout failed:', err);
+        console.error('Logout network error:', err);
     }
 
-    resetStore();     // Clear Svelte store
-    goto('/');   // Redirect client-side
+    logoutStore();
+
+    goto('/');
 }
