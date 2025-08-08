@@ -45,7 +45,6 @@ export interface Service {
     createdAt: string;
     updatedAt: string;
     objectName: string;
-    durationMinutes: number;
 };
 
 export interface WorkingHour {

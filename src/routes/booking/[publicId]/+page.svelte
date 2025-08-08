@@ -10,7 +10,7 @@
 	}
 
 	export let data: {
-		workingHours: WorkingHour[];
+		workingHours: WorkingHour[] | null;
 		business: Business;
 		services: Service[];
 	};
@@ -21,8 +21,10 @@
 	let value: DateValue | undefined = undefined;
 	let minValue = today(getLocalTimeZone());
 
+	const safeWorkingHours = workingHours || [];
+
 	const closedDays = new Set(
-		workingHours.filter((d) => d.isClosed).map((d) => d.dayOfWeek.toLowerCase())
+		safeWorkingHours.filter((d) => d.isClosed).map((d) => d.dayOfWeek.toLowerCase())
 	);
 
 	const dayNameMap: Record<number, string> = {
@@ -82,7 +84,7 @@
 
 	$: if (value && service?.duration) {
 		const day = getDayOfWeek(value);
-		const dayHours = workingHours.find((d) => d.dayOfWeek.toLowerCase() === day && !d.isClosed);
+		const dayHours = safeWorkingHours.find((d) => d.dayOfWeek.toLowerCase() === day && !d.isClosed);
 
 		if (dayHours) {
 			selectedSlots = generateTimeSlots(dayHours.openTime, dayHours.closeTime, service.duration);

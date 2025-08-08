@@ -33,7 +33,6 @@ export const load: PageServerLoad = async ({ fetch }) => {
                     );
                     const isServiceBusiness = await serviceRes.json();
 
-                    console.log('isServiceBusiness', isServiceBusiness)
                     return {
                         ...business,
                         PrimaryImageObject:

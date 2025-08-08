@@ -2,9 +2,3 @@ name = "mail-2"
 compatibility_date = "2024-06-16"
 compatibility_flags = ["nodejs_compat"]
 
-
-[[r2_buckets]]
-binding = "R2_BUCKET"
-bucket_name = "service-app"                       # production bucket
-preview_bucket_name = "r2-worker-proxy-preview"   # preview bucket
-
