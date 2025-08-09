@@ -74,7 +74,7 @@ export interface AuthState {
     user: User | null;
 }
 
-export type Image = {
+export interface Image {
     id: string;
     url: string;
     alt: string;

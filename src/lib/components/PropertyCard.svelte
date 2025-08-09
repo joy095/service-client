@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 	import SecureImage from './SecureImage.svelte';
 
 	export let business: {
@@ -18,7 +19,7 @@
 <a href={`/business/${business.publicId}`} class="property-card">
 	{#if business?.images?.length > 0 && business.images[0]?.objectName}
 		<SecureImage
-			src="{import.meta.env.VITE_IMAGE_URL}/{business.images[0].objectName}"
+			src="{PUBLIC_IMAGE_URL}/{business.images[0].objectName}"
 			alt={business.name}
 			width={600}
 			height={400}

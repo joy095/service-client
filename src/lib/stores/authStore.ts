@@ -1,6 +1,7 @@
 // src/lib/store/authStore.ts
 import { writable, derived } from 'svelte/store';
 import type { User } from '$lib/types';
+import { browser } from '$app/environment';
 
 export type AuthState = {
     user: User | null;
@@ -29,6 +30,7 @@ function logout() {
 
 // Initialize from SSR data or refreshed token
 function initializeFromServer(user: User | null) {
+    if (!browser) return; // Avoid mutating shared state on server
     if (user) login(user);
     else logout();
 }

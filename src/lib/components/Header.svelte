@@ -59,6 +59,8 @@
 			{:else}
 				<a href="/" class="logo text-xl font-bold">PremiumApp</a>
 			{/if}
+		{:else}
+			<a href="/" class="logo text-xl font-bold">PremiumApp</a>
 		{/if}
 
 		<div class="flex items-center gap-2">
@@ -66,7 +68,6 @@
 				{#if isOnDashboard}
 					<a
 						href="/"
-						on:click|preventDefault={() => switchView('/')}
 						class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
 					>
 						Switch to App
@@ -74,7 +75,6 @@
 				{:else}
 					<a
 						href="/dashboard"
-						on:click|preventDefault={() => switchView('/dashboard')}
 						class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
 					>
 						Switch to Dashboard
@@ -97,11 +97,15 @@
 				<button
 					class="hand-burger flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#EBEBEB] hover:bg-[#e7e7e7]"
 					on:click={() => (isMenuOpen = !isMenuOpen)}
+					aria-haspopup="menu"
+					aria-expanded={isMenuOpen}
+					aria-controls="main-menu"
+					aria-label="Open menu"
 				>
 					<Icon class="h-5 w-5 text-black" icon="material-symbols:menu-rounded" />
 				</button>
 
-				<div class:toggled={isMenuOpen} class="menu-container">
+				<div class:toggled={isMenuOpen} id="menu-container">
 					<a class="divide flex items-center gap-2" href="/">
 						<Icon icon="material-symbols:help-outline-rounded" width="24" height="24" />
 						Help center
@@ -167,7 +171,7 @@
 		scale: 0.95;
 	}
 
-	.menu-container {
+	#menu-container {
 		opacity: 0;
 		position: absolute;
 		top: 3rem;
@@ -201,8 +205,8 @@
 		}
 	}
 
-	.menu-container button,
-	.menu-container a {
+	#menu-container button,
+	#menu-container a {
 		padding: 0.5rem 1rem;
 		border: none;
 		background: none;
@@ -220,7 +224,7 @@
 		}
 	}
 
-	.menu-container.toggled {
+	#menu-container.toggled {
 		opacity: 1;
 		height: auto;
 		width: 12rem;

@@ -1,16 +1,16 @@
-// src/routes/profile/+page.server.ts
-import type { PageServerLoad } from './$types';
+// src/routes/+layout.server.ts
+import type { LayoutServerLoad } from './$types';
 import type { User, Business } from '$lib/types';
 import { env } from '$env/dynamic/private';
 
-export const load: PageServerLoad = async ({ fetch, cookies }: { fetch: typeof globalThis.fetch, cookies: { get: (key: string) => string | undefined } }) => {
+export const load: LayoutServerLoad = async ({ fetch, cookies }) => {
     // --- Initialize return data ---
     const returnData: { user: User | null; businessData: Business | null } = { user: null, businessData: null };
 
     try {
         const accessToken = cookies.get('access_token');
         if (!accessToken) {
-            console.warn('No access token found in cookies.');
+            // console.warn('No access token found in cookies.');
             // Return defaults (nulls) if no token
             return returnData;
         }
@@ -39,7 +39,7 @@ export const load: PageServerLoad = async ({ fetch, cookies }: { fetch: typeof g
             }
         } catch (profileError) {
             console.error('Error fetching user profile:', profileError);
-            
+
         }
 
         // --- 2. Fetch Business Data ---
@@ -63,11 +63,20 @@ export const load: PageServerLoad = async ({ fetch, cookies }: { fetch: typeof g
                     // businessData remains null
                 }
             } else {
-                const businessResponseData = await businessRes.json();
-
-                const businessData: Business | null = businessResponseData?.business || businessResponseData || null;
-                // console.log('businessData', businessData)
-                returnData.businessData = businessData; // Assign business data if successful
+                if (businessRes.status === 204) {
+                    console.info('Business endpoint returned 204 No Content.');
+                } else if ((businessRes.headers.get('content-type') || '').includes('application/json')) {
+                    const businessResponseData = await businessRes.json();
+                    // Normalize shape: prefer explicit property when present
+                    const payload = (businessResponseData && typeof businessResponseData === 'object'
+                        && 'business' in businessResponseData)
+                        ? (businessResponseData as any).business
+                        : businessResponseData;
+                    returnData.businessData = (payload ?? null) as Business | null;
+                } else {
+                    const text = await businessRes.text();
+                    console.warn(`Business responded with non-JSON content-type. Status ${businessRes.status}. Body (truncated): ${text.slice(0, 500)}`);
+                }
             }
         } catch (businessError) {
             console.error('Error fetching business data:', businessError);

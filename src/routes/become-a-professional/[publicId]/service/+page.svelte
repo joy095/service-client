@@ -68,6 +68,17 @@
 		const file = target.files?.[0];
 
 		if (file) {
+			// clear any stale error
+			error = null;
+
+			// file-type whitelist
+			const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
+			if (!allowed.includes(file.type)) {
+				error = 'Unsupported file type. Please upload PNG, JPG or GIF images';
+				target.value = '';
+				return;
+			}
+
 			// Check file size (10MB limit)
 			if (file.size > 10 * 1024 * 1024) {
 				error = 'Image size must be less than 10MB';

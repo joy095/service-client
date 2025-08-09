@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import type { Actions, RequestEvent } from './$types';
 
@@ -10,7 +10,6 @@ export const actions: Actions = {
         const category = data.get('category')?.toString();
         const latitude = parseFloat(data.get('latitude')?.toString() || '');
         const longitude = parseFloat(data.get('longitude')?.toString() || '');
-        // Assuming only the first element of these arrays is needed based on your FormData example
         const city = data.getAll('city')[0]?.toString();
         const state = data.getAll('state')[0]?.toString();
         const country = data.getAll('country')[0]?.toString();
@@ -36,49 +35,48 @@ export const actions: Actions = {
             });
         }
 
-        try {
-            const response = await fetch(`${env.API_URL}/business`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Cookie: `access_token=${accessToken}`
-                },
-                credentials: 'include',
-                body: JSON.stringify({
-                    name,
-                    category,
-                    latitude,
-                    longitude,
-                    address,
-                    city,
-                    state,
-                    country,
-                    postalCode,
-                    about
-                })
-            });
+        const response = await fetch(`${env.API_URL}/business`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Cookie: `access_token=${accessToken}`
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                name,
+                category,
+                latitude,
+                longitude,
+                address,
+                city,
+                state,
+                country,
+                postalCode,
+                about
+            })
+        });
 
-            const responseData = await response.json();
+        const responseData = await response.json();
 
-            if (!response.ok) {
-                return fail(response.status, {
-                    error: responseData.error || 'Unknown error',
-                    success: false,
-                    message: responseData.message || 'Failed to create business'
-                });
-            }
-
-            return {
-                success: true,
-                message: 'Business created successfully'
-            };
-        } catch (err) {
-            console.error('Fetch error:', err);
-            return fail(500, {
-                error: 'Could not connect to server',
+        if (!response.ok) {
+            return fail(response.status, {
+                error: responseData.error || 'Unknown error',
                 success: false,
-                message: 'Server connection failed'
+                message: responseData.message || 'Failed to create business'
             });
         }
+
+        const publicId = responseData.publicId || responseData.business?.publicId;
+
+        if (!publicId) {
+            return fail(500, {
+                error: 'Missing public ID in response',
+                success: false,
+                message: 'Could not retrieve business identifier'
+            });
+        }
+
+        // IMPORTANT: Don't wrap this in try/catch
+        throw redirect(303, `/become-a-professional/${publicId}/upload-images`);
     }
 };

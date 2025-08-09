@@ -8,7 +8,8 @@
 		user: User | null;
 	};
 
-	const user = data.user;
+	let user = data.user;
+	$: user = data.user;
 
 	onMount(() => {
 		if (data.user) {

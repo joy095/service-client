@@ -77,8 +77,7 @@ export const actions: Actions = {
             return fail(401, { error: 'Authentication required. Token missing.' });
         }
 
-        // --- 5. Prepare & Call Go Backend API ---
-        console.log("Preparing to call Go backend API...");
+
         try {
             let backendUrl: string;
             let backendMethod: string;
@@ -89,16 +88,14 @@ export const actions: Actions = {
                 // Let fetch handle 'Content-Type': 'multipart/form-data' boundary automatically
             };
 
-            if (isUpdate) {
-                backendMethod = 'PATCH';
-                backendUrl = `${env.API_URL}/update-service/${serviceId}`;
-                successMessage = 'Service updated successfully!';
-            }
-            else if (formData.get('_action') === 'delete') {
-                // --- Delete existing service ---
+            if (formData.get('_action') === 'delete') {
                 backendMethod = 'DELETE';
                 backendUrl = `${env.API_URL}/delete-service/${serviceId}`;
                 successMessage = 'Service deleted successfully!';
+            } else if (isUpdate) {
+                backendMethod = 'PATCH';
+                backendUrl = `${env.API_URL}/update-service/${serviceId}`;
+                successMessage = 'Service updated successfully!';
             } else {
                 // --- Create new service ---
                 backendMethod = 'POST';
@@ -114,12 +111,11 @@ export const actions: Actions = {
             });
 
             if (backendResponse.ok) {
-                console.log("Go backend response OK.");
                 // Success from Go backend
-                let resultData: any = null;
+                const raw = await backendResponse.text();
+                let resultData;
                 try {
-                    resultData = await backendResponse.json();
-
+                    resultData = JSON.parse(raw);
                 } catch (parseErr) {
                     console.error(parseErr)
                     const responseText = await backendResponse.text();
@@ -143,11 +139,9 @@ export const actions: Actions = {
                         const errorData = JSON.parse(errorText); // Parse the text as JSON
                         errorMessage = errorData.message || errorData.error || errorMessage;
                     } catch (e) {
-                        console.log('Could not parse backend error response as JSON. Using raw text.');
                         errorMessage = errorText; // Use raw text if not JSON
                     }
                 } else {
-                    console.log("Error response body was empty.");
                     errorMessage = backendResponse.statusText || `Backend Error (${backendResponse.status})`;
                 }
 

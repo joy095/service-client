@@ -3,6 +3,7 @@
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores'; // Import page store to get data
+	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 	import SecureImage from '$lib/components/SecureImage.svelte';
 	import Icon from '@iconify/svelte';
 	import { onDestroy, onMount } from 'svelte';
@@ -183,11 +184,10 @@
 	// --- Submit Logic ---
 	async function submitForm(event: Event) {
 		event.preventDefault();
-		isSubmitting = true; // Start spinner
+		isSubmitting = true;
 
-		const publicId = get(page).params.publicId; // Get publicId from page store
+		const publicId = get(page).params.publicId;
 		if (!publicId) {
-			console.error('Public ID not found');
 			alert('Error: Could not identify business profile.');
 			isSubmitting = false;
 			return;
@@ -196,110 +196,55 @@
 		try {
 			let response;
 
-			// 1. Handle New File Uploads
-			// Filter previews to get only new uploads (those with a 'file' property)
-			const newUploads = imagePreviews
-				.filter((preview) => preview.file !== undefined)
-				.map((p) => p.file) as File[];
+			// --- 1. New uploads ---
+			const newUploads = imagePreviews.filter((p) => p.file).map((p) => p.file) as File[];
 
 			if (newUploads.length > 0) {
 				const uploadFormData = new FormData();
-				for (const file of newUploads) {
-					uploadFormData.append('images', file, file.name);
-				}
-				response = await fetch(`?/add`, {
-					method: 'POST',
-					body: uploadFormData
-				});
+				newUploads.forEach((file) => uploadFormData.append('images', file, file.name));
 
+				response = await fetch(`?/add`, { method: 'POST', body: uploadFormData });
 				if (!response.ok) {
-					let errorMessage = 'Failed to upload new images';
-					try {
-						const errorData = await response.json();
-						errorMessage = errorData.message || errorMessage;
-					} catch (e) {
-						errorMessage = `${errorMessage}: ${response.statusText}`;
-					}
-					throw new Error(errorMessage);
+					const err = await response.json().catch(() => ({}));
+					throw new Error(err.message || 'Failed to upload new images');
 				}
-				const uploadResult = await response.json();
 			}
 
-			// 2. Handle Reordering / Setting Primary
-			// Send the current order of ALL image IDs (existing and new ones get temporary IDs or are handled by position)
-			// The backend needs to understand the full order.
-			// This assumes your backend API for reorder expects the full list of IDs in the desired order.
-			// 2. Handle Reordering
-			if (imagePreviews.length > 0) {
+			// --- 2. Reorder (only if there are existing image IDs) ---
+			const existingIds = imagePreviews.map((p) => p.id).filter((id) => id !== undefined);
+
+			if (existingIds.length > 0) {
 				const reorderFormData = new FormData();
-				// --- This part now correctly uses imageId because imagePreviews[].id is imageId ---
-				const currentOrderIds = imagePreviews
-					.map((p) => p.id) // p.id is now imageId
-					.filter((id) => id !== undefined)
-					.join(',');
-				if (currentOrderIds) {
-					reorderFormData.append('order', currentOrderIds);
-					response = await fetch(`?/reorder`, {
-						method: 'POST',
-						body: reorderFormData
-					});
-					if (!response.ok) {
-						const errorData = await response.json();
-						throw new Error(errorData.message || 'Failed to reorder images');
-					}
-					const reorderResult = await response.json();
-				} else {
-					console.log('No existing images to reorder.');
+				reorderFormData.append('order', existingIds.join(','));
+
+				response = await fetch(`?/reorder`, { method: 'POST', body: reorderFormData });
+				if (!response.ok) {
+					const err = await response.json().catch(() => ({}));
+					throw new Error(err.message || 'Failed to reorder images');
 				}
 			}
 
-			// 3. Handle Deletions
-			// --- FIX: Use imageId for comparison ---
-			const originalImageIds = new Set(pageData?.images?.map((img: any) => img.imageId) || []); // <--- Use imageId
-			const currentImageIds = new Set(
-				imagePreviews.map((p) => p.id).filter((id) => id !== undefined)
-			);
+			// --- 3. Deletions ---
+			const originalImageIds = new Set(pageData?.images?.map((img: any) => img.imageId) || []);
+			const currentImageIds = new Set(existingIds);
 			const idsToDelete = [...originalImageIds].filter((id) => !currentImageIds.has(id));
 
-			if (idsToDelete.length > 0) {
-				const deletionErrors = [];
-				for (const imageId of idsToDelete) {
-					// imageId here is the correct UUID
-					const deleteFormData = new FormData();
-					// --- imageId is now the correct UUID ---
-					deleteFormData.append('imageId', imageId); // <--- Correct ID sent
-					response = await fetch(`?/delete`, {
-						method: 'POST',
-						body: deleteFormData
-					});
-
-					if (!response.ok) {
-						const errorData = await response.json();
-						console.error(`Failed to delete image ${imageId}:`, errorData.message);
-						// Optionally, you could throw an error here to stop the process
-						// or continue trying to delete others. Let's alert for now.
-						deletionErrors.push(imageId);
-						// Don't throw, try to continue redirecting
-					}
-				}
-
-				if (deletionErrors.length > 0) {
-					alert(`Failed to delete ${deletionErrors.length} image(s). Please try again.`);
+			for (const imageId of idsToDelete) {
+				const deleteFormData = new FormData();
+				deleteFormData.append('imageId', imageId);
+				response = await fetch(`?/delete`, { method: 'POST', body: deleteFormData });
+				if (!response.ok) {
+					console.warn(`Failed to delete image: ${imageId}`);
 				}
 			}
 
-			// alert('Changes saved successfully!');
-
-			// --- Redirect Regardless ---
-
-			goto(`/business/${publicId}`);
+			// --- 4. Redirect ---
+			goto(`/become-a-professional/${publicId}/time-table`);
 		} catch (err) {
 			console.error('Submission error:', err);
-			alert(err.message || 'An error occurred while saving changes.');
-			// Decide if you want to redirect on error or stay on the page
-			// goto('/service'); // Uncomment if you want to redirect even on error
+			alert(err.message || 'Error saving changes.');
 		} finally {
-			isSubmitting = false; // Stop spinner regardless of success or failure
+			isSubmitting = false;
 		}
 	}
 </script>
@@ -346,7 +291,9 @@
 								class="image-container relative h-full w-full overflow-hidden rounded-md bg-gray-100"
 							>
 								<SecureImage
-									src={preview.file ? preview.src : `${import.meta.env.VITE_IMAGE_URL}/${preview.src.replace(/^\/+/, '')}`}
+									src={preview.file
+										? preview.src
+										: `${PUBLIC_IMAGE_URL}/${preview.src.replace(/^\/+/, '')}`}
 									alt={preview.name}
 									className={`w-full ${index === 0 ? 'h-[25rem]' : 'h-[15rem]'} ${objectFits[index] || 'object-cover'}`}
 									on:load={(e) => handleLoad(e, index)}

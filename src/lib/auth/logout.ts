@@ -16,7 +16,8 @@ export async function logout() {
         console.error('Logout network error:', err);
     }
 
-    logoutStore();
-
-    goto('/');
+    finally {
+        logoutStore();
+        await goto('/');
+    }
 }

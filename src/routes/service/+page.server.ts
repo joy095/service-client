@@ -1,5 +1,5 @@
-// src/routes/somepage/[publicId]/currentpage/+page.server.ts
-import type { Actions, PageServerLoad } from '../$types';
+// src/routes/service/+page.server.ts
+import type { Actions, PageServerLoad } from './$types';
 import { fail } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 

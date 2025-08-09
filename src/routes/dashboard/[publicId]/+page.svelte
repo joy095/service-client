@@ -1,5 +1,6 @@
 <!-- src/routes/dashboard/[publicId]/+page.svelte -->
 <script lang="ts">
+	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 	import SecureImage from '$lib/components/SecureImage.svelte';
 	import type { PageData } from './$types';
 
@@ -18,7 +19,7 @@
 				<div class="rounded-lg border bg-white shadow-sm">
 					{#if service.objectName}
 						<SecureImage
-							src="{import.meta.env.VITE_IMAGE_URL}/{service.objectName}"
+							src="{PUBLIC_IMAGE_URL}/{service.objectName}"
 							alt={service.name}
 							on:error={(e) => {
 								const target = e.currentTarget as HTMLImageElement;

@@ -5,6 +5,7 @@
 	import ImageGallery from '$lib/components/ImageGallery.svelte';
 	import type { Image } from '$lib/types/index.js';
 	import SecureImage from '$lib/components/SecureImage.svelte';
+	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 	// import Map from '$lib/components/Map.svelte';
 
 	export let data;
@@ -56,7 +57,7 @@
 				>
 					<div class="service-image-wrapper">
 						<SecureImage
-							src="{import.meta.env.VITE_IMAGE_URL}/{service.objectName}"
+							src="{PUBLIC_IMAGE_URL}/{service.objectName}"
 							alt={service.name}
 							width={450}
 							height={320}

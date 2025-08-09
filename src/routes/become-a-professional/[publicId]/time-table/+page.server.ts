@@ -1,27 +1,68 @@
-// src/routes/working-hour/bulk/[businessId]/+page.server.ts
-import { fail } from '@sveltejs/kit';
-import type { Actions } from './$types';
+import { fail, error, redirect, type Actions } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import type { PageServerLoad } from './$types';
+
+export const load: PageServerLoad = async ({ params, fetch }) => {
+    const { publicId } = params;
+
+    try {
+        const apiUrl = `${env.API_URL}/public-working-hour/${publicId}`;
+        const response = await fetch(apiUrl, {
+            method: 'GET',
+        });
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw error(404, 'Business working hours not found');
+            }
+            throw error(response.status, `Backend returned status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        return {
+            workingHours: data.workingHours || data,
+        };
+    } catch (err) {
+        // Preserve SvelteKit control-flow errors (HttpError/Redirect)
+        if (err && typeof err === 'object' && 'status' in err) {
+            throw err as any;
+        }
+        console.error('Error fetching working hours:', err);
+        throw error(500, 'Failed to connect to backend service');
+    }
+};
 
 export const actions = {
     default: async ({ request, params, cookies }) => {
-        const businessId = params.publicId;
+        const publicId = params.publicId;
         const formData = await request.formData();
-
         const accessToken = cookies.get('access_token');
+
+        if (env.NODE_ENV == 'dev') {
+            console.debug('Form data received:', Object.fromEntries(formData));
+        }
+
         if (!accessToken) {
+            console.error('No access token found');
             return fail(401, {
                 error: 'Not authenticated',
-                success: false,
-                message: 'Please login to continue'
+                message: 'Please login to continue',
+            });
+        }
+
+        if (!publicId) {
+            console.error('Invalid publicId');
+            return fail(400, {
+                error: 'Invalid publicId',
+                message: 'Business ID is missing',
             });
         }
 
         // Extract days data
-        const days = [];
+        const days: { dayOfWeek: string; openTime: string; closeTime: string; isClosed: boolean }[] = [];
         const dayIndices = new Set<number>();
 
-        // Get all day indices from form data
         for (const key of formData.keys()) {
             const match = key.match(/days\[(\d+)\]\.dayOfWeek/);
             if (match) {
@@ -29,39 +70,61 @@ export const actions = {
             }
         }
 
-        // Build days array
         for (const index of dayIndices) {
             days.push({
                 dayOfWeek: formData.get(`days[${index}].dayOfWeek`) as string,
                 openTime: formData.get(`days[${index}].openTime`) as string,
                 closeTime: formData.get(`days[${index}].closeTime`) as string,
-                isClosed: formData.get(`days[${index}].isClosed`) === 'true'
+                isClosed: ['true', 'on', '1'].includes(
+                    ((formData.get(`days[${index}].isClosed`) ?? '') as string).toString()
+                ),
             });
         }
 
-        // Get timezone
         const timezone = formData.get('timezone') as string;
 
         try {
-            // Call your backend API
-            const response = await fetch(`${env.API_URL}/working-hour/bulk/${businessId}`, {
+            console.log('Sending request to:', `${env.API_URL}/working-hour/bulk/${publicId}`); // Debug: Log API URL
+            console.log('Request body:', JSON.stringify({ days, timezone })); // Debug: Log request body
+
+            const response = await fetch(`${env.API_URL}/working-hour/bulk/${publicId}`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    Cookie: `access_token=${accessToken}`
+                    Cookie: `access_token=${accessToken}`,
                 },
-                body: JSON.stringify({ days, timezone })
+                credentials: 'include',
+                body: JSON.stringify({ days, timezone }),
             });
 
+            console.log('Backend response status:', response.status); // Debug: Log response status
+            const responseBody = await response.text(); // Get raw response body
+            console.log('Backend response body:', responseBody); // Debug: Log response body
+
             if (!response.ok) {
-                throw new Error('Failed to save working hours');
+                let errorData;
+                try {
+                    errorData = JSON.parse(responseBody);
+                } catch (e) {
+                    errorData = {};
+                }
+                console.error('Backend error:', errorData.message || responseBody);
+                return fail(response.status, {
+                    error: 'Save failed',
+                    message: errorData.message || 'Failed to save working hours',
+                });
             }
 
-            // Handle success (redirect or show message)
-            return { success: true };
-        } catch (error) {
-            console.error('Error saving working hours:', error);
-            return fail(500, { error: 'Failed to save working hours' });
+            throw redirect(303, `/become-a-professional/${publicId}/service`);
+        } catch (err) {
+            // Preserve SvelteKit control-flow errors (redirects/HttpErrors)
+            if (err && typeof err === 'object' && 'status' in err) {
+                throw err as any;
+            }
+            console.error('Error saving working hours:', err);
+            return fail(500, {
+                error: 'Save failed',
+                message: err instanceof Error ? err.message : 'Unknown error',
+            });
         }
-    }
+    },
 } satisfies Actions;

@@ -9,13 +9,15 @@
 
 	{#if data.businesses.length === 0}
 		<div class="empty-state">
-			<p>No businesses found</p>
+			<img
+				src="/image-placeholder.svg"
+				alt="Illustration: No businesses found"
+				class="mx-auto h-48 w-48 rounded-t object-contain"
+				loading="lazy"
+				decoding="async"
+			/>
+			<p class="mt-4">No businesses found</p>
 		</div>
-		<img
-			src="/image-placeholder.svg"
-			alt="No image available"
-			class="h-48 w-48 rounded-t object-cover"
-		/>
 	{:else}
 		<div class="property-grid">
 			{#each data.businesses as business (business.publicId)}

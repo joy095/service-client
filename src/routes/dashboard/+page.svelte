@@ -14,11 +14,15 @@
 	let businesses: Business[] = data.businesses;
 	userPendingBusiness.set(businesses);
 
-	onMount(() => {
+	onMount(async () => {
 		if (data.user) {
 			initializeFromServer(data.user);
 		} else {
-			tryRefreshToken();
+			try {
+				await tryRefreshToken();
+			} catch (err) {
+				console.error('Token refresh failed', err);
+			}
 		}
 	});
 

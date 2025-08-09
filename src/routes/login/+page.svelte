@@ -4,6 +4,7 @@
 	import { isFormOpen } from '$lib/store';
 	import { login as authLogin } from '$lib/stores/authStore';
 	import { goto, invalidateAll } from '$app/navigation';
+	import { PUBLIC_API_URL } from '$env/static/public';
 
 	let email = '';
 	let password = '';
@@ -38,7 +39,7 @@
 
 		try {
 			if (step === 'email') {
-				const res = await fetch(`${import.meta.env.VITE_API_URL}/user-is-registered`, {
+				const res = await fetch(`${PUBLIC_API_URL}/user-is-registered`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ email })
@@ -55,7 +56,7 @@
 				if (status === 'Pending') {
 					step = 'otp';
 				} else if (status === 'Not Verified') {
-					const resendRes = await fetch(`${import.meta.env.VITE_API_URL}/resend-otp`, {
+					const resendRes = await fetch(`${PUBLIC_API_URL}/resend-otp`, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({ email })
@@ -73,7 +74,7 @@
 					step = 'register';
 				}
 			} else if (step === 'register') {
-				const res = await fetch(`${import.meta.env.VITE_API_URL}/register`, {
+				const res = await fetch(`${PUBLIC_API_URL}/register`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					credentials: 'include',
@@ -94,7 +95,7 @@
 				// Backend should set access/refresh token in HttpOnly cookie
 				step = 'otp';
 			} else if (step === 'otp') {
-				const res = await fetch(`${import.meta.env.VITE_API_URL}/verify-email`, {
+				const res = await fetch(`${PUBLIC_API_URL}/verify-email`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ email, otp, device: deviceName })
@@ -107,7 +108,7 @@
 
 				step = 'password';
 			} else if (step === 'password') {
-				const res = await fetch(`${import.meta.env.VITE_API_URL}/login`, {
+				const res = await fetch(`${PUBLIC_API_URL}/login`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ email, password }),
@@ -129,7 +130,7 @@
 				await invalidateAll();
 				await goto('/');
 			} else if (step === 'forgot-email') {
-				const res = await fetch(`${import.meta.env.VITE_API_URL}/forgot-password`, {
+				const res = await fetch(`${PUBLIC_API_URL}/forgot-password`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ email })
@@ -140,7 +141,7 @@
 				}
 				step = 'forgot-otp';
 			} else if (step === 'forgot-otp') {
-				const res = await fetch(`${import.meta.env.VITE_API_URL}/forgot-password-otp`, {
+				const res = await fetch(`${PUBLIC_API_URL}/forgot-password-otp`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
@@ -157,7 +158,7 @@
 
 				step = 'password'; // User can now log in
 			} else if (step === 'reset-password') {
-				const res = await fetch(`${import.meta.env.VITE_API_URL}/reset-password`, {
+				const res = await fetch(`${PUBLIC_API_URL}/reset-password`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({ email, password })
@@ -446,7 +447,7 @@
 				<button
 					type="button"
 					on:click={goBack}
-					class="mt-3 flex w-full w-full cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm hover:border-gray-900 focus:ring-1 focus:outline-none"
+					class="mt-3 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm hover:border-gray-900 focus:ring-1 focus:outline-none"
 					disabled={isLoading}
 				>
 					<Icon icon="weui:back-outlined" class="h-4 w-4" /> Back
