@@ -64,21 +64,23 @@
 		{/if}
 
 		<div class="flex items-center gap-2">
-			{#if showSwitchLink}
-				{#if isOnDashboard}
-					<a
-						href="/"
-						class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
-					>
-						Switch to App
-					</a>
-				{:else}
-					<a
-						href="/dashboard"
-						class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
-					>
-						Switch to Dashboard
-					</a>
+			{#if data.businessData?.businesses?.length > 0}
+				{#if showSwitchLink}
+					{#if isOnDashboard}
+						<a
+							href="/"
+							class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
+						>
+							Switch to App
+						</a>
+					{:else}
+						<a
+							href="/dashboard"
+							class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
+						>
+							Switch to Dashboard
+						</a>
+					{/if}
 				{/if}
 			{/if}
 

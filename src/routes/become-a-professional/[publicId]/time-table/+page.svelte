@@ -8,15 +8,7 @@
 		SelectTrigger
 	} from '$lib/components/ui/select';
 	import Icon from '@iconify/svelte';
-	import { enhance, applyAction } from '$app/forms'; // Add applyAction import
-	import type { PageData } from './$types';
-	import { page } from '$app/stores';
-	import { get } from 'svelte/store';
-	import { redirect } from '@sveltejs/kit';
-	import { url } from 'inspector';
-
-	// Get initial data from load function
-	const data = get(page).data as PageData;
+	import { enhance } from '$app/forms';
 
 	const daysOfWeek = [
 		{ id: 'sun', label: 'S', dayName: 'Sunday' },
@@ -39,45 +31,21 @@
 		return `${displayHour}:${minute.toString().padStart(2, '0')}${period}`;
 	});
 
-	function formatBackendTimeToFrontend(time: string): string {
-		if (!time || time === '00:00:00') return '12:00am';
-
-		const [hoursStr, minutesStr] = time.split(':');
-		const hours = parseInt(hoursStr, 10);
-		const minutes = parseInt(minutesStr, 10);
-
-		const period = hours < 12 ? 'am' : 'pm';
-		const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-
-		return `${displayHour}:${minutes.toString().padStart(2, '0')}${period}`;
-	}
-
+	// State for each day with default times
 	let dayStates = $state(
 		daysOfWeek.map((day) => {
-			const dayData = (Array.isArray(data?.workingHours) ? data.workingHours : []).find(
-				(wh) => wh.dayOfWeek?.toLowerCase() === day.dayName.toLowerCase()
-			);
-
+			// Check if the day is a weekend (Saturday or Sunday)
 			const isWeekend = day.id === 'sat' || day.id === 'sun';
-
 			return {
 				id: day.id,
-				startTime: dayData
-					? dayData.isClosed
-						? '9:00am'
-						: formatBackendTimeToFrontend(dayData.openTime)
-					: '9:00am',
-				endTime: dayData
-					? dayData.isClosed
-						? '5:00pm'
-						: formatBackendTimeToFrontend(dayData.closeTime)
-					: '5:00pm',
-				isAvailable: dayData ? !dayData.isClosed : !isWeekend
+				startTime: isWeekend ? '9:00am' : '9:00am', // Default start time (can be adjusted)
+				endTime: isWeekend ? '5:00pm' : '5:00pm', // Default end time (can be adjusted)
+				isAvailable: !isWeekend // Available Mon-Fri, Unavailable Sat/Sun
 			};
 		})
 	);
 
-	let selectedTimezone = $state(data?.workingHours?.[0]?.timezone || 'Asia/Kolkata');
+	let selectedTimezone = $state('Asia/Kolkata');
 
 	function handleStartTimeChange(dayId: string, value: string[]) {
 		const dayState = dayStates.find((d) => d.id === dayId);
@@ -103,6 +71,7 @@
 	function formatTimeForBackend(time: string): string {
 		if (!time) return '00:00:00';
 
+		// Convert 12-hour format to 24-hour format
 		const [timePart, modifier] = time.split(/(am|pm)/i);
 		let [hours, minutes] = timePart.split(':').map(Number);
 
@@ -129,53 +98,14 @@
 		return startIndex < endIndex;
 	}
 
+	// Check if form is valid for submission
 	const isFormValid = $derived(
 		!dayStates.some((day) => day.isAvailable && !isValidTimeRange(day.startTime, day.endTime))
 	);
-
-	let submissionResult = $state<{ success?: boolean; error?: string; message?: string } | null>(
-		null
-	);
-
-	function handleEnhance({ data, form }: { data: FormData; form: HTMLFormElement }) {
-		console.log('Submitting form data:', Object.fromEntries(data)); // Fix: Use data instead of formData
-
-		return async ({ result }) => {
-			try {
-				console.log('Form action result:', result); // Debug: Log result
-
-				// Reset submission result
-				submissionResult = null;
-
-				// Handle result
-				if (result.type === 'failure') {
-					submissionResult = {
-						error: 'Save failed',
-						message: result.data?.message || 'Failed to save working hours'
-					};
-					console.error('Form submission failed:', result.data); // Debug: Log failure details
-				} else if (result.type === 'error') {
-					submissionResult = {
-						error: 'Client error',
-						message: result.message || 'An unexpected error occurred'
-					};
-				}
-				// No handling needed for 'success' (unreachable) or 'redirect'—applyAction will navigate
-
-				await applyAction(result);
-			} catch (err) {
-				console.error('Enhance error:', err); // Debug: Log error
-				submissionResult = {
-					error: 'Client error',
-					message: 'An unexpected error occurred during submission'
-				};
-			}
-		};
-	}
 </script>
 
 <section class="container mx-auto max-w-4xl py-10">
-	<form method="POST" use:enhance={handleEnhance}>
+	<form method="POST" use:enhance>
 		{#each dayStates as dayState, i}
 			<input type="hidden" name="days[{i}].dayOfWeek" value={getDayNameFromId(dayState.id)} />
 			<input
@@ -190,6 +120,7 @@
 			/>
 			<input type="hidden" name="days[{i}].isClosed" value={!dayState.isAvailable} />
 		{/each}
+		<input type="hidden" name="timezone" value={selectedTimezone} />
 
 		<div
 			class="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl md:p-8 dark:border-gray-700 dark:bg-gray-800"
@@ -198,24 +129,6 @@
 				<h1 class="mb-2 text-3xl font-bold text-gray-900 dark:text-white">Working Hours</h1>
 				<p class="text-gray-600 dark:text-gray-300">Set your availability for client meetings</p>
 			</div>
-
-			{#if submissionResult}
-				<div
-					class={`mb-6 rounded-lg p-4 ${
-						submissionResult.success
-							? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-							: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-					}`}
-				>
-					<div class="flex items-center">
-						<Icon
-							icon={submissionResult.success ? 'mdi:check-circle' : 'mdi:alert-circle'}
-							class="mr-2 h-5 w-5"
-						/>
-						<span>{submissionResult.message}</span>
-					</div>
-				</div>
-			{/if}
 
 			<div class="mb-8 space-y-4">
 				{#each daysOfWeek as day, i}
@@ -292,7 +205,7 @@
 									variant="ghost"
 									size="sm"
 									type="button"
-									on:click={() => toggleDayAvailability(day.id)}
+									onclick={() => toggleDayAvailability(day.id)}
 									class="h-10 w-10 cursor-pointer self-start p-0 text-red-500 hover:bg-red-50 hover:text-red-700 sm:self-center dark:hover:bg-red-900/20"
 									title="Remove availability"
 								>
@@ -306,7 +219,7 @@
 									variant="outline"
 									size="sm"
 									type="button"
-									on:click={() => toggleDayAvailability(day.id)}
+									onclick={() => toggleDayAvailability(day.id)}
 									class="h-10 cursor-pointer border-blue-200 px-4 text-blue-600 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-400 dark:hover:bg-blue-900/30"
 									title="Add availability"
 								>
@@ -329,7 +242,6 @@
 					</div>
 					<select
 						bind:value={selectedTimezone}
-						name="timezone"
 						class="w-full appearance-none rounded-lg border border-gray-300 bg-white py-3 pr-3 pl-10 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-blue-500 dark:focus:ring-blue-500"
 					>
 						<option value="Asia/Kolkata">India Standard Time (IST)</option>

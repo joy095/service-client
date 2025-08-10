@@ -1,5 +1,5 @@
 // src/routes/become-a-professional/[publicId]/upload-images/+page.server.ts
-import { fail, isRedirect, redirect, type Actions } from '@sveltejs/kit';
+import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import type { PageServerLoad } from './$types';
 
@@ -43,9 +43,7 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
 
 
         // Return the extracted array
-        return {
-            images: imagesArray, error: null
-        };
+        return { images: imagesArray, error: null };
     } catch (err) {
         console.error('[Image Load] Fetch error:', err);
         // Return an empty array on error
@@ -91,10 +89,10 @@ export const actions: Actions = {
                     message: 'Only PNG, JPG, and JPEG files are allowed.'
                 });
             }
-            const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB example
-            if (file.size > MAX_FILE_SIZE) {
-                return fail(400, { error: `File ${file.name} is too large`, success: false, message: 'File size exceeds limit.' });
-            }
+            // const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB example
+            // if (file.size > MAX_FILE_SIZE) {
+            //   return fail(400, { error: `File ${file.name} is too large`, success: false, message: 'File size exceeds limit.' });
+            // }
             uploadForm.append('images', file); // Append each file
         }
 
@@ -122,7 +120,12 @@ export const actions: Actions = {
                 });
             }
 
-            throw redirect(303, `/become-a-professional/${publicId}/time-table`);
+            return {
+                success: true,
+                message: 'Images uploaded successfully'
+                // Optionally return data about the new images if the API provides it
+                // newImages: result?.newImages // Adjust based on API response
+            };
 
         } catch (err) {
             // Handle network errors or unexpected issues during the fetch
@@ -182,7 +185,10 @@ export const actions: Actions = {
                 });
             }
 
-            throw redirect(303, `/become-a-professional/${publicId}/time-table`);
+            return {
+                success: true,
+                message: 'Image deleted successfully'
+            };
 
         } catch (err) {
             // Handle network errors or unexpected issues during the fetch
@@ -200,7 +206,6 @@ export const actions: Actions = {
     reorder: async ({ request, cookies, params }) => {
         const { publicId } = params;
         const accessToken = cookies.get('access_token');
-
         if (!accessToken) {
             return fail(401, {
                 error: 'Not authenticated',
@@ -220,10 +225,11 @@ export const actions: Actions = {
             });
         }
 
+        // Parse the order string into an array of IDs (these are the existing image objectNames/IDs)
         const newOrder = orderString
             .split(',')
             .map(id => id.trim())
-            .filter(id => id.length > 0 && id !== 'undefined');
+            .filter(id => id.length > 0 && id !== 'undefined'); // Filter out invalid IDs
 
         if (newOrder.length === 0) {
             return {
@@ -232,22 +238,25 @@ export const actions: Actions = {
             };
         }
 
+        // --- Send the full order to the backend reorder endpoint ---
         try {
-            const reorderData = { order: newOrder };
+            // Prepare data for the reorder API call - Send as JSON
+            const reorderData = { order: newOrder }; // Send the full array of existing image IDs/objectNames
 
             const response = await fetch(`${env.API_URL}/business-image/${publicId}/reorder`, {
-                method: 'POST',
+                method: 'POST', // Method matches the new Go Fiber route
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json', // Sending JSON
                     Cookie: `access_token=${accessToken}`
                 },
-                body: JSON.stringify(reorderData),
+                body: JSON.stringify(reorderData), // Send JSON body
                 credentials: 'include'
             });
 
             if (!response.ok) {
                 const errorResult = await response.json().catch(() => ({}));
                 console.error('[Image Reorder] API Reorder Error:', response.status, errorResult);
+                // Return appropriate error
                 return fail(response.status, {
                     error: errorResult.error || 'Failed to reorder images',
                     success: false,
@@ -255,8 +264,16 @@ export const actions: Actions = {
                 });
             }
 
-            // Success — go straight to time table page
-            throw redirect(303, `/become-a-professional/${publicId}/time-table`);
+            // --- Success ---
+            const reorderResult = await response.json();
+            return {
+                success: true,
+                message: reorderResult.message || 'Image order updated successfully.'
+            };
+
+            // Note: The Go ReorderBusinessImages function handles shifting positions correctly.
+            // The primary image will be the one at position 1 after the reorder.
+            // The previous logic that explicitly called /primary is usually redundant now.
 
         } catch (err) {
             console.error('[Image Reorder] Network/Fetch error:', err);
