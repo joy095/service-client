@@ -270,30 +270,4 @@
 </section>
 
 <style>
-	:global(.dark) {
-		color-scheme: dark;
-	}
-
-	/* Custom scrollbar for time dropdowns */
-	:global(.max-h-60::-webkit-scrollbar) {
-		width: 6px;
-	}
-
-	:global(.max-h-60::-webkit-scrollbar-track) {
-		background: #f1f1f1;
-		border-radius: 10px;
-	}
-
-	:global(.max-h-60::-webkit-scrollbar-thumb) {
-		background: #c5c5c5;
-		border-radius: 10px;
-	}
-
-	:global(.dark .max-h-60::-webkit-scrollbar-track) {
-		background: #2d3748;
-	}
-
-	:global(.dark .max-h-60::-webkit-scrollbar-thumb) {
-		background: #4a5568;
-	}
 </style>

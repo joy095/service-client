@@ -1,4 +1,5 @@
 // src/lib/utils/refreshToken.ts
+import { PUBLIC_API_URL } from '$env/static/public';
 import { initializeFromServer, logout } from '$lib/stores/authStore';
 
 export async function tryRefreshToken(): Promise<void> {
@@ -13,7 +14,7 @@ export async function tryRefreshToken(): Promise<void> {
         }
 
         // Make request only if access token is not found
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/refresh-token`, {
+        const res = await fetch(`${PUBLIC_API_URL}/refresh-token`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

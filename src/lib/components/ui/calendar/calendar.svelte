@@ -107,7 +107,7 @@ get along, so we shut typescript up by casting `value` to `never`.
 												})}
 											{:else}
 												<Calendar.Day
-													class="h-9 w-9 cursor-pointer !rounded-full bg-blue-50 font-semibold text-blue-600 hover:bg-blue-100 hover:text-blue-600 data-[disabled]:bg-transparent data-[disabled]:font-normal data-[disabled]:text-gray-600 data-[outside-month]:h-0 data-[outside-month]:w-0 data-[outside-month]:opacity-0 data-[selected]:bg-blue-600"
+													class="h-9 w-9 cursor-pointer !rounded-full bg-blue-50 font-semibold text-blue-600 hover:bg-blue-100 hover:text-blue-600 data-[disabled]:pointer-events-none data-[disabled]:cursor-not-allowed data-[disabled]:bg-transparent data-[disabled]:font-normal data-[disabled]:text-gray-600 data-[disabled]:hover:bg-transparent data-[disabled]:hover:text-gray-600 data-[outside-month]:h-0 data-[outside-month]:w-0 data-[outside-month]:opacity-0 data-[selected]:bg-blue-600 data-[selected]:text-white data-[selected]:hover:bg-blue-600 data-[selected]:hover:text-white"
 												/>
 											{/if}
 										</Calendar.Cell>

@@ -45,7 +45,6 @@ export interface Service {
     createdAt: string;
     updatedAt: string;
     objectName: string;
-    durationMinutes: number;
 };
 
 export interface WorkingHour {
@@ -75,7 +74,7 @@ export interface AuthState {
     user: User | null;
 }
 
-export type Image = {
+export interface Image {
     id: string;
     url: string;
     alt: string;

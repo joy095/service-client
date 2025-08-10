@@ -3,6 +3,8 @@
 	import { get } from 'svelte/store';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import Icon from '@iconify/svelte';
 	import Search from './Search.svelte';
 	import Form from './Form.svelte';
@@ -37,20 +39,49 @@
 			document.removeEventListener('click', handleClickOutside);
 		}
 	});
+
+	$: pathname = $page.url.pathname;
+
+	$: isOnDashboard = pathname.startsWith('/dashboard');
+
+	$: showSwitchLink = $isAuthenticated && $hasBusiness;
+
+	function switchView(href: string) {
+		goto(href);
+	}
 </script>
 
 <nav class="navbar">
 	<div class="nav-container container mx-auto">
-		<a href="/" class="logo">PremiumApp</a>
+		{#if showSwitchLink}
+			{#if isOnDashboard}
+				<a href="/dashboard" class="logo text-xl font-bold">PremiumApp</a>
+			{:else}
+				<a href="/" class="logo text-xl font-bold">PremiumApp</a>
+			{/if}
+		{:else}
+			<a href="/" class="logo text-xl font-bold">PremiumApp</a>
+		{/if}
 
 		<div class="flex items-center gap-2">
-			{#if $isAuthenticated && $hasBusiness}
-				<a
-					href="/dashboard"
-					class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
-				>
-					Switch to dashboard
-				</a>
+			{#if data.businessData?.businesses?.length > 0}
+				{#if showSwitchLink}
+					{#if isOnDashboard}
+						<a
+							href="/"
+							class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
+						>
+							Switch to App
+						</a>
+					{:else}
+						<a
+							href="/dashboard"
+							class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
+						>
+							Switch to Dashboard
+						</a>
+					{/if}
+				{/if}
 			{/if}
 
 			{#if $isAuthenticated}
@@ -68,11 +99,15 @@
 				<button
 					class="hand-burger flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#EBEBEB] hover:bg-[#e7e7e7]"
 					on:click={() => (isMenuOpen = !isMenuOpen)}
+					aria-haspopup="menu"
+					aria-expanded={isMenuOpen}
+					aria-controls="main-menu"
+					aria-label="Open menu"
 				>
 					<Icon class="h-5 w-5 text-black" icon="material-symbols:menu-rounded" />
 				</button>
 
-				<div class:toggled={isMenuOpen} class="menu-container">
+				<div class:toggled={isMenuOpen} id="menu-container">
 					<a class="divide flex items-center gap-2" href="/">
 						<Icon icon="material-symbols:help-outline-rounded" width="24" height="24" />
 						Help center
@@ -138,7 +173,7 @@
 		scale: 0.95;
 	}
 
-	.menu-container {
+	#menu-container {
 		opacity: 0;
 		position: absolute;
 		top: 3rem;
@@ -172,8 +207,8 @@
 		}
 	}
 
-	.menu-container button,
-	.menu-container a {
+	#menu-container button,
+	#menu-container a {
 		padding: 0.5rem 1rem;
 		border: none;
 		background: none;
@@ -191,7 +226,7 @@
 		}
 	}
 
-	.menu-container.toggled {
+	#menu-container.toggled {
 		opacity: 1;
 		height: auto;
 		width: 12rem;

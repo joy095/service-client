@@ -8,6 +8,7 @@
 	import type { User, Business } from '$lib/types';
 	import { tryRefreshToken } from '$lib/utils/refreshToken';
 	import Footer from '$lib/components/Footer.svelte';
+	import { browser } from '$app/environment';
 
 	export let data: { user: User | null; businessData: Business | null };
 
@@ -18,11 +19,8 @@
 			tryRefreshToken();
 		}
 
-		if (data.businessData) {
-			setBusiness(data.businessData);
-		} else {
-			setBusiness(null);
-		}
+		// Keep the store in sync with data across navigations
+		$: if (browser) setBusiness(data.businessData ?? null);
 	});
 </script>
 

@@ -384,10 +384,10 @@
 						placeholder={searchPlaceholder}
 						disabled={isDisabled}
 						class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
-						oninput={handleSearchInput}
-						onkeydown={handleSearchKeydown}
-						onblur={handleSearchBlur}
-						onfocus={() => (showSearchResults = hasSearchResults)}
+						on:input={handleSearchInput}
+						on:keydown={handleSearchKeydown}
+						on:blur={handleSearchBlur}
+						on:focus={() => (showSearchResults = hasSearchResults)}
 						autocomplete="off"
 					/>
 
@@ -400,7 +400,7 @@
 								<button
 									type="button"
 									class="w-full border-b px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-gray-50 focus:bg-gray-50"
-									onclick={() => selectSearchResult(result)}
+									on:click={() => selectSearchResult(result)}
 								>
 									<div class="font-medium text-gray-900">{result.display_name}</div>
 									{#if result.type}
@@ -414,7 +414,7 @@
 
 				<button
 					type="button"
-					onclick={searchLocation}
+					on:click={searchLocation}
 					disabled={isSearching || isDisabled}
 					class="cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
 				>

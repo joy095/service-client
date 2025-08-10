@@ -7,6 +7,7 @@
 	import SecureImage from './SecureImage.svelte';
 	import { browser } from '$app/environment';
 	import { fade } from 'svelte/transition';
+	import { PUBLIC_API_URL, PUBLIC_IMAGE_URL } from '$env/static/public';
 
 	export let business: Business;
 	const dispatch = createEventDispatcher();
@@ -16,8 +17,8 @@
 	let deleting = false;
 
 	function handleClickOutside(event: MouseEvent) {
-		const target = event.target as Node;
-		if (showMenu && !target.closest('.menu-wrapper')) {
+		const target = event.target as HTMLElement;
+		if (showMenu && !target.closest?.('.menu-wrapper')) {
 			showMenu = false;
 			showConfirmDelete = false;
 		}
@@ -43,16 +44,13 @@
 	async function handleDelete() {
 		deleting = true;
 		try {
-			const response = await fetch(
-				`${import.meta.env.VITE_API_URL}/business/${business.publicId}`,
-				{
-					method: 'DELETE',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					credentials: 'include'
-				}
-			);
+			const response = await fetch(`${PUBLIC_API_URL}/business/${business.publicId}`, {
+				method: 'DELETE',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				credentials: 'include'
+			});
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
@@ -60,6 +58,7 @@
 			}
 
 			showMenu = false;
+			showConfirmDelete = false;
 			dispatch('businessDeleted', { publicId: business.publicId });
 		} catch (error) {
 			console.error('Error deleting business:', error);
@@ -86,7 +85,7 @@
 			{#if business.isServiceBusiness}
 				<a href="/dashboard/{business.publicId}" class="block">
 					<SecureImage
-						src="{import.meta.env.VITE_IMAGE_URL}/{business.images[0].objectName}"
+						src="{PUBLIC_IMAGE_URL}/{business.images[0].objectName}"
 						alt={business.name}
 						on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/image-placeholder.svg')}
 						className="h-[25rem] w-full rounded-lg object-cover"
@@ -94,7 +93,7 @@
 				</a>
 			{:else}
 				<SecureImage
-					src="{import.meta.env.VITE_IMAGE_URL}/{business.images[0].objectName}"
+					src="{PUBLIC_IMAGE_URL}/{business.images[0].objectName}"
 					alt={business.name}
 					on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/image-placeholder.svg')}
 					className="h-[25rem] w-full rounded-lg object-cover"

@@ -3,6 +3,7 @@
 	import { getLocalTimeZone, today, type DateValue } from '@internationalized/date';
 	import { Calendar } from '$lib/components/ui/calendar/index.js';
 	import type { WorkingHour, Service, Business } from '$lib/types/index.js';
+	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 
 	interface TimeSlot {
 		time: string;
@@ -10,7 +11,7 @@
 	}
 
 	export let data: {
-		workingHours: WorkingHour[];
+		workingHours: WorkingHour[] | null;
 		business: Business;
 		services: Service[];
 	};
@@ -21,8 +22,11 @@
 	let value: DateValue | undefined = undefined;
 	let minValue = today(getLocalTimeZone());
 
-	const closedDays = new Set(
-		workingHours.filter((d) => d.isClosed).map((d) => d.dayOfWeek.toLowerCase())
+	let safeWorkingHours: WorkingHour[] = [];
+	$: safeWorkingHours = workingHours ?? [];
+
+	$: closedDays = new Set(
+		safeWorkingHours.filter((d) => d.isClosed).map((d) => d.dayOfWeek.toLowerCase())
 	);
 
 	const dayNameMap: Record<number, string> = {
@@ -82,7 +86,7 @@
 
 	$: if (value && service?.duration) {
 		const day = getDayOfWeek(value);
-		const dayHours = workingHours.find((d) => d.dayOfWeek.toLowerCase() === day && !d.isClosed);
+		const dayHours = safeWorkingHours.find((d) => d.dayOfWeek.toLowerCase() === day && !d.isClosed);
 
 		if (dayHours) {
 			selectedSlots = generateTimeSlots(dayHours.openTime, dayHours.closeTime, service.duration);
@@ -94,7 +98,7 @@
 	function isDateDisabled(date: DateValue): boolean {
 		const dayIndex = date.toDate(getLocalTimeZone()).getDay();
 		const dayName = dayNameMap[dayIndex];
-		return date.compare(minValue) < 0 || closedDays.has(dayName);
+		return date.compare(minValue) <= 0 || closedDays.has(dayName);
 	}
 
 	function formatDuration(minutes: number): string {
@@ -112,7 +116,7 @@
 					{#if business.images?.[0]?.objectName}
 						<img
 							class="h-8 object-cover"
-							src="{import.meta.env.VITE_IMAGE_URL}/{business.images[0].objectName}"
+							src="{PUBLIC_IMAGE_URL}/{business.images[0].objectName}"
 							alt={`Logo of ${business.name}`}
 							loading="lazy"
 						/>

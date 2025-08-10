@@ -74,16 +74,8 @@
 		<li>Check detailed error logs</li>
 	</ol>
 
-	<img
-		src="https://r2-worker-proxy.joykarmakar987654321.workers.dev/uploads/0197d626-bb8e-7b67-a6af-4f357bc858f8/0772cb1e395547d0a8262048fdf6186f.webp"
-		class="h-20 w-28"
-		alt=""
-	/>
-
 	<SecureImage
-		src="https://plus.unsplash.com/premium_photo-1664474619075-644dd191935f?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8aW1hZ2V8ZW58MHx8MHx8fDA%3D"
+		src="https://images.pexels.com/photos/378570/pexels-photo-378570.jpeg"
 		alt="No r2 image"
-		quality={10}
-		className="h-20 w-28"
 	/>
 </div>

@@ -3,6 +3,7 @@
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores'; // Import page store to get data
+	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 	import SecureImage from '$lib/components/SecureImage.svelte';
 	import Icon from '@iconify/svelte';
 	import { onDestroy, onMount } from 'svelte';
@@ -32,15 +33,20 @@
 				// Extract a meaningful name or create one from the URL
 				let imageName = `Image ${img.position}`;
 				try {
-					const url = new URL(img.objectName.trim());
-					const pathParts = url.pathname.split('/');
-					if (pathParts.length > 0) {
-						imageName = pathParts[pathParts.length - 1];
-						imageName = imageName.replace(/\.[^/.]+$/, ''); // Remove extension
+					let pathParts: string[];
+					if (/^https?:\/\//.test(img.objectName.trim())) {
+						// Full URL
+						const url = new URL(img.objectName.trim());
+						pathParts = url.pathname.split('/');
+					} else {
+						// Just filename/path
+						pathParts = img.objectName.trim().split('/');
 					}
+					imageName = pathParts.pop()?.replace(/\.[^/.]+$/, '') ?? imageName;
 				} catch (e) {
 					console.warn('Could not parse image name from URL:', img.objectName, e);
 				}
+
 				return {
 					src: img.objectName.trim(),
 					name: imageName,
@@ -292,7 +298,7 @@
 
 			// --- Redirect Regardless ---
 
-			goto(`/business/${publicId}`);
+			goto(`/become-a-professional/${publicId}/time-table`);
 		} catch (err) {
 			console.error('Submission error:', err);
 			alert(err.message || 'An error occurred while saving changes.');
@@ -346,7 +352,9 @@
 								class="image-container relative h-full w-full overflow-hidden rounded-md bg-gray-100"
 							>
 								<SecureImage
-									src={preview.file ? preview.src : `${import.meta.env.VITE_IMAGE_URL}/${preview.src.replace(/^\/+/, '')}`}
+									src={preview.file
+										? preview.src
+										: `${PUBLIC_IMAGE_URL}/${preview.src.replace(/^\/+/, '')}`}
 									alt={preview.name}
 									className={`w-full ${index === 0 ? 'h-[25rem]' : 'h-[15rem]'} ${objectFits[index] || 'object-cover'}`}
 									on:load={(e) => handleLoad(e, index)}

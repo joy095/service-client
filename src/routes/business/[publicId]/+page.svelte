@@ -5,6 +5,7 @@
 	import ImageGallery from '$lib/components/ImageGallery.svelte';
 	import type { Image } from '$lib/types/index.js';
 	import SecureImage from '$lib/components/SecureImage.svelte';
+	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 	// import Map from '$lib/components/Map.svelte';
 
 	export let data;
@@ -56,7 +57,7 @@
 				>
 					<div class="service-image-wrapper">
 						<SecureImage
-							src="{import.meta.env.VITE_IMAGE_URL}/{service.objectName}"
+							src="{PUBLIC_IMAGE_URL}/{service.objectName}"
 							alt={service.name}
 							width={450}
 							height={320}
@@ -76,10 +77,10 @@
 						<div class="meta">
 							<span class="price">₹{service.price}</span>
 							<span class="duration">
-								{#if service.durationMinutes >= 60}
-									{Math.floor(service.durationMinutes / 60)}h {service.durationMinutes % 60}m
+								{#if service.duration >= 60}
+									{Math.floor(service.duration / 60)}h {service.duration % 60}m
 								{:else}
-									{service.durationMinutes}m
+									{service.duration}m
 								{/if}
 							</span>
 						</div>
@@ -93,7 +94,7 @@
 	{#if business.latitude && business.latitude !== 0}
 		<iframe
 			src={`https://maps.google.com/maps?q=${business.latitude},${business.latitude} (${encodeURIComponent(business.name)})&z=16&output=embed`}
-			class="mt-10 h-[30rem] w-full rounded-md rounded-md"
+			class="mt-10 h-[30rem] w-full rounded-md"
 			style="border:0;"
 			loading="lazy"
 			referrerpolicy="no-referrer-when-downgrade"

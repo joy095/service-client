@@ -139,12 +139,14 @@
 <!-- Responsive <picture> with AVIF → WebP → Original fallback -->
 {#if !isLoading}
 	<picture class={className}>
+		<!-- AVIF sources -->
 		{#each avifSources as { media, srcset } (media)}
 			{#if srcset}
 				<source {srcset} type="image/avif" {media} />
 			{/if}
 		{/each}
 
+		<!-- WebP sources -->
 		{#each webpSources as { media, srcset } (media)}
 			{#if srcset}
 				<source {srcset} type="image/webp" {media} />
@@ -170,7 +172,7 @@
 
 <style>
 	picture,
-	picture img {
+	picture source {
 		display: block;
 	}
 </style>

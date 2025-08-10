@@ -173,10 +173,6 @@
 		mapError = event.detail;
 		errors.location = event.detail;
 	}
-
-	function handleSubmit() {
-		goto('/upload-images'); // Redirect to image upload page
-	}
 </script>
 
 <div class="min-h-screen bg-gray-50 px-4 py-12">
@@ -220,15 +216,29 @@
 				method="POST"
 				use:enhance={() => {
 					isSubmitting = true;
-					return async ({ formData, update }) => {
-						isSubmitting = false;
-						if (form?.success) {
-							handleSubmit();
+					return async ({ update, result }) => {
+						try {
+							// handle server redirects
+							if (result.type === 'redirect') {
+								// `location` is the target URL from throw redirect(...)
+								await goto(result.location);
+								return;
+							}
+
+							await update();
+
+							// handle normal success responses
+							if (result.type === 'success') {
+								const url = result.data?.redirectUrl;
+								if (typeof url === 'string' && url.startsWith('/') && !url.startsWith('//')) {
+									await goto(url);
+								}
+							}
+						} finally {
+							isSubmitting = false;
 						}
-						await update();
 					};
 				}}
-				class="space-y-6"
 			>
 				{#if currentStep === 1}
 					<div

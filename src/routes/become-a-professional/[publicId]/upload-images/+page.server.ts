@@ -40,7 +40,7 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
         const imagesArray = Array.isArray(apiResponseData.images) ? apiResponseData.images : [];
 
         // Optional: Log to verify the structure
-        
+
 
         // Return the extracted array
         return { images: imagesArray, error: null };

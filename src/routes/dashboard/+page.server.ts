@@ -33,7 +33,6 @@ export const load: PageServerLoad = async ({ fetch }) => {
                     );
                     const isServiceBusiness = await serviceRes.json();
 
-                    console.log('isServiceBusiness', isServiceBusiness)
                     return {
                         ...business,
                         PrimaryImageObject:
@@ -68,7 +67,8 @@ export const load: PageServerLoad = async ({ fetch }) => {
     }
 };
 
-// Type guard remains unchanged
 function isBusinessApiResponse(data: unknown): data is { businesses: Business[] } {
-    return typeof data === 'object' && data !== null && 'businesses' in data && Array.isArray(data.businesses);
+    if (typeof data !== 'object' || data === null) return false;
+    const obj = data as Record<string, unknown>;
+    return Array.isArray(obj.businesses);
 }

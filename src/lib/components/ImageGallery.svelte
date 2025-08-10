@@ -2,6 +2,7 @@
 	import type { Image } from '$lib/types';
 	import { onMount } from 'svelte';
 	import SecureImage from '$lib/components/SecureImage.svelte';
+	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 
 	export let images: Image[] = [];
 
@@ -37,7 +38,7 @@
 	{#if images.length > 0}
 		{#key images[currentIndex].id}
 			<SecureImage
-				src={`${import.meta.env.VITE_IMAGE_URL}/${images[currentIndex].url}`}
+				src={`${PUBLIC_IMAGE_URL}/${images[currentIndex].url}`}
 				alt={images[currentIndex].alt}
 				width={800}
 				height={600}
@@ -67,7 +68,7 @@
 				}}
 			>
 				<SecureImage
-					src={`${import.meta.env.VITE_IMAGE_URL}/${image.url}`}
+					src={`${PUBLIC_IMAGE_URL}/${image.url}`}
 					alt={image.alt}
 					width={150}
 					height={150}

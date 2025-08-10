@@ -24,7 +24,7 @@ export const load: PageServerLoad = async ({ fetch }) => {
             country: business.country,
             postalCode: business.postalCode,
             latitude: business.latitude,
-            longitude: business.latitude,
+            longitude: business.longitude,
             createdAt: business.createdAt,
             updatedAt: business.updatedAt,
             isActive: business.isActive,
