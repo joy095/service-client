@@ -87,9 +87,9 @@
 	</section>
 
 	<!-- Map -->
-	{#if business.latitude && business.latitude !== 0}
+	{#if business.latitude && business.longitude !== 0}
 		<iframe
-			src={`https://maps.google.com/maps?q=${business.latitude},${business.latitude} (${encodeURIComponent(business.name)})&z=16&output=embed`}
+			src={`https://maps.google.com/maps?q=${business.latitude},${business.longitude} (${encodeURIComponent(business.name)})&z=16&output=embed`}
 			class="mt-10 h-[30rem] w-full rounded-md"
 			style="border:0;"
 			loading="lazy"
