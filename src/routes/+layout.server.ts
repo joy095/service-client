@@ -1,7 +1,7 @@
 // src/routes/+layout.server.ts
 import type { LayoutServerLoad } from './$types';
 import type { User, Business } from '$lib/types';
-import { env } from '$env/dynamic/private';
+import { PUBLIC_API_URL } from '$env/static/public';
 
 export const load: LayoutServerLoad = async ({ fetch, cookies }) => {
     // --- Initialize return data ---
@@ -17,7 +17,7 @@ export const load: LayoutServerLoad = async ({ fetch, cookies }) => {
 
         // --- 1. Fetch User Profile ---
         try {
-            const profileRes = await fetch(`${env.API_URL}/profile`, {
+            const profileRes = await fetch(`${PUBLIC_API_URL}/profile`, {
                 headers: {
                     cookie: `access_token=${accessToken}`
                 },
@@ -44,7 +44,7 @@ export const load: LayoutServerLoad = async ({ fetch, cookies }) => {
 
         // --- 2. Fetch Business Data ---
         try {
-            const businessRes = await fetch(`${env.API_URL}/business/by-user`, {
+            const businessRes = await fetch(`${PUBLIC_API_URL}/business/by-user`, {
                 method: 'GET',
                 headers: {
                     // Alternatively, if your backend expects cookie for this endpoint too:

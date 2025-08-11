@@ -1,8 +1,8 @@
 // src/routes/become-a-professional/[publicId]/business/+page.server.ts
 import { fail, redirect, type Actions } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private';
 import type { PageServerLoad, RequestEvent } from './$types';
 import deepEqual from 'fast-deep-equal';
+import { PUBLIC_API_URL } from '$env/static/public';
 
 /**
  * Loads the business data for the page based on the publicId in the URL.
@@ -20,7 +20,7 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
         throw redirect(303, '/login');
     }
     try {
-        const response = await fetch(`${env.API_URL}/business/${publicId}`, {
+        const response = await fetch(`${PUBLIC_API_URL}/business/${publicId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -100,7 +100,7 @@ export const actions: Actions = {
         }
 
         try {
-            const originalResponse = await fetch(`${env.API_URL}/business/${publicId}`, {
+            const originalResponse = await fetch(`${PUBLIC_API_URL}/business/${publicId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -162,7 +162,7 @@ export const actions: Actions = {
                 ...(house_number && { house_number })
             };
 
-            const response = await fetch(`${env.API_URL}/business/${publicId}`, {
+            const response = await fetch(`${PUBLIC_API_URL}/business/${publicId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
