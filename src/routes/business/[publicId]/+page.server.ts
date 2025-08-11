@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import type { Business, Service } from '$lib/types';
-import { env } from '$env/dynamic/private';
+import { PUBLIC_API_URL } from '$env/static/public';
 
 const API_BASE = PUBLIC_API_URL;
 
