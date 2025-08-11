@@ -266,10 +266,6 @@
 				<!-- Form -->
 				<form
 					use:enhance={({ formData }) => {
-						// Debug: Log form data being submitted
-						console.log('Form submission - Mode:', modalMode);
-						console.log('Form submission - Current step:', currentStep);
-						console.log('Form submission - Form data entries:');
 						for (let [key, value] of formData.entries()) {
 							console.log(`  ${key}:`, value);
 						}

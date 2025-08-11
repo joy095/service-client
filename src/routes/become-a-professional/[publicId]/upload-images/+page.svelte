@@ -298,7 +298,7 @@
 
 			// --- Redirect Regardless ---
 
-			goto(`/become-a-professional/${publicId}/time-table`);
+			goto(`/dashboard/${publicId}`);
 		} catch (err) {
 			console.error('Submission error:', err);
 			alert(err.message || 'An error occurred while saving changes.');
