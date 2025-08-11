@@ -1,12 +1,13 @@
 import { fail, error, redirect, type Actions } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import type { PageServerLoad } from './$types';
+import { PUBLIC_API_URL } from '$env/static/public';
 
 export const load: PageServerLoad = async ({ params, fetch }) => {
     const { publicId } = params;
 
     try {
-        const apiUrl = `${env.API_URL}/public-working-hour/${publicId}`;
+        const apiUrl = `${PUBLIC_API_URL}/public-working-hour/${publicId}`;
         const response = await fetch(apiUrl, {
             method: 'GET',
         });
@@ -38,10 +39,6 @@ export const actions = {
         const publicId = params.publicId;
         const formData = await request.formData();
         const accessToken = cookies.get('access_token');
-
-        if (env.NODE_ENV == 'dev') {
-            console.debug('Form data received:', Object.fromEntries(formData));
-        }
 
         if (!accessToken) {
             console.error('No access token found');
@@ -84,7 +81,7 @@ export const actions = {
         const timezone = formData.get('timezone') as string;
 
         try {
-            const response = await fetch(`${env.API_URL}/working-hour/bulk/${publicId}`, {
+            const response = await fetch(`${PUBLIC_API_URL}/working-hour/bulk/${publicId}`, {
                 method: 'POST',
                 headers: {
                     Cookie: `access_token=${accessToken}`,

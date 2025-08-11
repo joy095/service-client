@@ -1,7 +1,7 @@
 // src/routes/dashboard/[publicId]/+page.server.ts
 import type { Actions, PageServerLoad } from './$types';
-import { env } from '$env/dynamic/private';
-import { error, fail, redirect } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
+import { PUBLIC_API_URL } from '$env/static/public';
 
 // Debug helper function
 function debugLog(message: string, data?: any) {
@@ -20,8 +20,6 @@ function errorLog(message: string, error?: any) {
 }
 
 export const load: PageServerLoad = async ({ params, fetch }) => {
-    debugLog(`Loading services for publicId: ${params.publicId}`);
-
     const { publicId } = params;
 
     if (!publicId) {
@@ -30,21 +28,17 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
     }
 
     try {
-        const apiUrl = `${env.API_URL}/services/${publicId}`;
-        debugLog(`Making API request to: ${apiUrl}`);
+        const apiUrl = `${PUBLIC_API_URL}/services/${publicId}`;
 
         const res = await fetch(apiUrl, {
             method: 'GET',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             }
         });
 
-        debugLog(`API Response Status: ${res.status} ${res.statusText}`);
-
         if (!res.ok) {
             if (res.status === 404) {
-                debugLog('No services found for this publicId');
                 return { publicId, services: [] };
             }
             errorLog(`Backend returned error status: ${res.status}`);
@@ -52,7 +46,6 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
         }
 
         const data = await res.json();
-        debugLog('Successfully loaded services', { count: Array.isArray(data.service) ? data.service.length : 0 });
 
         return {
             publicId,
@@ -72,7 +65,7 @@ function validateAuth(cookies: any): string | null {
         errorLog('Authentication token not found in cookies');
         return null;
     }
-    debugLog(`Access token found (first 10 chars): ${accessToken.substring(0, 10)}...`);
+
     return accessToken;
 }
 
@@ -99,7 +92,8 @@ function validateServiceData(formData: FormData): { isValid: boolean; errors: st
     // Validate image if provided
     const image = formData.get('image') as File;
     if (image && image.size > 0) {
-        if (image.size > 5 * 1024 * 1024) { // 5MB limit
+        if (image.size > 5 * 1024 * 1024) {
+            // 5MB limit
             errors.push('Image size must be less than 5MB');
         }
         if (!['image/jpeg', 'image/png'].includes(image.type)) {
@@ -118,10 +112,8 @@ async function makeApiRequest(
     body?: FormData | string,
     headers?: Record<string, string>
 ): Promise<Response> {
-    debugLog(`Making ${method} request to: ${url}`);
-
     const requestHeaders: HeadersInit = {
-        'Cookie': `access_token=${accessToken}`,
+        Cookie: `access_token=${accessToken}`,
         ...headers
     };
 
@@ -136,28 +128,22 @@ async function makeApiRequest(
         body
     });
 
-    debugLog(`API Response: ${response.status} ${response.statusText}`);
     return response;
 }
 
 // Helper function to handle API response
 async function handleApiResponse(response: Response, successMessage: string) {
     if (response.ok) {
-        debugLog('API request successful');
         let resultData: any = null;
 
         try {
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
                 resultData = await response.json();
-                debugLog('Parsed JSON response', resultData);
             } else {
                 const responseText = await response.text();
-                debugLog('Response text:', responseText);
             }
-        } catch (parseErr) {
-            debugLog('Failed to parse response - treating as success');
-        }
+        } catch (parseErr) { }
 
         return { success: true, data: resultData, message: successMessage };
     } else {
@@ -167,7 +153,6 @@ async function handleApiResponse(response: Response, successMessage: string) {
 
         try {
             errorText = await response.text();
-            debugLog('Error response text:', errorText);
 
             if (errorText) {
                 try {
@@ -222,18 +207,18 @@ async function handleApiResponse(response: Response, successMessage: string) {
 export const actions: Actions = {
     // Create service action
     create: async ({ request, params, fetch, cookies }) => {
-        debugLog("=== STARTING CREATE SERVICE ACTION ===");
+        debugLog('=== STARTING CREATE SERVICE ACTION ===');
         const { publicId } = params;
 
         // Validate environment
-        if (!env.API_URL) {
-            errorLog("CRITICAL: env.API_URL is undefined or empty!");
+        if (!PUBLIC_API_URL) {
+            errorLog('CRITICAL: PUBLIC_API_URL is undefined or empty!');
             return fail(500, { error: 'Server configuration error' });
         }
 
         // Get and validate form data
         const formData = await request.formData();
-        debugLog("Form data received", {
+        debugLog('Form data received', {
             name: formData.get('name'),
             price: formData.get('price'),
             duration: formData.get('duration'),
@@ -254,7 +239,7 @@ export const actions: Actions = {
 
         try {
             // Note: Fixed URL spacing issue from original code
-            const response = await fetch(`${env.API_URL}/create-service/${publicId}`, {
+            const response = await fetch(`${PUBLIC_API_URL}/create-service/${publicId}`, {
                 method: 'POST',
                 headers: {
                     cookie: `access_token=${accessToken}`
@@ -272,12 +257,9 @@ export const actions: Actions = {
 
     // Update service action
     update: async ({ request, params, fetch, cookies }) => {
-        debugLog("=== STARTING UPDATE SERVICE ACTION ===");
-        const { publicId } = params;
-
         // Validate environment
-        if (!env.API_URL) {
-            errorLog("CRITICAL: env.API_URL is undefined or empty!");
+        if (!PUBLIC_API_URL) {
+            errorLog('CRITICAL: PUBLIC_API_URL is undefined or empty!');
             return fail(500, { error: 'Server configuration error' });
         }
 
@@ -285,7 +267,7 @@ export const actions: Actions = {
         const formData = await request.formData();
         const serviceId = formData.get('serviceId')?.toString();
 
-        debugLog("Update form data received", {
+        debugLog('Update form data received', {
             serviceId,
             name: formData.get('name'),
             price: formData.get('price'),
@@ -312,7 +294,7 @@ export const actions: Actions = {
         }
 
         try {
-            const backendUrl = `${env.API_URL}/update-service/${serviceId}`;
+            const backendUrl = `${PUBLIC_API_URL}/update-service/${serviceId}`;
             const response = await makeApiRequest(backendUrl, 'PATCH', accessToken, formData);
             return await handleApiResponse(response, 'Service updated successfully!');
         } catch (err: any) {
@@ -325,20 +307,17 @@ export const actions: Actions = {
 
     // Delete service action
     delete: async ({ request, params, fetch, cookies }) => {
-        debugLog("=== STARTING DELETE SERVICE ACTION ===");
         const { publicId } = params;
 
         // Validate environment
-        if (!env.API_URL) {
-            errorLog("CRITICAL: env.API_URL is undefined or empty!");
+        if (!PUBLIC_API_URL) {
+            errorLog('CRITICAL: PUBLIC_API_URL is undefined or empty!');
             return fail(500, { error: 'Server configuration error' });
         }
 
         // Get service ID from form data
         const formData = await request.formData();
         const serviceId = formData.get('serviceId')?.toString();
-
-        debugLog("Delete request received", { serviceId, publicId });
 
         if (!serviceId) {
             errorLog('Service ID is required for deletion');
@@ -352,7 +331,7 @@ export const actions: Actions = {
         }
 
         try {
-            const backendUrl = `${env.API_URL}/delete-service/${publicId}/${serviceId}`;
+            const backendUrl = `${PUBLIC_API_URL}/delete-service/${publicId}/${serviceId}`;
             const response = await makeApiRequest(backendUrl, 'DELETE', accessToken);
             return await handleApiResponse(response, 'Service deleted successfully!');
         } catch (err: any) {
@@ -361,6 +340,5 @@ export const actions: Actions = {
                 error: 'Failed to connect to the server. Please check your connection and try again.'
             });
         }
-    },
-
+    }
 };

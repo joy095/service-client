@@ -1,8 +1,8 @@
-import { env } from '$env/dynamic/private';
+import { PUBLIC_API_URL } from '$env/static/public';
 import type { Business, Service } from '$lib/types';
 import type { PageServerLoad } from './$types';
 
-const API_BASE = env.API_URL;
+const API_BASE = PUBLIC_API_URL;
 
 export const load: PageServerLoad = async ({ params, fetch }) => {
 
@@ -29,7 +29,7 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
         objectName: srv.objectName || null
     }));
 
-    const res = await fetch(`${env.API_URL}/public-working-hour/${business.publicId}`);
+    const res = await fetch(`${PUBLIC_API_URL}/public-working-hour/${business.publicId}`);
     if (!res.ok) {
         throw new Error('Failed to load working hours');
     }

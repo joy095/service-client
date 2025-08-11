@@ -1,11 +1,12 @@
 // src/routes/api/signed-imgproxy/+server.ts
 import type { RequestHandler } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import { PUBLIC_IMAGE_PROXY_URL } from '$env/static/public';
 
 // --- Environment Setup ---
 const keyHex = env.IMAGE_PROXY_KEY;
 const saltHex = env.IMAGE_PROXY_SALT;
-const baseUrl = env.IMAGE_PROXY_URL;
+const baseUrl = PUBLIC_IMAGE_PROXY_URL;
 
 if (!keyHex || !saltHex || !baseUrl) {
     throw new Error('IMAGE_PROXY_KEY, IMAGE_PROXY_SALT, and IMAGE_PROXY_URL are required');

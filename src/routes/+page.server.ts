@@ -1,11 +1,11 @@
 // src/routes/businesses/+page.server.ts
 import type { PageServerLoad } from './$types';
 import type { Business, BusinessImage } from '$lib/types';
-import { env } from '$env/dynamic/private';
+import { PUBLIC_API_URL } from '$env/static/public';
 
 export const load: PageServerLoad = async ({ fetch }) => {
     try {
-        const res = await fetch(`${env.API_URL}/business`);
+        const res = await fetch(`${PUBLIC_API_URL}/business`);
 
         if (!res.ok) {
             throw new Error(`Failed to fetch businesses: ${res.status} ${res.statusText}`);

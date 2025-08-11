@@ -2,7 +2,7 @@ import type { PageServerLoad } from './$types';
 import type { Business, Service } from '$lib/types';
 import { env } from '$env/dynamic/private';
 
-const API_BASE = env.API_URL;
+const API_BASE = PUBLIC_API_URL;
 
 export const load: PageServerLoad = async ({ fetch, params }) => {
     // Fetch business data by publicId (e.g. premium-barber-HTmV9hlV)

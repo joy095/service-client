@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private';
 import type { Actions, RequestEvent } from './$types';
+import { PUBLIC_API_URL } from '$env/static/public';
 
 export const actions: Actions = {
     default: async ({ request, cookies }: RequestEvent) => {
@@ -35,7 +35,7 @@ export const actions: Actions = {
             });
         }
 
-        const response = await fetch(`${env.API_URL}/business`, {
+        const response = await fetch(`${PUBLIC_API_URL}/business`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

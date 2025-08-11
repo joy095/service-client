@@ -1,7 +1,7 @@
 // src/routes/become-a-professional/[publicId]/upload-images/+page.server.ts
 import { fail, redirect, type Actions } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private';
 import type { PageServerLoad } from './$types';
+import { PUBLIC_API_URL } from '$env/static/public';
 
 // --- Type Definitions for API Responses ---
 interface BusinessImageData {
@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
         throw redirect(303, '/login');
     }
     try {
-        const response = await fetch(`${env.API_URL}/business-image/${publicId}`, {
+        const response = await fetch(`${PUBLIC_API_URL}/business-image/${publicId}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
@@ -98,7 +98,7 @@ export const actions: Actions = {
 
         try {
             // Make POST request to add images
-            const response = await fetch(`${env.API_URL}/business-image/${publicId}`, {
+            const response = await fetch(`${PUBLIC_API_URL}/business-image/${publicId}`, {
                 method: 'POST',
                 // Don't set Content-Type header manually for FormData, let the browser set it
                 headers: {
@@ -164,7 +164,7 @@ export const actions: Actions = {
 
         try {
             // Make DELETE request to remove the specific image
-            const response = await fetch(`${env.API_URL}/business-image/${publicId}/${imageId}`, {
+            const response = await fetch(`${PUBLIC_API_URL}/business-image/${publicId}/${imageId}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json', // Standard for DELETE with no body
@@ -243,7 +243,7 @@ export const actions: Actions = {
             // Prepare data for the reorder API call - Send as JSON
             const reorderData = { order: newOrder }; // Send the full array of existing image IDs/objectNames
 
-            const response = await fetch(`${env.API_URL}/business-image/${publicId}/reorder`, {
+            const response = await fetch(`${PUBLIC_API_URL}/business-image/${publicId}/reorder`, {
                 method: 'POST', // Method matches the new Go Fiber route
                 headers: {
                     'Content-Type': 'application/json', // Sending JSON
