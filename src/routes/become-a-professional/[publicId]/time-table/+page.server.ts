@@ -1,5 +1,4 @@
 import { fail, error, redirect, type Actions } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private';
 import type { PageServerLoad } from './$types';
 import { PUBLIC_API_URL } from '$env/static/public';
 
