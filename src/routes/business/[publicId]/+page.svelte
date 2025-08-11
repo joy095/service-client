@@ -2,10 +2,10 @@
 	import { onMount } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
-	import ImageGallery from '$lib/components/ImageGallery.svelte';
 	import type { Image } from '$lib/types/index.js';
 	import SecureImage from '$lib/components/SecureImage.svelte';
 	import { PUBLIC_IMAGE_URL } from '$env/static/public';
+	import Gallery from '$lib/components/Gallery.svelte';
 	// import Map from '$lib/components/Map.svelte';
 
 	export let data;
@@ -30,21 +30,17 @@
 </script>
 
 <div class="container">
-	<div class="grid grid-cols-3">
-		<div class="col-span-2">
-			{#if images.length === 0}
-				<div class="flex justify-center">
-					<img
-						src="https://archive.org/details/placeholder-image"
-						alt="No images available"
-						class="max-w-md rounded-3xl opacity-50"
-					/>
-				</div>
-			{:else}
-				<ImageGallery {images} />
-			{/if}
+	{#if images.length === 0}
+		<div class="flex justify-center">
+			<img
+				src="https://archive.org/details/placeholder-image"
+				alt="No images available"
+				class="max-w-md rounded-3xl opacity-50"
+			/>
 		</div>
-	</div>
+	{:else}
+		<Gallery {images} />
+	{/if}
 
 	<!-- Services -->
 	<section class="services-section" in:fade={{ duration: 800, delay: 400, easing: cubicOut }}>

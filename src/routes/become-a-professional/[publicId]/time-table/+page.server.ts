@@ -84,9 +84,6 @@ export const actions = {
         const timezone = formData.get('timezone') as string;
 
         try {
-            console.log('Sending request to:', `${env.API_URL}/working-hour/bulk/${publicId}`); // Debug: Log API URL
-            console.log('Request body:', JSON.stringify({ days, timezone })); // Debug: Log request body
-
             const response = await fetch(`${env.API_URL}/working-hour/bulk/${publicId}`, {
                 method: 'POST',
                 headers: {
@@ -96,9 +93,7 @@ export const actions = {
                 body: JSON.stringify({ days, timezone }),
             });
 
-            console.log('Backend response status:', response.status); // Debug: Log response status
             const responseBody = await response.text(); // Get raw response body
-            console.log('Backend response body:', responseBody); // Debug: Log response body
 
             if (!response.ok) {
                 let errorData;
