@@ -33,7 +33,7 @@
 	}
 </script>
 
-<div class="container mx-auto">
+<div class="container">
 	<div class="property-grid">
 		{#each businesses as business (business.publicId)}
 			<PendingBusinessCard {business} on:businessDeleted={handleBusinessDeletion} />

@@ -1,277 +1,224 @@
-<script lang="ts">
+<script>
 	import SecureImage from '$lib/components/SecureImage.svelte';
-	import { onMount } from 'svelte';
+	import Calendar from '$lib/components/ui/calendar/calendar.svelte';
+	import { getLocalTimeZone, today } from '@internationalized/date';
 
-	import { fade } from 'svelte/transition';
-
-	// Sample image data (replace with your own image URLs)
-	let images: string[] = [
-		'https://images.unsplash.com/photo-1600585154340-be6161a56a0c',
-		'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde',
-		'https://images.unsplash.com/photo-1600585154526-990dced4db0d',
-		'https://images.unsplash.com/photo-1600585152915-d208bec867a1',
-		'https://images.unsplash.com/photo-1600585153490-76fb20a0f2b0'
-	];
-
-	let mainImage: string = images[0];
-	let isMounted: boolean = false;
-	let showCarousel: boolean = false;
-	let currentCarouselIndex: number = 0;
-
-	onMount(() => {
-		isMounted = true;
-		return () => {
-			isMounted = false;
-		};
-	});
-
-	function openCarousel(image: string) {
-		mainImage = image;
-		currentCarouselIndex = images.indexOf(image);
-		showCarousel = true;
-		document.body.style.overflow = 'hidden';
-	}
-
-	function closeCarousel() {
-		showCarousel = false;
-		document.body.style.overflow = 'auto';
-	}
-
-	function nextImage() {
-		currentCarouselIndex = (currentCarouselIndex + 1) % images.length;
-		mainImage = images[currentCarouselIndex];
-	}
-
-	function prevImage() {
-		currentCarouselIndex = (currentCarouselIndex - 1 + images.length) % images.length;
-		mainImage = images[currentCarouselIndex];
-	}
-
-	function handleKeydown(event: KeyboardEvent) {
-		if (showCarousel) {
-			if (event.key === 'ArrowRight') nextImage();
-			if (event.key === 'ArrowLeft') prevImage();
-			if (event.key === 'Escape') closeCarousel();
-		}
-	}
-
-	let healthData = null;
-	let error = null;
-	let loading = true;
-
-	onMount(async () => {
-		try {
-			const url = 'https://r2-worker-proxy.joykarmakar987654321.workers.dev/health';
-
-			const response = await fetch(url);
-
-			if (!response.ok) {
-				const errorText = await response.text();
-				console.log('❌ Error response body:', errorText);
-				throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
-			}
-
-			const data = await response.json();
-
-			healthData = data;
-		} catch (err) {
-			console.error('💥 Fetch error details:', {
-				message: err.message,
-				name: err.name,
-				stack: err.stack
-			});
-
-			// More detailed error analysis
-			if (err.name === 'TypeError' && err.message.includes('fetch')) {
-				console.error('🌐 This is likely a CORS error or network issue');
-				console.error('💡 Solutions:');
-				console.error('   1. Add your frontend domain to CORS allowed origins in your Worker');
-				console.error('   2. Check if the Worker URL is correct');
-				console.error('   3. Verify the Worker is deployed and running');
-			}
-
-			error = err.message;
-		} finally {
-			loading = false;
-		}
-	});
+	let value = today(getLocalTimeZone());
 </script>
 
-<div style="font-family: monospace; padding: 20px;">
-	<h1>Cloudflare Worker Debug</h1>
+<svelte:head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>Barber Booking Checkout</title>
+</svelte:head>
 
-	{#if loading}
-		<p>🔄 Loading...</p>
-	{/if}
-
-	{#if error}
-		<div style="background: #ffebee; padding: 15px; border-radius: 5px;">
-			<h3 style="color: #c62828; margin-top: 0;">❌ Error:</h3>
-			<p><strong>{error}</strong></p>
-			<p>Check browser console for detailed logs (F12 → Console)</p>
-		</div>
-	{/if}
-
-	{#if healthData}
-		<div style="background: #e8f5e8; padding: 15px; border-radius: 5px;">
-			<h3 style="color: #2e7d32; margin-top: 0;">✅ Success!</h3>
-			<pre>{JSON.stringify(healthData, null, 2)}</pre>
-		</div>
-	{/if}
-
-	<h3>Debug Steps:</h3>
-	<ol>
-		<li>Open browser DevTools (F12)</li>
-		<li>Go to Console tab</li>
-		<li>Refresh this page</li>
-		<li>Check detailed error logs</li>
-	</ol>
-
-	<SecureImage
-		src="https://images.pexels.com/photos/378570/pexels-photo-378570.jpeg"
-		alt="No r2 image"
-	/>
-</div>
-
-<svelte:window on:keydown={handleKeydown} />
-
-<div class="container mx-auto px-4 py-8">
-	{#if !showCarousel}
-		<div class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6" transition:fade={{ duration: 300 }}>
-			<!-- Main Image -->
-			<div
-				class="relative aspect-[4/3] w-full cursor-pointer overflow-hidden rounded-2xl"
-				on:click={() => openCarousel(mainImage)}
-				on:keydown={(e) => e.key === 'Enter' && openCarousel(mainImage)}
-				role="button"
-				tabindex="0"
-			>
-				{#if isMounted}
-					<SecureImage
-						src={mainImage}
-						alt="Main property image"
-						className="h-full w-full object-cover"
-					/>
-				{/if}
-				<div class="absolute right-4 bottom-4 rounded-full bg-black/50 px-4 py-2 text-white">
-					{images.indexOf(mainImage) + 1} / {images.length}
-				</div>
+<div class="page-wrapper container">
+	<!-- Service Details -->
+	<div class="service-card">
+		<SecureImage
+			src="https://img.freepik.com/free-photo/young-man-barbershop-trimming-hair_1303-26254.jpg?t=st=1754919823~exp=1754923423~hmac=5fdbc2c5947a451f44b0f3acaa0542594d4d96e64437a142abc63d5827a82dee&w=1060"
+			alt="Haircut Service"
+			height={400}
+			className="w-full h-[18rem] object-cover"
+		/>
+		<div class="service-content">
+			<div class="service-title">Premium Men's Haircut</div>
+			<div class="service-meta">
+				<span>⏱ 45 mins</span>
+				<span>💰 $30</span>
 			</div>
+			<div class="price">$30.00</div>
+			<p>
+				Experience a luxury grooming session with precision styling, shampoo, and a relaxing finish.
+			</p>
 
-			<!-- Thumbnail Grid -->
-			<div class="grid grid-cols-2 gap-4">
-				{#each images as image, index}
-					{#if index < 4}
-						<div
-							class="relative aspect-[4/3] cursor-pointer overflow-hidden rounded-xl transition-transform hover:scale-105"
-							on:click={() => openCarousel(image)}
-							on:keydown={(e) => e.key === 'Enter' && openCarousel(image)}
-							role="button"
-							tabindex="0"
-						>
-							<img
-								src={image}
-								alt={`Thumbnail ${index + 1}`}
-								class="h-full w-full object-cover"
-								class:opacity-50={mainImage !== image}
-							/>
-						</div>
-					{/if}
-				{/each}
-			</div>
-		</div>
-	{/if}
+			<div class="calendar">
+				<!-- Date Picker -->
+				<!-- <div class="dates">
+					<h3>Select Date</h3>
+					<div class="date-grid">
+						<button>12</button>
+						<button class="selected">13</button>
+						<button>14</button>
+						<button>15</button>
+						<button>16</button>
+						<button>17</button>
+						<button>18</button>
+					</div>
+				</div> -->
 
-	<!-- Full-Screen Carousel -->
-	{#if showCarousel}
-		<div class="fixed inset-0 z-50 bg-black" transition:fade={{ duration: 300 }}>
-			<div class="relative h-full w-full">
-				<!-- Close Button -->
-				<button
-					class="absolute top-4 right-4 z-10 rounded-full bg-white/80 p-2 text-gray-800 hover:bg-white"
-					on:click={closeCarousel}
-				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-6 w-6"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M6 18L18 6M6 6l12 12"
-						/>
-					</svg>
-				</button>
-
-				<!-- Carousel Image -->
-				<div class="flex h-full w-full items-center justify-center">
-					<SecureImage
-						src={images[currentCarouselIndex]}
-						alt={`Carousel image ${currentCarouselIndex + 1}`}
-						className="max-h-full max-w-full object-contain"
+				<div class="dates">
+					<h3 class="mb-3 text-xl font-bold">Select Date</h3>
+					<Calendar
+						type="single"
+						bind:value
+						class="rounded-md border shadow-sm"
+						captionLayout="dropdown"
 					/>
 				</div>
 
-				<!-- Navigation Arrows -->
-				<button
-					class="absolute top-1/2 left-4 -translate-y-1/2 rounded-full bg-white/80 p-3 hover:bg-white"
-					on:click={prevImage}
-				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-6 w-6"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M15 19l-7-7 7-7"
-						/>
-					</svg>
-				</button>
-				<button
-					class="absolute top-1/2 right-4 -translate-y-1/2 rounded-full bg-white/80 p-3 hover:bg-white"
-					on:click={nextImage}
-				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-6 w-6"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M9 5l7 7-7 7"
-						/>
-					</svg>
-				</button>
-
-				<!-- Image Counter -->
-				<div
-					class="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-4 py-2 text-white"
-				>
-					{currentCarouselIndex + 1} / {images.length}
+				<!-- Time Picker -->
+				<div class="time-slots">
+					<h3 class="mb-3 text-xl font-bold">Select Time</h3>
+					<button>09:00 AM</button>
+					<button>10:30 AM</button>
+					<button class="selected">12:00 PM</button>
+					<button>02:00 PM</button>
+					<button>04:00 PM</button>
 				</div>
 			</div>
 		</div>
-	{/if}
+	</div>
+
+	<!-- Sidebar -->
+	<div class="sidebar">
+		<div class="barber-card">
+			<SecureImage
+				src="https://images.unsplash.com/photo-1607746882042-944635dfe10e"
+				alt="Barber"
+				height={180}
+				width={220}
+				className="h-[6rem] w-[6rem] rounded-full object-cover mb-3"
+			/>
+			<div class="barber-name">Jeremy Philips</div>
+			<div class="rating">⭐⭐⭐⭐⭐</div>
+			<p>Specialist in modern styles and classic cuts with 10+ years experience.</p>
+		</div>
+		<button class="confirm-btn">Confirm Booking</button>
+	</div>
 </div>
 
 <style>
-	/* Additional styles for focus states */
-	[role='button']:focus,
-	button:focus {
-		outline: 2px solid #2563eb;
-		outline-offset: 2px;
+	.page-wrapper {
+		display: grid;
+		grid-template-columns: 2fr 1fr;
+		gap: 40px;
+	}
+	.service-card {
+		background: white;
+		border-radius: 16px;
+		overflow: hidden;
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+	}
+	.service-content {
+		padding: 20px;
+	}
+	.service-title {
+		font-size: 26px;
+		font-weight: bold;
+		margin-bottom: 10px;
+	}
+	.service-meta {
+		display: flex;
+		gap: 20px;
+		margin-bottom: 15px;
+		font-size: 14px;
+		color: #777;
+	}
+	.service-meta span {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+	.price {
+		font-size: 20px;
+		color: #008060;
+		font-weight: bold;
+		margin-bottom: 20px;
+	}
+	.calendar {
+		display: flex;
+		gap: 20px;
+		align-items: flex-start;
+	}
+	.dates {
+		background: #f5f8fa;
+		padding: 15px;
+		border-radius: 12px;
+	}
+	.dates h3 {
+		margin-top: 0;
+	}
+	.date-grid {
+		display: grid;
+		grid-template-columns: repeat(7, 40px);
+		gap: 8px;
+		margin-top: 10px;
+	}
+	.date-grid button {
+		background: #fff;
+		border: 1px solid #ddd;
+		border-radius: 8px;
+		padding: 5px;
+		cursor: pointer;
+		transition: 0.2s;
+	}
+	.date-grid button:hover,
+	.date-grid button.selected {
+		background: #008060;
+		color: white;
+		border-color: #008060;
+	}
+	.time-slots {
+		background: #f5f8fa;
+		padding: 15px;
+		border-radius: 12px;
+	}
+	.time-slots h3 {
+		margin-top: 0;
+	}
+	.time-slots button {
+		width: 100%;
+		padding: 10px;
+		margin-bottom: 8px;
+		border: none;
+		background: white;
+		border-radius: 8px;
+		border: 1px solid #ddd;
+		cursor: pointer;
+		transition: 0.2s;
+	}
+	.time-slots button:hover,
+	.time-slots button.selected {
+		background: #008060;
+		color: white;
+		border-color: #008060;
+	}
+	.sidebar {
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+	}
+	.barber-card {
+		background: white;
+		border-radius: 16px;
+		padding: 20px;
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+		text-align: center;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.barber-name {
+		font-weight: bold;
+		font-size: 18px;
+	}
+	.rating {
+		color: gold;
+		margin: 6px 0;
+	}
+	.confirm-btn {
+		padding: 15px;
+		background: #008060;
+		color: white;
+		font-size: 16px;
+		font-weight: bold;
+		border-radius: 12px;
+		border: none;
+		cursor: pointer;
+		transition: 0.2s;
+	}
+	.confirm-btn:hover {
+		background: #006a50;
 	}
 </style>

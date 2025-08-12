@@ -40,13 +40,13 @@
 	const breakpoints = [
 		{
 			media: '(max-width: 600px)',
-			width: Math.max(300, Math.floor(width * 0.4)),
-			height: Math.max(200, Math.floor(height * 0.4))
+			width: Math.floor(width * 0.4),
+			height: Math.floor(height * 0.4)
 		},
 		{
 			media: '(max-width: 1024px)',
-			width: Math.max(600, Math.floor(width * 0.75)),
-			height: Math.max(400, Math.floor(height * 0.75))
+			width: Math.floor(width * 0.75),
+			height: Math.floor(height * 0.75)
 		},
 		{ media: '(min-width: 1025px)', width: width, height: height }
 	];

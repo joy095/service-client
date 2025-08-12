@@ -87,9 +87,9 @@
 	</section>
 
 	<!-- Map -->
-	{#if business.latitude && business.latitude !== 0}
+	{#if business.latitude && business.longitude !== 0}
 		<iframe
-			src={`https://maps.google.com/maps?q=${business.latitude},${business.latitude} (${encodeURIComponent(business.name)})&z=16&output=embed`}
+			src={`https://maps.google.com/maps?q=${business.latitude},${business.longitude} (${encodeURIComponent(business.name)})&z=16&output=embed`}
 			class="mt-10 h-[30rem] w-full rounded-md"
 			style="border:0;"
 			loading="lazy"
@@ -107,99 +107,6 @@
 		--card-background: #ffffff;
 		--shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 		--transition: all 0.3s ease;
-	}
-
-	.container {
-		max-width: 1400px;
-		margin: 0 auto;
-		padding: 3rem 1.5rem;
-		background: var(--background-color);
-	}
-
-	.hero-section {
-		position: relative;
-		margin-bottom: 4rem;
-	}
-
-	.image-wrapper {
-		position: relative;
-		border-radius: 24px;
-		overflow: hidden;
-		box-shadow: var(--shadow);
-	}
-
-	.main-image {
-		width: 100%;
-		max-height: 80vh;
-		object-fit: cover;
-		transition: transform 0.5s ease;
-	}
-
-	.image-wrapper:hover .main-image {
-		transform: scale(1.05);
-	}
-
-	.image-overlay {
-		position: absolute;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		padding: 2rem;
-		background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
-		color: white;
-	}
-
-	.hero-title {
-		font-size: 3rem;
-		font-weight: 700;
-		margin: 0;
-		letter-spacing: -0.02em;
-	}
-
-	.hero-subtitle {
-		font-size: 1.25rem;
-		opacity: 0.9;
-		margin: 0.5rem 0 0;
-	}
-
-	.info-card {
-		background: var(--card-background);
-		padding: 2.5rem;
-		margin: -4rem 2rem 0;
-		border-radius: 24px;
-		box-shadow: var(--shadow);
-		position: relative;
-		z-index: 1;
-	}
-
-	.details-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-		gap: 1.5rem;
-	}
-
-	.detail-item {
-		display: flex;
-		flex-direction: column;
-		gap: 0.25rem;
-	}
-
-	.label {
-		font-size: 0.9rem;
-		font-weight: 600;
-		color: #666;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-	}
-
-	.status-active {
-		color: #28a745;
-		font-weight: 600;
-	}
-
-	.status-inactive {
-		color: #dc3545;
-		font-weight: 600;
 	}
 
 	.services-section {
@@ -304,29 +211,12 @@
 	}
 
 	@media (max-width: 768px) {
-		.hero-title {
-			font-size: 2rem;
-		}
-
-		.hero-subtitle {
-			font-size: 1rem;
-		}
-
-		.info-card {
-			margin: -2rem 1rem 0;
-			padding: 1.5rem;
-		}
-
 		.section-title {
 			font-size: 2rem;
 		}
 
 		.services-grid {
 			grid-template-columns: 1fr;
-		}
-
-		.service-image {
-			height: 200px;
 		}
 	}
 </style>

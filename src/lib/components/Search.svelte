@@ -1,118 +1,213 @@
-<script>
-	import Icon from '@iconify/svelte';
+<script lang="ts">
+	import { goto } from '$app/navigation';
+	import { PUBLIC_API_URL } from '$env/static/public';
+	import { createEventDispatcher } from 'svelte';
+
+	const dispatch = createEventDispatcher();
+
+	let searchQuery = '';
+	let isSearchFocused = false;
+	let suggestions: string[] = [];
+	let isLoading = false;
+	let selectedIndex = -1;
+
+	// Use trailing slash or ensure your backend handles it
+	const API_BASE = `${PUBLIC_API_URL}/business/search/suggestions`;
+
+	let debounceTimer: number | null = null;
+
+	// Show icon when focused, or has text
+	$: showSearchIcon = isSearchFocused || !!searchQuery;
+
+	// Fetch suggestions when query changes and input is focused
+	$: if (searchQuery && isSearchFocused) {
+		if (debounceTimer) clearTimeout(debounceTimer);
+
+		debounceTimer = window.setTimeout(async () => {
+			const q = searchQuery.trim();
+			if (q.length < 2) {
+				suggestions = [];
+				return;
+			}
+
+			isLoading = true;
+			try {
+				const res = await fetch(`${API_BASE}?q=${encodeURIComponent(q)}`);
+				if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+				const data = await res.json();
+				suggestions = Array.isArray(data.suggestions) ? data.suggestions : [];
+			} catch (err) {
+				console.warn('Failed to fetch search suggestions:', err);
+				suggestions = []; // Fail gracefully
+			} finally {
+				isLoading = false;
+			}
+		}, 300);
+	}
+
+	// Handle blur with delay to allow click on suggestions
+	function handleBlur() {
+		setTimeout(() => {
+			const isClickInside = document.activeElement?.closest('.suggestion-item');
+			if (!isClickInside) {
+				isSearchFocused = false;
+				suggestions = [];
+				selectedIndex = -1;
+			}
+		}, 150);
+	}
+
+	// Navigate and emit event
+	const navigate = (path: string) => {
+		window.history.pushState({}, '', path);
+		dispatch('navigate', path);
+	};
+
+	// Perform search
+	function performSearch(query: string) {
+		const trimmed = query?.trim();
+		if (!trimmed) return;
+
+		goto(`/q/${encodeURIComponent(trimmed)}`);
+		resetSearchState(trimmed);
+	}
+
+	function resetSearchState(query: string) {
+		suggestions = [];
+		selectedIndex = -1;
+		isSearchFocused = false;
+		searchQuery = query; // Keep the final value shown
+	}
+
+	// Handle keyboard input
+	function searchQueryHandler(event: KeyboardEvent) {
+		if (!isSearchFocused || suggestions.length === 0) return;
+
+		if (event.key === 'ArrowDown') {
+			event.preventDefault();
+			selectedIndex = (selectedIndex + 1) % suggestions.length;
+		} else if (event.key === 'ArrowUp') {
+			event.preventDefault();
+			selectedIndex = selectedIndex <= 0 ? suggestions.length - 1 : selectedIndex - 1;
+		} else if (event.key === 'Enter') {
+			event.preventDefault();
+			if (selectedIndex >= 0) {
+				performSearch(suggestions[selectedIndex]);
+			} else {
+				performSearch(searchQuery);
+			}
+		} else if (event.key === 'Escape') {
+			event.preventDefault();
+			resetSearchState(searchQuery);
+		}
+	}
+
+	// Click on suggestion
+	function onSuggestionClick(suggestion: string) {
+		performSearch(suggestion);
+	}
 </script>
 
-<div class="bar">
-	<div class="location">
-		<p>Location</p>
-		<input type="text" placeholder="Where are you going?" />
-	</div>
-	<div class="check-in">
-		<p>Check in</p>
-		<input type="text" placeholder="Add dates" />
-	</div>
-	<div class="check-out">
-		<p>Check out</p>
-		<input type="text" placeholder="Add dates" />
-	</div>
-	<div class="guests">
-		<p>Guests</p>
-		<input type="text" placeholder="Add guests" />
-		<span>
-			<Icon icon="material-symbols-light:search" width="24" height="24" />
-		</span>
+<div
+	class="sticky top-0 z-20 flex h-14 flex-row items-center justify-between bg-white px-4 text-black transition-colors duration-200 md:px-5 dark:bg-black dark:text-white"
+>
+	<!-- Search Section -->
+	<div class="group relative my-1 mr-7 flex items-center pl-8">
+		<!-- Search Icon -->
+		<div
+			class="absolute left-2.5 z-10 flex h-full items-center justify-center overflow-hidden rounded-l-full border border-r-0 border-blue-500 bg-white text-gray-500"
+			class:w-10={showSearchIcon}
+			class:w-0={!showSearchIcon}
+			class:border-0={!showSearchIcon}
+			class:border-1={showSearchIcon}
+			class:opacity-100={showSearchIcon}
+			class:opacity-0={!showSearchIcon}
+		>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke-width="1.5"
+				stroke="currentColor"
+				class="h-5 w-5"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+				/>
+			</svg>
+		</div>
+
+		<!-- Input Wrapper -->
+		<div
+			class="flex h-8 rounded-l-3xl border border-gray-400 bg-white transition-all duration-300
+             group-focus-within:ml-0 group-focus-within:border-blue-500 group-focus-within:pl-2
+             md:h-10 md:pl-2 dark:border-gray-500 dark:bg-gray-800"
+		>
+			<!-- Input -->
+			<input
+				type="text"
+				bind:value={searchQuery}
+				on:focus={() => (isSearchFocused = true)}
+				on:blur={handleBlur}
+				on:keyup={searchQueryHandler}
+				placeholder="Search"
+				aria-label="Search businesses"
+				class="w-24 bg-transparent px-3 py-1 pl-3 transition-all duration-300 outline-none
+                  focus:placeholder:text-gray-400
+                 md:w-64 lg:w-96"
+			/>
+		</div>
+
+		<!-- Search Button -->
+		<button
+			on:click={() => performSearch(searchQuery)}
+			aria-label="Search"
+			class="flex h-8 w-[40px] cursor-pointer items-center justify-center rounded-r-3xl border border-l-0 border-gray-400 bg-white/10
+				transition hover:bg-gray-200 md:h-10 md:w-[60px] dark:bg-black/10 dark:hover:bg-gray-700"
+		>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				fill="none"
+				viewBox="0 0 24 24"
+				stroke-width="1.5"
+				stroke="currentColor"
+				class="h-5 w-5"
+			>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+				/>
+			</svg>
+		</button>
+
+		<!-- Suggestions Dropdown -->
+		{#if isSearchFocused && suggestions.length > 0}
+			<div
+				class="absolute top-full mt-1 w-80 rounded-lg border border-gray-300 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
+				role="listbox"
+				aria-label="Search suggestions"
+				style="z-index: 1000; max-height: 200px; overflow-y-auto;"
+			>
+				{#each suggestions as suggestion, index}
+					<div
+						class="suggestion-item cursor-pointer px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+						class:bg-blue-100={selectedIndex === index}
+						class:dark:bg-blue-900={selectedIndex === index}
+						role="option"
+						aria-selected={selectedIndex === index}
+						on:click={() => onSuggestionClick(suggestion)}
+					>
+						{suggestion}
+					</div>
+				{/each}
+			</div>
+		{/if}
 	</div>
 </div>
 
-<style>
-	.bar {
-		width: 650px;
-		background: white;
-		box-shadow: 0 0 5px hsl(0 0% 78%);
-		height: 55px;
-		border-radius: 100vw;
-		display: flex;
-		justify-content: center;
-		font-size: 0.6rem;
-		border: 1px solid hsl(0 0% 94%);
-	}
-
-	.bar div {
-		border-radius: inherit;
-		padding: 0.8rem 1.5rem;
-		transition: background 250ms ease;
-	}
-
-	.bar div:hover {
-		background: hsl(0 0% 94%);
-	}
-
-	.location {
-		width: 34%;
-	}
-	.check-in,
-	.check-out,
-	.guests {
-		width: 22%;
-	}
-
-	input {
-		color: black;
-	}
-
-	p {
-		color: black;
-	}
-
-	input[type='text'] {
-		background: none;
-		border: none;
-		padding: 0.2rem 0 0 0;
-	}
-
-	input[type='text']:focus {
-		outline: none;
-	}
-
-	::placeholder {
-		font-size: 0.75rem;
-	}
-
-	.guests {
-		position: relative;
-	}
-	.guests span {
-		position: absolute;
-		top: 50%;
-		right: 10px;
-		transform: translateY(-50%);
-		background: #ff385c;
-		color: white;
-		font-size: 0.8rem;
-		padding: 0.7rem;
-		border-radius: 50%;
-	}
-
-	.bar > div {
-		position: relative;
-	}
-
-	.bar > div::before {
-		position: absolute;
-		content: '';
-		left: 0;
-		top: 50%;
-		transform: translateY(-50%);
-		width: 1px;
-		height: 55%;
-		background: hsl(0 0% 90%);
-	}
-
-	.bar > div:nth-of-type(1)::before {
-		background: transparent;
-	}
-
-	.bar > div:hover::before {
-		background: transparent;
-	}
-</style>
+<!-- Global key handler -->
+<svelte:window on:keydown={searchQueryHandler} />

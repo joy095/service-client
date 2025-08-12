@@ -80,10 +80,10 @@
 	{#if !showCarousel}
 		{#if images.length === 0}
 			<div class="flex justify-center">
-				<img
+				<SecureImage
 					src={fallbackImage}
 					alt="No images available"
-					class="max-w-md rounded-3xl opacity-50"
+					className="max-w-md rounded-3xl opacity-50"
 				/>
 			</div>
 		{:else}
