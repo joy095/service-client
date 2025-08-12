@@ -89,12 +89,16 @@
 						alt={business.name}
 						on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/image-placeholder.svg')}
 						className="h-[25rem] w-full rounded-lg object-cover"
+						height={400}
+						width={450}
 					/>
 				</a>
 			{:else}
 				<SecureImage
 					src="{PUBLIC_IMAGE_URL}/{business.images[0].objectName}"
 					alt={business.name}
+					height={400}
+					width={450}
 					on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/image-placeholder.svg')}
 					className="h-[25rem] w-full rounded-lg object-cover"
 				/>

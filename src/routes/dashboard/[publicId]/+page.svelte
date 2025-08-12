@@ -198,7 +198,7 @@
 	}
 </script>
 
-<div class="container mx-auto p-6">
+<div class="container">
 	<!-- Add New Service Button -->
 	<div class="mb-6 flex justify-end">
 		<button
@@ -558,6 +558,7 @@
 								console.warn(`Failed to load image for ${service.name}, using placeholder.`);
 								target.src = '/image-placeholder.svg';
 							}}
+							height={200}
 							className="h-48 w-full rounded-t-xl object-cover"
 						/>
 					{:else}

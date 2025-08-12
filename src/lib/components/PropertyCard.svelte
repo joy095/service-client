@@ -21,8 +21,8 @@
 		<SecureImage
 			src="{PUBLIC_IMAGE_URL}/{business.images[0].objectName}"
 			alt={business.name}
-			width={600}
-			height={400}
+			width={400}
+			height={250}
 			className="h-48 w-full rounded-t object-cover"
 			on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/image-placeholder.svg')}
 		/>

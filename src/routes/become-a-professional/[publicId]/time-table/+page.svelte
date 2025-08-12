@@ -104,7 +104,7 @@
 	);
 </script>
 
-<section class="container mx-auto max-w-4xl py-10">
+<section class="container py-10">
 	<form method="POST" use:enhance>
 		{#each dayStates as dayState, i}
 			<input type="hidden" name="days[{i}].dayOfWeek" value={getDayNameFromId(dayState.id)} />

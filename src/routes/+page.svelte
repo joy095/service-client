@@ -3,7 +3,7 @@
 	export let data: { businesses: any[] };
 </script>
 
-<div class="page-container container mx-auto">
+<div class="container">
 	<h1>Find your perfect stay</h1>
 	<p class="subtitle">Discover unique homes and experiences around the world</p>
 
@@ -28,11 +28,6 @@
 </div>
 
 <style>
-	.page-container {
-		margin: 0 auto;
-		padding: 1rem;
-	}
-
 	h1 {
 		font-size: 2rem;
 		margin-bottom: 0.5rem;

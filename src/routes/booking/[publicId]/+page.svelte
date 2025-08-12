@@ -4,6 +4,7 @@
 	import { Calendar } from '$lib/components/ui/calendar/index.js';
 	import type { WorkingHour, Service, Business } from '$lib/types/index.js';
 	import { PUBLIC_IMAGE_URL } from '$env/static/public';
+	import SecureImage from '$lib/components/SecureImage.svelte';
 
 	interface TimeSlot {
 		time: string;
@@ -108,17 +109,18 @@
 	}
 </script>
 
-<section class="container mx-auto min-h-screen">
+<section class="container min-h-screen">
 	<div class="mx-auto mt-20 flex max-w-fit gap-8 overflow-hidden rounded-md p-8 shadow-2xl">
 		<div class="max-w-[19rem]">
 			<div class="flex flex-col gap-8">
 				<div class="flex items-center gap-4">
 					{#if business.images?.[0]?.objectName}
-						<img
-							class="h-8 object-cover"
+						<SecureImage
+							className="h-8 w-8 rounded-full object-cover"
 							src="{PUBLIC_IMAGE_URL}/{business.images[0].objectName}"
 							alt={`Logo of ${business.name}`}
-							loading="lazy"
+							width={120}
+							height={80}
 						/>
 					{/if}
 					<h3 class="text-2xl font-medium">{business.name}</h3>
