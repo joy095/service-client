@@ -294,11 +294,7 @@
 				}
 			}
 
-			// alert('Changes saved successfully!');
-
-			// --- Redirect Regardless ---
-
-			goto(`/dashboard/${publicId}`);
+			goto(`/become-a-professional/${publicId}/time-table`);
 		} catch (err) {
 			console.error('Submission error:', err);
 			alert(err.message || 'An error occurred while saving changes.');

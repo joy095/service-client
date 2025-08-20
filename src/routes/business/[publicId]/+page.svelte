@@ -6,6 +6,8 @@
 	import SecureImage from '$lib/components/SecureImage.svelte';
 	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 	import Gallery from '$lib/components/Gallery.svelte';
+	import { isAuthenticated } from '$lib/stores/authStore';
+
 	// import Map from '$lib/components/Map.svelte';
 
 	export let data;
@@ -62,9 +64,13 @@
 						/>
 
 						<div class="service-overlay">
-							<a href="/booking/{business.publicId}?service={service.id}" class="cta-button"
-								>Book Now</a
-							>
+							{#if $isAuthenticated}
+								<a href="/book/{business.publicId}?service={service.id}" class="cta-button"
+									>Book Now</a
+								>
+							{:else}
+								<a href="/login" class="cta-button">Book Now</a>
+							{/if}
 						</div>
 					</div>
 					<div class="service-info">

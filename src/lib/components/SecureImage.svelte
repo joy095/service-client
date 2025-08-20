@@ -1,69 +1,37 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 
-	export const GRAVITY_OPTIONS = [
-		{ value: null, label: 'Default (Resize Fit)' },
-		{ value: 'ce', label: 'Center Crop' },
-		{ value: 'north', label: 'Top' },
-		{ value: 'south', label: 'Bottom' },
-		{ value: 'east', label: 'Right' },
-		{ value: 'west', label: 'Left' },
-		{ value: 'north_east', label: 'Top Right Corner' },
-		{ value: 'north_west', label: 'Top Left Corner' },
-		{ value: 'south_east', label: 'Bottom Right Corner' },
-		{ value: 'south_west', label: 'Bottom Left Corner' },
-		{ value: 'sm', label: 'Smart Crop (if supported)' },
-		{ value: 'et', label: 'Entropy Crop (if supported)' },
-		{ value: 'object:face', label: 'Face Detection Crop (if supported)' },
-		{ value: 'fp:0.5:0.5', label: 'Focal Point Center (Example)' }
-	] as const;
-
-	type GravityValue = (typeof GRAVITY_OPTIONS)[number]['value'];
-
-	// Props
 	export let src: string = '';
 	export let alt = '';
 	export let width = 800;
 	export let height = 600;
 	export let format: 'webp' | 'avif' = 'avif';
 	export let crop: boolean = false;
-	export let gravity: GravityValue = null;
-	// New prop for image quality (1-100 for lossy formats)
-	// null means use imgproxy's default
+	export let gravity: string | null = null;
 	export let quality: number | null = null;
 	export let className = '';
 	export let fallback = '/image-placeholder.svg';
 
 	let isLoading = true;
 	let lastKey = '';
+	let signedUrl = fallback;
 
-	const breakpoints = [
-		{
-			media: '(max-width: 600px)',
-			width: Math.floor(width * 0.4),
-			height: Math.floor(height * 0.4)
-		},
-		{
-			media: '(max-width: 1024px)',
-			width: Math.floor(width * 0.75),
-			height: Math.floor(height * 0.75)
-		},
-		{ media: '(min-width: 1025px)', width: width, height: height }
-	];
+	function getScreenSize() {
+		if (!browser) return { w: width, h: height };
+		const vw = window.innerWidth;
+		if (vw <= 600) return { w: Math.floor(width * 0.4), h: Math.floor(height * 0.4) };
+		if (vw <= 1024) return { w: Math.floor(width * 0.75), h: Math.floor(height * 0.75) };
+		return { w: width, h: height };
+	}
 
-	let avifSources: { media: string; srcset: string }[] = [];
-	let webpSources: { media: string; srcset: string }[] = [];
-	let fallbackSrc = fallback;
-
-	// --- Updated getSignedUrl to accept gravity and quality ---
 	async function getSignedUrl(
 		imageSrc: string,
 		w: number,
 		h: number,
-		fmt: 'avif' | 'webp', // Keep this specific union for format
-		grav: string | null, // <--- This MUST be string | null
+		fmt: 'avif' | 'webp',
+		grav: string | null,
 		qual: number | null
-	): Promise<string | null> {
+	): Promise<string> {
 		try {
 			const params = new URLSearchParams({
 				src: imageSrc,
@@ -77,30 +45,11 @@
 			if (res.ok) {
 				const data = await res.json();
 				return data.url;
-			} else {
-				const errorText = await res.text();
-				console.warn(`API returned ${res.status} for ${fmt} (${w}x${h}):`, errorText);
 			}
 		} catch (err) {
-			console.error(`Failed to sign ${fmt} URL (${w}x${h})`, err);
+			console.error('Failed to get signed URL', err);
 		}
-		return null;
-	}
-
-	async function fetchSignedUrls(imageSrc: string, effectiveGravity: string | null) {
-		const avifPromises = breakpoints.map(async (bp) => ({
-			media: bp.media,
-			srcset:
-				(await getSignedUrl(imageSrc, bp.width, bp.height, 'avif', effectiveGravity, quality)) || ''
-		}));
-
-		const webpPromises = breakpoints.map(async (bp) => ({
-			media: bp.media,
-			srcset:
-				(await getSignedUrl(imageSrc, bp.width, bp.height, 'webp', effectiveGravity, quality)) || ''
-		}));
-
-		return Promise.all([...avifPromises, ...webpPromises]);
+		return fallback;
 	}
 
 	$: if (browser && src) {
@@ -111,18 +60,9 @@
 
 			(async () => {
 				try {
-					// Type is string | null, compatible with getSignedUrl's grav param
+					const { w, h } = getScreenSize();
 					const effectiveGravity = gravity || (crop ? 'ce' : null);
-
-					const results = await fetchSignedUrls(src, effectiveGravity);
-
-					avifSources = results.slice(0, breakpoints.length);
-					webpSources = results.slice(breakpoints.length);
-
-					fallbackSrc = src;
-				} catch (error) {
-					console.error('Error generating signed URLs:', error);
-					fallbackSrc = fallback;
+					signedUrl = await getSignedUrl(src, w, h, format, effectiveGravity, quality);
 				} finally {
 					isLoading = false;
 				}
@@ -131,48 +71,16 @@
 	}
 </script>
 
-<!-- Loading placeholder -->
 {#if isLoading}
 	<div class="{className} animate-pulse bg-gray-200"></div>
+{:else}
+	<img
+		src={signedUrl}
+		{alt}
+		{width}
+		{height}
+		class={className}
+		loading="lazy"
+		on:error={() => (signedUrl = fallback)}
+	/>
 {/if}
-
-<!-- Responsive <picture> with AVIF → WebP → Original fallback -->
-{#if !isLoading}
-	<picture class={className}>
-		<!-- AVIF sources -->
-		{#each avifSources as { media, srcset } (media)}
-			{#if srcset}
-				<source {srcset} type="image/avif" {media} />
-			{/if}
-		{/each}
-
-		<!-- WebP sources -->
-		{#each webpSources as { media, srcset } (media)}
-			{#if srcset}
-				<source {srcset} type="image/webp" {media} />
-			{/if}
-		{/each}
-
-		<img
-			src={fallbackSrc}
-			{alt}
-			{width}
-			{height}
-			loading="lazy"
-			class={className}
-			on:error={() => {
-				if (fallbackSrc !== fallback) {
-					console.warn('Original image failed to load, falling back to placeholder');
-					fallbackSrc = fallback;
-				}
-			}}
-		/>
-	</picture>
-{/if}
-
-<style>
-	picture,
-	picture source {
-		display: block;
-	}
-</style>

@@ -80,3 +80,20 @@ export interface Image {
     alt: string;
     index: number;
 };
+
+export interface PricingPlan {
+    id: string;
+    name: string;
+    price: number;
+    description: string;
+    features: string[];
+    isPopular?: boolean;
+}
+
+export interface PaymentFormData {
+    name: string;
+    email: string;
+    cardNumber: string;
+    expiryDate: string;
+    cvv: string;
+}
