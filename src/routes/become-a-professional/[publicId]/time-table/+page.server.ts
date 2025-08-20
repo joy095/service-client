@@ -105,7 +105,7 @@ export const actions = {
                 });
             }
 
-            throw redirect(303, `/become-a-professional/${publicId}/service`);
+            throw redirect(303, `/dashboard/${publicId}`);
         } catch (err) {
             // Preserve SvelteKit control-flow errors (redirects/HttpErrors)
             if (err && typeof err === 'object' && 'status' in err) {

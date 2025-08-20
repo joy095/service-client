@@ -3,14 +3,6 @@ import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import { PUBLIC_API_URL } from '$env/static/public';
 
-// Debug helper function
-function debugLog(message: string, data?: any) {
-    console.log(`[DEBUG] ${new Date().toISOString()} - ${message}`);
-    if (data !== undefined) {
-        console.log(`[DEBUG] Data:`, JSON.stringify(data, null, 2));
-    }
-}
-
 // Error helper function
 function errorLog(message: string, error?: any) {
     console.error(`[ERROR] ${new Date().toISOString()} - ${message}`);
@@ -140,10 +132,11 @@ async function handleApiResponse(response: Response, successMessage: string) {
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
                 resultData = await response.json();
-            } else {
-                const responseText = await response.text();
             }
-        } catch (parseErr) { }
+        } catch (parseErr) {
+            console.error('parseErr', parseErr)
+        }
+
 
         return { success: true, data: resultData, message: successMessage };
     } else {
@@ -207,7 +200,6 @@ async function handleApiResponse(response: Response, successMessage: string) {
 export const actions: Actions = {
     // Create service action
     create: async ({ request, params, fetch, cookies }) => {
-        debugLog('=== STARTING CREATE SERVICE ACTION ===');
         const { publicId } = params;
 
         // Validate environment
@@ -218,12 +210,6 @@ export const actions: Actions = {
 
         // Get and validate form data
         const formData = await request.formData();
-        debugLog('Form data received', {
-            name: formData.get('name'),
-            price: formData.get('price'),
-            duration: formData.get('duration'),
-            hasImage: formData.get('image') ? 'yes' : 'no'
-        });
 
         const validation = validateServiceData(formData);
         if (!validation.isValid) {
@@ -266,15 +252,6 @@ export const actions: Actions = {
         // Get and validate form data
         const formData = await request.formData();
         const serviceId = formData.get('serviceId')?.toString();
-
-        debugLog('Update form data received', {
-            serviceId,
-            name: formData.get('name'),
-            price: formData.get('price'),
-            duration: formData.get('duration'),
-            hasImage: formData.get('image') ? 'yes' : 'no',
-            existingImage: formData.get('existingImage')
-        });
 
         if (!serviceId) {
             errorLog('Service ID is required for update');
