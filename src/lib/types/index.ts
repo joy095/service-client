@@ -15,6 +15,7 @@ export interface Business {
     isActive: boolean;
     ownerId: string | null;
     publicId: string;
+    about: string | null;
     images: {
         businessId: string;
         imageId: string;

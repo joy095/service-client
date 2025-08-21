@@ -28,6 +28,7 @@
 		state?: string;
 		country?: string;
 		postalCode?: string;
+		about?: string;
 	}
 
 	// Initialize formData with data from the loaded business or empty defaults
@@ -43,8 +44,8 @@
 		country: businessData?.country ?? '',
 		postalCode: businessData?.postalCode ?? '',
 		road: businessData?.road ?? '',
-		house_number: businessData?.house_number ?? ''
-		// about: businessData?.about ?? ''
+		house_number: businessData?.house_number ?? '',
+		about: businessData?.about ?? ''
 	});
 
 	// Initialize errors object using $state
@@ -56,7 +57,8 @@
 		state: '',
 		country: '',
 		postalCode: '',
-		address: ''
+		address: '',
+		about: ''
 	});
 
 	let currentStep = $state(1);
@@ -92,7 +94,8 @@
 			state: '',
 			country: '',
 			postalCode: '',
-			address: ''
+			address: '',
+			about: ''
 		};
 
 		if (step === 1) {
@@ -176,7 +179,8 @@
 				state: '',
 				country: '',
 				postalCode: '',
-				address: ''
+				address: '',
+				about: ''
 			};
 			mapError = null;
 		}
@@ -188,8 +192,18 @@
 	 * @param event The custom event containing location details.
 	 */
 	function handleLocationSelected(event: CustomEvent<ReceivedLocationDetails>) {
-		const { latitude, longitude, address, road, house_number, city, state, country, postalCode } =
-			event.detail;
+		const {
+			latitude,
+			longitude,
+			address,
+			road,
+			house_number,
+			city,
+			state,
+			country,
+			about,
+			postalCode
+		} = event.detail;
 
 		// Update formData with the selected location details
 		// Prioritize new data from the map, but keep existing formData if map data is missing
@@ -202,6 +216,7 @@
 		formData.state = state || formData.state || ''; // Prefer map state, fallback to existing
 		formData.country = country || formData.country || ''; // Prefer map country, fallback to existing
 		formData.postalCode = postalCode || formData.postalCode || ''; // Prefer map postalCode, fallback to existing
+		formData.about = about || form.about || '';
 
 		// Clear relevant errors
 		errors.location = '';
@@ -364,21 +379,21 @@
 								</div>
 								<!-- Optional 'About' field -->
 								<!-- Uncomment and adjust if you have an 'about' field -->
-								<!--
-                                <div class="md:col-span-2">
-                                    <label class="mb-2 block text-sm font-semibold text-gray-700" for="about"
-                                        >About (Optional)</label
-                                    >
-                                    <textarea
-                                        id="about"
-                                        bind:value={formData.about}
-                                        name="about"
-                                        placeholder="Describe your business..."
-                                        rows="4"
-                                        class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
-                                    ></textarea>
-                                </div>
-                                -->
+
+								<div class="md:col-span-2">
+									<label class="mb-2 block text-sm font-semibold text-gray-700" for="about"
+										>About (Optional)</label
+									>
+									<textarea
+										id="business-about"
+										bind:value={formData.about}
+										name="about"
+										placeholder="Describe your business..."
+										rows="4"
+										class="input-focus w-full rounded-xl border-2 border-gray-200 px-4 py-3 transition-all duration-300 focus:border-blue-500 focus:outline-none"
+										>{formData.about}</textarea
+									>
+								</div>
 							</div>
 						</div>
 					{/if}
@@ -419,8 +434,7 @@
 						<input type="hidden" name="state" value={formData.state} />
 						<input type="hidden" name="country" value={formData.country} />
 						<input type="hidden" name="postalCode" value={formData.postalCode} />
-						<!-- Add hidden input for 'about' if used -->
-						<!-- <input type="hidden" name="about" value={formData.about} /> -->
+						<input type="hidden" name="about" value={formData.about} />
 						<!-- Hidden inputs for dynamic fields (if used) -->
 						{#each Object.entries(dynamicFields) as [key, value]}
 							<input type="hidden" name={key} {value} />
@@ -469,12 +483,12 @@
 											{formData.category || 'N/A'}
 										</div>
 										<!-- Display 'about' if used -->
-										<!-- {#if formData.about}
-                                            <div class="md:col-span-2">
-                                                <span class="font-medium">About:</span>
-                                                <p class="mt-1 whitespace-pre-wrap">{formData.about}</p>
-                                            </div>
-                                        {/if} -->
+										{#if formData.about}
+											<div class="md:col-span-2">
+												<span class="font-medium">About:</span>
+												<p class="mt-1 whitespace-pre-wrap">{formData.about}</p>
+											</div>
+										{/if}
 									</div>
 								</div>
 

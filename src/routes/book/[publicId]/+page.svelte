@@ -26,16 +26,7 @@
 	};
 
 	const { workingHours, business, services } = data;
-	// Validate service selection
-	const selectedServiceId = $page.url.searchParams.get('service');
-	const service = selectedServiceId
-		? services.find((s) => s.id === selectedServiceId) || services[0]
-		: services[0];
-
-	if (!service) {
-		// Handle no services available
-		console.error('No services available for booking');
-	}
+	const service = serviceId ? services.find((s) => s.id === serviceId) || services[0] : services[0];
 
 	// Calendar & booking state
 	let value: DateValue | undefined = undefined;
@@ -69,8 +60,8 @@
 
 	// Fetch unavailable times (bookings, breaks, etc.)
 	async function fetchUnavailableTimes(date: DateValue) {
-		const dateString = date.toString(); // "2025-09-10"
-		const businessId = business.publicId;
+		const dateString = date.toString();
+		const businessId = business.id;
 
 		unavailableTimes = [];
 		loadingUnavailable = true;
@@ -83,24 +74,22 @@
 			if (response.ok) {
 				const result = await response.json();
 				unavailableTimes = Array.isArray(result.times) ? result.times : [];
-				console.log('Fetched unavailable times:', unavailableTimes);
 			} else {
-				console.error('Failed to fetch unavailable times:', response.status);
 				unavailableTimes = [];
 			}
 		} catch (err) {
-			console.error('Error fetching unavailable times:', err);
+			console.error(' Error fetching unavailable times:', err);
 			unavailableTimes = [];
 		} finally {
 			loadingUnavailable = false;
 		}
 	}
 
-	// Parse "HH:mm" string to Date (on specific date)
+	// Parse "HH:mm" string to Date (on specific date) - KEEP TIMES IN LOCAL
 	function parseTimeToDate(timeStr: string, baseDate: Date): Date {
 		const [hours, minutes] = timeStr.split(':').map(Number);
 		const date = new Date(baseDate);
-		date.setHours(hours, minutes, 0, 0);
+		date.setUTCHours(hours, minutes, 0, 0);
 		return date;
 	}
 
@@ -121,9 +110,12 @@
 			const utStart = parseTimeFromISO(ut.open_time);
 			const utEnd = parseTimeFromISO(ut.close_time);
 
-			// Check if there's any overlap between slot and unavailable time
-			if (slotStart < utEnd && slotEnd > utStart) {
-				return true;
+			// Only compare if it's the same date
+			if (slotStart.toDateString() === utStart.toDateString()) {
+				// Check if there's any overlap between slot and unavailable time
+				if (slotStart < utEnd && slotEnd > utStart) {
+					return true;
+				}
 			}
 		}
 		return false;
@@ -142,6 +134,7 @@
 			const serviceDuration = service.duration;
 
 			const selectedDate = value.toDate(getLocalTimeZone());
+
 			const openTime = parseTimeToDate(dayHours.openTime, selectedDate);
 			const closeTime = parseTimeToDate(dayHours.closeTime, selectedDate);
 
@@ -178,8 +171,6 @@
 				current = new Date(current.getTime() + interval * 60000);
 			}
 		}
-
-		console.log('Generated available slots:', selectedSlots.length);
 	}
 
 	// Fetch unavailable times when date changes
@@ -210,7 +201,6 @@
 	// Confirm booking and navigate with URL parameters
 	function confirmBooking() {
 		if (!value || !selectedTime) {
-			console.error('Please select a valid date and time.');
 			return;
 		}
 
@@ -218,7 +208,6 @@
 		const selectedSlot = selectedSlots.find((slot) => slot.formatted === selectedTime);
 
 		if (!serviceId) {
-			console.error('Service ID is required for booking');
 			return;
 		}
 
@@ -229,23 +218,12 @@
 			service: serviceId
 		});
 
-		console.log('Booking confirmed:', {
-			date: selectedDate,
-			time: selectedSlot.time,
-			datetime: selectedSlot.datetime
-		});
-
 		goto(`/book/${publicId}/pay?${bookingParams.toString()}`);
 	}
 
 	// Handle time selection
 	function selectTime(slot: TimeSlot) {
 		selectedTime = slot.formatted;
-		console.log('Time selected:', {
-			formatted: slot.formatted,
-			time: slot.time,
-			datetime: slot.datetime
-		});
 	}
 </script>
 
@@ -368,15 +346,25 @@
 						</div>
 					{:else if selectedSlots.length > 0}
 						{#each selectedSlots as slot (slot.time)}
-							<button
-								on:click={() => selectTime(slot)}
-								class="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-sm transition duration-300 hover:bg-gray-100 {selectedTime ===
-								slot.formatted
-									? 'bg-primary border-primary hover:bg-primary text-white'
-									: ''}"
-							>
-								{slot.formatted}
-							</button>
+							{#if isSlotUnavailable(slot.datetime, new Date(slot.datetime.getTime() + service.duration * 60000))}
+								<button
+									disabled
+									class="cursor-not-allowed rounded-lg border border-gray-300 bg-gray-200 px-4 py-2 text-sm opacity-60"
+									aria-disabled="true"
+								>
+									{slot.formatted}
+								</button>
+							{:else}
+								<button
+									on:click={() => selectTime(slot)}
+									class="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-sm transition duration-300 hover:bg-gray-100 {selectedTime ===
+									slot.formatted
+										? 'bg-primary border-primary hover:bg-primary text-white'
+										: ''}"
+								>
+									{slot.formatted}
+								</button>
+							{/if}
 						{/each}
 					{:else if value}
 						<div class="flex items-center justify-center py-8">

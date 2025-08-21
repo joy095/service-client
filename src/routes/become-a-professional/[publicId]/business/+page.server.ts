@@ -64,6 +64,7 @@ export const actions: Actions = {
         const postalCode = data.get('postalCode')?.toString()?.trim();
         const road = data.get('road')?.toString()?.trim();
         const house_number = data.get('house_number')?.toString()?.trim();
+        const about = data.get('about')?.toString()?.trim();
 
         if (
             !name ||
@@ -90,7 +91,8 @@ export const actions: Actions = {
                     country,
                     postalCode,
                     road,
-                    house_number
+                    house_number,
+                    about,
                 }
             });
         }
@@ -124,6 +126,7 @@ export const actions: Actions = {
                         state,
                         country,
                         postalCode,
+                        about,
                         ...(road && { road }),
                         ...(house_number && { house_number })
                     };
@@ -138,6 +141,7 @@ export const actions: Actions = {
                         state: originalBusinessData.state ?? '',
                         country: originalBusinessData.country ?? '',
                         postalCode: originalBusinessData.postalCode ?? '',
+                        about: originalBusinessData.about ?? '',
                         ...(originalBusinessData.road && { road: originalBusinessData.road }),
                         ...(originalBusinessData.house_number && { house_number: originalBusinessData.house_number })
                     };
@@ -158,6 +162,7 @@ export const actions: Actions = {
                 state,
                 country,
                 postalCode,
+                about,
                 ...(road && { road }),
                 ...(house_number && { house_number })
             };

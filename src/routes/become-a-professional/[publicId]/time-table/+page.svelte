@@ -9,6 +9,7 @@
 	} from '$lib/components/ui/select';
 	import Icon from '@iconify/svelte';
 	import { enhance } from '$app/forms';
+	import { parseDateTime, toZoned } from '@internationalized/date';
 
 	const daysOfWeek = [
 		{ id: 'sun', label: 'S', dayName: 'Sunday' },
@@ -20,32 +21,39 @@
 		{ id: 'sat', label: 'S', dayName: 'Saturday' }
 	];
 
-	const timeOptions: string[] = Array.from({ length: 24 * 4 }, (_, index) => {
-		const totalMinutes = index * 15;
-		const hour = Math.floor(totalMinutes / 60) % 24;
-		const minute = totalMinutes % 60;
+	// Generate time options in 15-minute intervals, localized to selected time zone
+	function generateTimeOptions(timezone: string): string[] {
+		const options: string[] = [];
+		const baseDate = parseDateTime('2025-01-01T00:00:00'); // Arbitrary date for time formatting
+		for (let i = 0; i < 24 * 4; i++) {
+			const totalMinutes = i * 15;
+			const date = toZoned(baseDate.add({ minutes: totalMinutes }), timezone).toDate();
+			const formatted = date.toLocaleTimeString([], {
+				hour: 'numeric',
+				minute: '2-digit',
+				hour12: true
+			});
+			options.push(formatted);
+		}
+		return options;
+	}
 
-		const period = hour < 12 ? 'am' : 'pm';
-		const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-
-		return `${displayHour}:${minute.toString().padStart(2, '0')}${period}`;
-	});
+	let selectedTimezone = $state('Asia/Kolkata'); // Default to IST
+	// Use $derived instead of $: for reactive computation
+	const timeOptions = $derived(generateTimeOptions(selectedTimezone));
 
 	// State for each day with default times
 	let dayStates = $state(
 		daysOfWeek.map((day) => {
-			// Check if the day is a weekend (Saturday or Sunday)
 			const isWeekend = day.id === 'sat' || day.id === 'sun';
 			return {
 				id: day.id,
-				startTime: isWeekend ? '9:00am' : '9:00am', // Default start time (can be adjusted)
-				endTime: isWeekend ? '5:00pm' : '5:00pm', // Default end time (can be adjusted)
-				isAvailable: !isWeekend // Available Mon-Fri, Unavailable Sat/Sun
+				startTime: '9:00 AM', // Default in 12-hour format
+				endTime: '5:00 PM',
+				isAvailable: !isWeekend
 			};
 		})
 	);
-
-	let selectedTimezone = $state('Asia/Kolkata');
 
 	function handleStartTimeChange(dayId: string, value: string[]) {
 		const dayState = dayStates.find((d) => d.id === dayId);
@@ -68,20 +76,45 @@
 		}
 	}
 
-	function formatTimeForBackend(time: string): string {
+	// Convert time from selected timezone to UTC
+	function formatTimeForBackend(time: string, timezone: string): string {
 		if (!time) return '00:00:00';
 
-		// Convert 12-hour format to 24-hour format
-		const [timePart, modifier] = time.split(/(am|pm)/i);
+		// Parse time in the context of an arbitrary date and selected timezone
+		const baseDate = parseDateTime('2025-01-01T00:00:00');
+		const [timePart, modifier] = time.toLowerCase().split(/(am|pm)/);
 		let [hours, minutes] = timePart.split(':').map(Number);
 
-		if (modifier.toLowerCase() === 'pm' && hours !== 12) {
+		if (modifier === 'pm' && hours !== 12) {
 			hours += 12;
-		} else if (modifier.toLowerCase() === 'am' && hours === 12) {
+		} else if (modifier === 'am' && hours === 12) {
 			hours = 0;
 		}
 
-		return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
+		// Create date in the selected timezone
+		const zonedDateTime = toZoned(baseDate, timezone).set({ hour: hours, minute: minutes });
+
+		// Convert to UTC
+		const utcDateTime = zonedDateTime.toDate();
+		const utcHours = utcDateTime.getUTCHours();
+		const utcMinutes = utcDateTime.getUTCMinutes();
+
+		// Format as 24-hour time (HH:mm:ss) in UTC
+		return `${utcHours.toString().padStart(2, '0')}:${utcMinutes.toString().padStart(2, '0')}:00`;
+	}
+
+	function parseTimeToDate(time: string, timezone: string): Date {
+		const baseDate = parseDateTime('2025-01-01T00:00:00');
+		const [timePart, modifier] = time.toLowerCase().split(/(am|pm)/);
+		let [hours, minutes] = timePart.split(':').map(Number);
+
+		if (modifier === 'pm' && hours !== 12) {
+			hours += 12;
+		} else if (modifier === 'am' && hours === 12) {
+			hours = 0;
+		}
+
+		return toZoned(baseDate, timezone).set({ hour: hours, minute: minutes }).toDate();
 	}
 
 	function getDayNameFromId(id: string): string {
@@ -89,19 +122,36 @@
 		return day ? day.dayName : '';
 	}
 
-	function isValidTimeRange(startTime: string, endTime: string): boolean {
+	function isValidTimeRange(startTime: string, endTime: string, timezone: string): boolean {
 		if (!startTime || !endTime) return true;
 
-		const startIndex = timeOptions.indexOf(startTime);
-		const endIndex = timeOptions.indexOf(endTime);
+		const startDate = parseTimeToDate(startTime, timezone);
+		const endDate = parseTimeToDate(endTime, timezone);
 
-		return startIndex < endIndex;
+		return startDate < endDate;
 	}
 
 	// Check if form is valid for submission
 	const isFormValid = $derived(
-		!dayStates.some((day) => day.isAvailable && !isValidTimeRange(day.startTime, day.endTime))
+		!dayStates.some(
+			(day) => day.isAvailable && !isValidTimeRange(day.startTime, day.endTime, selectedTimezone)
+		)
 	);
+
+	// Helper function to get timezone display name
+	function getTimezoneDisplayName(timezone: string): string {
+		const timezoneMap: Record<string, string> = {
+			'Asia/Kolkata': 'India Standard Time (IST)',
+			UTC: 'Coordinated Universal Time (UTC)',
+			'America/Los_Angeles': 'Pacific Time (PT)',
+			'America/New_York': 'Eastern Time (ET)',
+			'Europe/London': 'Greenwich Mean Time (GMT)',
+			'America/Chicago': 'Central Time (CT)',
+			'Asia/Tokyo': 'Japan Standard Time (JST)',
+			'Australia/Sydney': 'Australian Eastern Time (AET)'
+		};
+		return timezoneMap[timezone] || timezone;
+	}
 </script>
 
 <section class="container py-10">
@@ -111,16 +161,21 @@
 			<input
 				type="hidden"
 				name="days[{i}].openTime"
-				value={dayState.isAvailable ? formatTimeForBackend(dayState.startTime) : '00:00:00'}
+				value={dayState.isAvailable
+					? formatTimeForBackend(dayState.startTime, selectedTimezone)
+					: '00:00:00'}
 			/>
 			<input
 				type="hidden"
 				name="days[{i}].closeTime"
-				value={dayState.isAvailable ? formatTimeForBackend(dayState.endTime) : '00:00:00'}
+				value={dayState.isAvailable
+					? formatTimeForBackend(dayState.endTime, selectedTimezone)
+					: '00:00:00'}
 			/>
 			<input type="hidden" name="days[{i}].isClosed" value={!dayState.isAvailable} />
 		{/each}
 		<input type="hidden" name="timezone" value={selectedTimezone} />
+		<input type="hidden" name="originalTimezone" value={selectedTimezone} />
 
 		<div
 			class="rounded-2xl border border-gray-200 bg-white p-6 shadow-xl md:p-8 dark:border-gray-700 dark:bg-gray-800"
@@ -128,6 +183,11 @@
 			<div class="mb-8 text-center">
 				<h1 class="mb-2 text-3xl font-bold text-gray-900 dark:text-white">Working Hours</h1>
 				<p class="text-gray-600 dark:text-gray-300">Set your availability for client meetings</p>
+				<p class="mt-2 text-sm text-blue-600 dark:text-blue-400">
+					Times will be converted to UTC when saved (Currently showing: {getTimezoneDisplayName(
+						selectedTimezone
+					)})
+				</p>
 			</div>
 
 			<div class="mb-8 space-y-4">
@@ -194,7 +254,16 @@
 									</div>
 								</div>
 
-								{#if !isValidTimeRange(dayStates[i].startTime, dayStates[i].endTime)}
+								{#if dayStates[i].isAvailable}
+									<div class="text-xs text-gray-500 dark:text-gray-400">
+										UTC: {formatTimeForBackend(dayStates[i].startTime, selectedTimezone)} - {formatTimeForBackend(
+											dayStates[i].endTime,
+											selectedTimezone
+										)}
+									</div>
+								{/if}
+
+								{#if !isValidTimeRange(dayStates[i].startTime, dayStates[i].endTime, selectedTimezone)}
 									<div class="flex items-center text-sm text-red-500">
 										<Icon icon="mdi:alert-circle" class="mr-1" />
 										End time must be after start time
@@ -254,6 +323,9 @@
 						<option value="Australia/Sydney">Australian Eastern Time (AET)</option>
 					</select>
 				</div>
+				<p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+					All times will be converted to UTC when saved to the backend
+				</p>
 			</div>
 
 			<div class="flex justify-end">

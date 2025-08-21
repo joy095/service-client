@@ -1,5 +1,23 @@
 <script lang="ts">
+	import { page } from '$app/stores';
+	import { PUBLIC_IMAGE_URL } from '$env/static/public';
+	import SecureImage from '$lib/components/SecureImage.svelte';
+	import type { Service } from '$lib/types';
+	import Icon from '@iconify/svelte';
 	import { onMount } from 'svelte';
+
+	export let data: {
+		services: Service[];
+	};
+
+	const { services } = data;
+
+	const selectedDate = $page.url.searchParams.get('date');
+
+	const selectedServiceId = $page.url.searchParams.get('service');
+	const service = selectedServiceId
+		? services.find((s) => s.id === selectedServiceId) || services[0]
+		: services[0];
 
 	// Mock data - in real app, this would come from API or session
 	const bookingData: BookingDetails = {
@@ -60,7 +78,7 @@
 
 <!-- Page Content -->
 <div class="min-h-screen bg-gray-50">
-	<main class="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-4 py-8 md:grid-cols-2">
+	<main class="relative container grid grid-cols-1 gap-8 px-4 py-8 md:grid-cols-2">
 		<!-- Left Column: Trip Details -->
 		<div class="space-y-6">
 			<!-- Rare Find Banner -->
@@ -95,7 +113,9 @@
 						<span class="text-sm font-medium text-gray-700">Dates</span>
 						<a href="#" class="text-sm text-blue-600 hover:underline">Edit</a>
 					</div>
-					<p class="text-gray-900">{bookingData.dates}</p>
+					<p class="text-gray-900">
+						{selectedDate}
+					</p>
 
 					<div class="flex items-center justify-between">
 						<span class="text-sm font-medium text-gray-700">Guests</span>
@@ -185,13 +205,18 @@
 		</div>
 
 		<!-- Right Column: Property & Total -->
-		<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+		<div
+			class="sticky right-0 max-h-fit rounded-lg border border-gray-200 bg-white to-35% p-6 shadow-sm"
+		>
 			<div class="mb-6 flex items-start space-x-4">
-				<img
-					src={bookingData.property.imageUrl}
-					alt="Property"
-					class="h-20 w-20 rounded object-cover"
-				/>
+				{#if service?.objectName}
+					<SecureImage
+						src="{PUBLIC_IMAGE_URL}/{service.objectName}"
+						alt={service?.name}
+						height={120}
+						className="h-20 w-20 rounded object-cover"
+					/>
+				{/if}
 				<div>
 					<h3 class="font-semibold text-gray-900">{bookingData.property.name}</h3>
 					<p class="text-sm text-gray-600">{bookingData.property.type}</p>
@@ -209,14 +234,25 @@
 						<span class="ml-1"
 							>{bookingData.property.rating} ({bookingData.property.reviews} reviews)</span
 						>
-						<!-- {bookingData.property.superhost && (
+						{#if bookingData.property.superhost}
 							<span class="ml-2 flex items-center">
-								<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									class="h-4 w-4"
+									fill="none"
+									viewBox="0 0 24 24"
+									stroke="currentColor"
+								>
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"
+									/>
 								</svg>
 								<span class="ml-1 text-xs">Superhost</span>
 							</span>
-						)} -->
+						{/if}
 					</div>
 				</div>
 			</div>
@@ -237,7 +273,7 @@
 				<div class="mt-2 border-t pt-2">
 					<div class="flex justify-between">
 						<span class="font-semibold">Total (INR)</span>
-						<span class="font-semibold">₹{bookingData.totalPrice.toFixed(2)}</span>
+						<span class="font-semibold">₹{service?.price.toFixed(2) || 'N/A'}</span>
 					</div>
 					<a href="#" class="text-xs text-blue-600 hover:underline">Price breakdown</a>
 				</div>
