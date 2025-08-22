@@ -19,7 +19,7 @@
 			<p class="mt-4">No businesses found</p>
 		</div>
 	{:else}
-		<div class="property-grid">
+		<div class="grid xl:grid-cols-4 md:grid-cols-3 grid-cols-2">
 			{#each data.businesses as business (business.publicId)}
 				<PropertyCard {business} />
 			{/each}
@@ -39,12 +39,6 @@
 		margin-bottom: 2rem;
 	}
 
-	.property-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-		gap: 2rem;
-		margin: 2rem 0;
-	}
 
 	@keyframes spin {
 		0% {

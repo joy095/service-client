@@ -9,7 +9,7 @@
 	export let images: Image[] = []; // Array of Image objects
 	export let maxThumbnails: number = 4; // Maximum number of thumbnails to display
 	export let aspectRatio: string = '4/3'; // Aspect ratio for images (e.g., '4/3', '16/9')
-	export let containerClass: string = 'container mx-auto px-4 py-8'; // Custom Tailwind classes for container
+	export let containerClass: string = ''; // Custom Tailwind classes for container
 	export let transitionDuration: number = 300; // Transition duration in ms
 	export let fallbackImage: string = 'https://archive.org/details/placeholder-image'; // Fallback image
 
