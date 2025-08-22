@@ -117,7 +117,6 @@
 			<div class="absolute right-0 bottom-3 left-0 flex justify-center gap-2">
 				{#each business.images as _, i}
 					{@const distance = Math.abs(i - current)}
-
 					<div
 						class="h-2 w-2 cursor-pointer rounded-full bg-white transition-all duration-300"
 						class:scale-125={distance === 0}
