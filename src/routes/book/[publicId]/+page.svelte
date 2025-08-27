@@ -22,9 +22,15 @@
 	// Determine the service to use
 	const service = serviceId ? services.find((s) => s.id === serviceId) || services[0] : services[0];
 
+	const tz = getLocalTimeZone();
+
 	// --- STATE MANAGEMENT ---
 	let value: DateValue | undefined = undefined;
-	let minValue = today(getLocalTimeZone());
+	let minValue = today(tz).add({ days: 1 });
+
+	// Maximum: 3 months from today
+	let maxValue = today(tz).add({ months: 3 });
+
 	let selectedTime: string | null = null;
 	let showCalendar = false;
 
@@ -425,7 +431,7 @@
 			<!-- Calendar -->
 			<div class="dates">
 				<h3 class="mb-4 text-2xl font-bold">Select Date</h3>
-				<Calendar type="single" bind:value {minValue} {isDateDisabled} />
+				<Calendar type="single" bind:value {minValue} {maxValue} {isDateDisabled} />
 			</div>
 
 			<!-- Time Slots -->

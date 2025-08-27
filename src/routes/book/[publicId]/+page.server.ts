@@ -24,7 +24,7 @@ export const load: PageServerLoad = async ({ params, fetch }) => {
     };
 
     // Normalize service image URLs
-    const services: Service[] = (serviceData.service ?? []).map((srv: Service) => ({
+    const services: Service[] = (serviceData.services ?? []).map((srv: Service) => ({
         ...srv,
         objectName: srv.objectName || null
     }));

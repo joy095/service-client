@@ -1,0 +1,21 @@
+<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 44 32"
+								aria-label="Net Banking"
+								role="img"
+								focusable="false"
+								style="height: 9px;"
+								><g fill="none"
+									><rect width="44" height="32" fill="#fff" rx="2"></rect><rect
+										width="43"
+										height="31"
+										x=".5"
+										y=".5"
+										stroke="#b0b0b0"
+										rx="2"
+									></rect><path
+										fill="#222"
+										d="M29.1 14.2h.37c.23 0 .43-.15.5-.37s0-.44-.2-.57l-6.84-4.73a1.64 1.64 0 0 0-1.86 0l-6.85 4.73c-.18.13-.26.36-.2.58s.28.35.51.35h.38v6.04H14v1.34h16v-1.34h-.9zm-1.4 6.03h-1.8V14.2h1.8zm-3.2-6.04v6.04h-1.8V14.2zm-3.2 0v6.04h-1.8V14.2zm-5 0h1.81v6.04H16.3zM30 22.3v1.35H14V22.3z"
+									></path></g
+								></svg
+							>

@@ -25,11 +25,144 @@
 		paymentMethods: ['VISA', 'Mastercard', 'AMEX', 'RuPay', 'UPI']
 	};
 
-	let selectedPaymentMethod = 'upi_qr'; // 'upi_qr' | 'upi_id'
+	let selectedPaymentMethod: 'card' | 'upi_qr' | 'upi_link' | 'upi_id' = 'card';
+	let upiId = '';
+	let cardNumber = '';
+	let cardExpiry = '';
+	let cardCvv = '';
+	let cardName = '';
+	let qrCode = '';
+	let upiLink = '';
+	let showQR = false;
+	let showLink = false;
 
-	function handlePayment() {
-		console.log('Processing payment...', selectedPaymentMethod);
-		// In real app: call Stripe, Razorpay, or backend API
+	const paymentOptions = [
+		{ value: 'card', label: 'Credit or debit card', image: '/img/visa.svg' },
+		{ value: 'upi_qr', label: 'Pay using UPI QR code', image: '/img/upi_qr.svg' },
+		{ value: 'upi_link', label: 'Pay using UPI Link', image: '/img/upi_link.svg' },
+		{ value: 'upi_id', label: 'Pay using UPI ID', image: '/img/upi.svg' }
+	];
+
+	let isDropdownOpen = false;
+
+	function toggleDropdown() {
+		isDropdownOpen = !isDropdownOpen;
+	}
+
+	function selectPayment(option) {
+		selectedPaymentMethod = option.value;
+		isDropdownOpen = false;
+	}
+
+	async function handlePayment() {
+		// TODO: Add authorization header if needed, e.g., from session/store: headers: { Authorization: `Bearer ${token}` }
+
+		// First, create the booking order
+		const bookResponse = await fetch('/book', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				service_id: selectedServiceId,
+				date: selectedDate
+				// Add other required fields like user_id, amount, etc., based on API requirements
+			})
+		});
+
+		if (!bookResponse.ok) {
+			console.error('Failed to create order');
+			// TODO: Show user error message
+			return;
+		}
+
+		const { order_id } = await bookResponse.json(); // Assume API returns { order_id: string }
+
+		// Then, process payment based on method
+		if (selectedPaymentMethod === 'upi_qr') {
+			const payResponse = await fetch('/pay/upi/qr', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ order_id })
+			});
+
+			if (!payResponse.ok) {
+				console.error('Failed to generate UPI QR');
+				// TODO: Show user error message
+				return;
+			}
+
+			const data = await payResponse.json(); // Assume { qr_code: 'base64_string' }
+			qrCode = data.qr_code;
+			showQR = true;
+		} else if (selectedPaymentMethod === 'upi_link') {
+			const payResponse = await fetch('/pay/upi/intent', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ order_id })
+			});
+
+			if (!payResponse.ok) {
+				console.error('Failed to generate UPI link');
+				// TODO: Show user error message
+				return;
+			}
+
+			const data = await payResponse.json(); // Assume { intent_url: 'upi://...' }
+			upiLink = data.intent_url;
+			showLink = true;
+			// Alternatively, window.location.href = upiLink; to redirect to UPI app
+		} else if (selectedPaymentMethod === 'upi_id') {
+			if (!upiId) {
+				console.error('UPI ID is required');
+				// TODO: Show user error message
+				return;
+			}
+
+			const payResponse = await fetch('/pay/upi/collect', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ order_id, upi_id: upiId })
+			});
+
+			if (!payResponse.ok) {
+				console.error('Failed to process UPI collect');
+				// TODO: Show user error message
+				return;
+			}
+
+			// Assume success - in real app, poll for status or handle webhook confirmation
+			console.log('Payment request sent');
+			// TODO: Show success message or redirect to confirmation page
+		} else if (selectedPaymentMethod === 'card') {
+			if (!cardNumber || !cardExpiry || !cardCvv || !cardName) {
+				console.error('Card details are required');
+				// TODO: Show user error message
+				return;
+			}
+
+			const payResponse = await fetch('/pay', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					order_id,
+					card_details: {
+						number: cardNumber,
+						expiry: cardExpiry,
+						cvv: cardCvv,
+						name: cardName
+					}
+				})
+			});
+
+			if (!payResponse.ok) {
+				console.error('Failed to process card payment');
+				// TODO: Show user error message
+				return;
+			}
+
+			// Assume success - in real app, handle 3DS or confirmation
+			console.log('Card payment processed');
+			// TODO: Show success message or redirect to confirmation page
+		}
 	}
 
 	onMount(() => {
@@ -43,7 +176,7 @@
 
 <!-- Page Content -->
 <div class="min-h-screen bg-gray-50">
-	<main class="relative container grid grid-cols-1 gap-8 px-4 py-8 md:grid-cols-2">
+	<main class="container mx-auto grid grid-cols-1 gap-8 px-4 py-8 md:grid-cols-2">
 		<!-- Left Column: Trip Details -->
 		<div class="space-y-6">
 			<!-- Rare Find Banner -->
@@ -87,35 +220,162 @@
 			<!-- Payment Method -->
 			<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
 				<h2 class="mb-4 text-lg font-semibold">Pay with</h2>
-				<div class="mb-4 flex items-center justify-between">
-					{#each bookingData.paymentMethods as method}
-						<img
-							src={`https://picsum.photos/seed/${method}/20/12`}
-							alt={method}
-							class="h-5 w-auto"
-						/>
-					{/each}
+				<div class="flex justify-between">
+					<div></div>
+					<div class="mb-4 flex items-center justify-between">
+						<div class="flex items-center gap-2">
+							<img src="/img/visa.svg" alt="Visa Card" class="h-6 w-6" />
+							<img src="/img/master-card.svg" alt="Mastercard" class="h-6 w-6" />
+							<img src="/img/rupay.svg" alt="RuPay" class="h-6 w-6" />
+							<img src="/img/upi.svg" alt="upi" class="h-6 w-6" />
+							<img src="/img/bank.svg" alt="upi" class="h-6 w-6" />
+						</div>
+					</div>
 				</div>
 
-				<div class="space-y-3">
-					<div class="flex items-center">
-						<input
-							type="radio"
-							id="upi_qr"
-							name="payment-method"
-							class="h-4 w-4 text-pink-600 focus:ring-pink-500"
-						/>
-						<label for="upi_qr" class="ml-2 text-sm text-gray-700">Pay using UPI QR code</label>
+				<div class="space-y-4">
+					<div class="relative">
+						<button
+							type="button"
+							on:click={toggleDropdown}
+							class="relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pr-10 pl-3 text-left text-gray-900 shadow-sm focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:outline-none sm:text-sm"
+							aria-haspopup="listbox"
+							aria-expanded={isDropdownOpen}
+							aria-labelledby="payment-method"
+						>
+							<span class="flex items-center">
+								<img
+									src={paymentOptions.find((o) => o.value === selectedPaymentMethod)?.image}
+									alt=""
+									class="mr-2 h-5 w-5"
+								/>
+								<span>{paymentOptions.find((o) => o.value === selectedPaymentMethod)?.label}</span>
+							</span>
+							<span
+								class="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2"
+							>
+								<svg
+									class="h-5 w-5 text-gray-400"
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 20 20"
+									fill="currentColor"
+									aria-hidden="true"
+								>
+									<path
+										fill-rule="evenodd"
+										d="M6.293 7.293a1 1 0 011.414 0L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+										clip-rule="evenodd"
+									/>
+								</svg>
+							</span>
+						</button>
+
+						{#if isDropdownOpen}
+							<ul
+								class="ring-opacity-5 absolute z-10 mt-1 w-full rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black focus:outline-none sm:text-sm"
+								role="listbox"
+								aria-activedescendant={selectedPaymentMethod}
+							>
+								{#each paymentOptions as option}
+									<li
+										class="relative cursor-default py-2 pr-9 pl-3 text-gray-900 select-none hover:bg-pink-100"
+										role="option"
+										on:click={() => selectPayment(option)}
+									>
+										<div class="flex items-center">
+											<img src={option.image} alt="" class="mr-2 h-5 w-5" />
+											<span class="font-normal">{option.label}</span>
+										</div>
+										{#if option.value === selectedPaymentMethod}
+											<span class="absolute inset-y-0 right-0 flex items-center pr-4 text-pink-600">
+												<svg
+													class="h-5 w-5"
+													xmlns="http://www.w3.org/2000/svg"
+													viewBox="0 0 20 20"
+													fill="currentColor"
+													aria-hidden="true"
+												>
+													<path
+														fill-rule="evenodd"
+														d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+														clip-rule="evenodd"
+													/>
+												</svg>
+											</span>
+										{/if}
+									</li>
+								{/each}
+							</ul>
+						{/if}
 					</div>
-					<div class="flex items-center">
-						<input
-							type="radio"
-							id="upi_id"
-							name="payment-method"
-							class="h-4 w-4 text-pink-600 focus:ring-pink-500"
-						/>
-						<label for="upi_id" class="ml-2 text-sm text-gray-700">UPI ID</label>
-					</div>
+
+					{#if selectedPaymentMethod === 'card'}
+						<div class="mt-4 space-y-4">
+							<div>
+								<label for="card_number" class="block text-sm font-medium text-gray-700"
+									>Card Number</label
+								>
+								<input
+									id="card_number"
+									type="text"
+									bind:value={cardNumber}
+									class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+									placeholder="1234 5678 9012 3456"
+								/>
+							</div>
+							<div class="grid grid-cols-2 gap-4">
+								<div>
+									<label for="card_expiry" class="block text-sm font-medium text-gray-700"
+										>Expiry Date</label
+									>
+									<input
+										id="card_expiry"
+										type="text"
+										bind:value={cardExpiry}
+										class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+										placeholder="MM/YY"
+									/>
+								</div>
+								<div>
+									<label for="card_cvv" class="block text-sm font-medium text-gray-700">CVV</label>
+									<input
+										id="card_cvv"
+										type="text"
+										bind:value={cardCvv}
+										class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+										placeholder="123"
+									/>
+								</div>
+							</div>
+							<div>
+								<label for="card_name" class="block text-sm font-medium text-gray-700"
+									>Cardholder Name</label
+								>
+								<input
+									id="card_name"
+									type="text"
+									bind:value={cardName}
+									class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+									placeholder="John Doe"
+								/>
+							</div>
+						</div>
+					{/if}
+
+					{#if selectedPaymentMethod === 'upi_id'}
+						<div class="mt-4">
+							<label for="upi_id_input" class="block text-sm font-medium text-gray-700"
+								>Your UPI ID</label
+							>
+							<input
+								id="upi_id_input"
+								type="text"
+								bind:value={upiId}
+								class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+								placeholder="example@upi"
+							/>
+						</div>
+					{/if}
 				</div>
 			</div>
 
@@ -134,7 +394,7 @@
 				<p class="text-xs leading-relaxed text-gray-600">
 					By selecting the button below, I agree to the
 					<a href="/refund-policy" class="text-blue-600 hover:underline"
-						>our's booking and Refund Policy</a
+						>our booking and Refund Policy</a
 					>
 				</p>
 			</div>
@@ -149,9 +409,7 @@
 		</div>
 
 		<!-- Right Column: Property & Total -->
-		<div
-			class="sticky right-0 max-h-fit rounded-lg border border-gray-200 bg-white to-35% p-6 shadow-sm"
-		>
+		<div class="sticky top-4 h-fit rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
 			<div class="mb-6 flex items-start space-x-4">
 				{#if service?.objectName}
 					<SecureImage
@@ -181,3 +439,34 @@
 		</div>
 	</main>
 </div>
+
+{#if showQR}
+	<div class="bg-opacity-50 fixed inset-0 flex items-center justify-center bg-black">
+		<div class="rounded-lg bg-white p-6 shadow-lg">
+			<h3 class="mb-4 text-lg font-semibold">Scan to Pay</h3>
+			<img src={`data:image/png;base64,${qrCode}`} alt="UPI QR Code" class="mx-auto" />
+			<button
+				on:click={() => (showQR = false)}
+				class="mt-4 w-full rounded-lg bg-pink-500 px-6 py-3 font-medium text-white hover:bg-pink-600"
+			>
+				Close
+			</button>
+		</div>
+	</div>
+{/if}
+
+{#if showLink}
+	<div class="bg-opacity-50 fixed inset-0 flex items-center justify-center bg-black">
+		<div class="rounded-lg bg-white p-6 shadow-lg">
+			<h3 class="mb-4 text-lg font-semibold">Pay with UPI Link</h3>
+			<p class="mb-4">Click the link below to complete payment:</p>
+			<a href={upiLink} class="text-blue-600 hover:underline">{upiLink}</a>
+			<button
+				on:click={() => (showLink = false)}
+				class="mt-4 w-full rounded-lg bg-pink-500 px-6 py-3 font-medium text-white hover:bg-pink-600"
+			>
+				Close
+			</button>
+		</div>
+	</div>
+{/if}
