@@ -22,11 +22,13 @@ export const load: PageServerLoad = async ({ fetch, params }) => {
         objectName: businessRaw.objectName || null
     };
 
-    // Normalize services - use objectName exactly as provided by backend
-    const services: Service[] = (serviceData.service ?? []).map((srv: Service) => ({
-        ...srv,
-        objectName: srv.objectName || null
-    }));
+    // Normalize services - fix: use serviceData, not "services"
+    const normalizedServices: Service[] = (serviceData.services ?? []).map(
+        (srv: Service) => ({
+            ...srv,
+            objectName: srv.objectName || null
+        })
+    );
 
-    return { business, services };
+    return { business, services: normalizedServices };
 };
