@@ -2,8 +2,8 @@
 	import SecureImage from '$lib/components/SecureImage.svelte';
 	import Calendar from '$lib/components/ui/calendar/calendar.svelte';
 	import { getLocalTimeZone, today, type DateValue } from '@internationalized/date';
-	import type { WorkingHour, Service, Business } from '$lib/types/index.js'; // Ensure these types are correct
-	import { PUBLIC_IMAGE_URL, PUBLIC_API_URL } from '$env/static/public';
+	import type { WorkingHour, Service, Business } from '$lib/types/index.js';
+	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import Icon from '@iconify/svelte';
@@ -16,35 +16,28 @@
 	};
 
 	const { workingHours, business, services } = data;
-	const publicId = $page.params.publicId; // Get publicId from page params
-	const serviceId = $page.url.searchParams.get('service'); // Get serviceId from URL query
-
-	// Determine the service to use
+	const publicId = $page.params.publicId;
+	const serviceId = $page.url.searchParams.get('service');
 	const service = serviceId ? services.find((s) => s.id === serviceId) || services[0] : services[0];
 
 	const tz = getLocalTimeZone();
-
-	// --- STATE MANAGEMENT ---
 	let value: DateValue | undefined = undefined;
 	let minValue = today(tz).add({ days: 1 });
-
-	// Maximum: 3 months from today
 	let maxValue = today(tz).add({ months: 3 });
-
 	let selectedTime: string | null = null;
 	let showCalendar = false;
+	let unavailableTimes: { open_time: string; close_time: string }[] = [];
+	let loadingUnavailable = false;
+	let errorMessage: string | null = null;
+	let isBooking = false;
 
 	// --- DERIVED DATA ---
-	// Safe working hours fallback
 	let safeWorkingHours: WorkingHour[] = [];
 	$: safeWorkingHours = workingHours ?? [];
-
-	// Map closed days (lowercase for comparison)
 	$: closedDays = new Set(
 		safeWorkingHours.filter((d) => d.isClosed).map((d) => d.dayOfWeek.toLowerCase())
 	);
 
-	// Day name mapping (0 = Sunday)
 	const dayNameMap: Record<number, string> = {
 		0: 'sunday',
 		1: 'monday',
@@ -55,68 +48,19 @@
 		6: 'saturday'
 	};
 
-	// --- UNAVAILABLE TIMES FETCHING ---
-	let unavailableTimes: { open_time: string; close_time: string }[] = [];
-	let loadingUnavailable = false;
-
-	async function fetchUnavailableTimes(date: DateValue) {
-		if (!serviceId) {
-			console.warn('fetchUnavailableTimes: serviceId is missing');
-			unavailableTimes = [];
-			loadingUnavailable = false;
-			return;
-		}
-
-		const dateString = date.toString(); // YYYY-MM-DD
-		unavailableTimes = [];
-		loadingUnavailable = true;
-
-		try {
-			// --- CORRECTED URL ---
-			// The Go backend route is: public.GET("/:service_id/unavailable-times", ...)
-			// So the URL should be /public/business/:service_id/unavailable-times
-			const response = await fetch(
-				`${PUBLIC_API_URL}/public/business/${serviceId}/unavailable-times?date=${dateString}`
-			);
-
-			if (response.ok) {
-				const result = await response.json();
-				// Ensure result.times is an array
-				unavailableTimes = Array.isArray(result.times) ? result.times : [];
-				console.log('Unavailable times fetched:', unavailableTimes);
-			} else {
-				const errorText = await response.text();
-				console.error(`Failed to fetch unavailable times (${response.status}):`, errorText);
-				unavailableTimes = [];
-			}
-		} catch (err) {
-			console.error('Error fetching unavailable times:', err);
-			unavailableTimes = [];
-		} finally {
-			loadingUnavailable = false;
-		}
-	}
-
 	// --- TIME PARSING LOGIC ---
-	// Parses a "HH:mm:ss" or "HH:mm" string (representing business local time)
-	// to a Date object for the specific selected date.
 	function parseBusinessTimeStringToDate(timeStr: string, baseDate: Date): Date {
-		console.log(`parseBusinessTimeStringToDate called with: '${timeStr}'`);
-
-		// If full ISO string → just return parsed Date
 		if (timeStr.includes('T')) {
 			const isoDate = new Date(timeStr);
 			if (isNaN(isoDate.getTime())) {
 				console.error(`Invalid ISO datetime: ${timeStr}`);
 				return new Date(NaN);
 			}
-			// Adjust to selected date but keep hours/minutes from ISO
 			const result = new Date(baseDate);
 			result.setHours(isoDate.getHours(), isoDate.getMinutes(), isoDate.getSeconds(), 0);
 			return result;
 		}
 
-		// Fallback: parse as HH:mm or HH:mm:ss
 		const parts = timeStr.split(':');
 		if (parts.length < 2 || parts.length > 3) {
 			console.error(`Invalid timeStr format '${timeStr}'. Expected HH:MM or HH:MM:SS.`);
@@ -132,7 +76,6 @@
 		return date;
 	}
 
-	// Parse full ISO datetime string (e.g., from API) to a JavaScript Date object.
 	function parseTimeFromISO(dateTimeStr: string): Date {
 		const date = new Date(dateTimeStr);
 		if (isNaN(date.getTime())) {
@@ -141,40 +84,34 @@
 		return date;
 	}
 
-	// Get day name from DateValue
 	function getDayOfWeek(dateValue: DateValue): string {
 		const dayIndex = dateValue.toDate(getLocalTimeZone()).getDay();
 		return dayNameMap[dayIndex];
 	}
 
-	// --- AVAILABILITY CHECK ---
 	function isSlotUnavailable(slotStart: Date, slotEnd: Date): boolean {
-		// Check if slotStart/End are valid Dates
 		if (isNaN(slotStart.getTime()) || isNaN(slotEnd.getTime())) {
 			console.warn('isSlotUnavailable received invalid date(s).');
-			return true; // Treat invalid slots as unavailable
+			return true;
 		}
 		for (const ut of unavailableTimes) {
 			try {
 				const utStart = parseTimeFromISO(ut.open_time);
 				const utEnd = parseTimeFromISO(ut.close_time);
-
-				// Check if slot and unavailable time potentially overlap on the same day.
 				const slotDateStr = slotStart.toDateString();
 				const utDateStr = utStart.toDateString();
 
 				if (slotDateStr === utDateStr) {
-					// Check for overlap: (StartA < EndB) and (StartB < EndA)
 					if (slotStart < utEnd && utStart < slotEnd) {
 						console.log(`Slot ${slotStart} - ${slotEnd} overlaps with ${utStart} - ${utEnd}`);
-						return true; // Overlap found
+						return true;
 					}
 				}
 			} catch (e) {
 				console.error('Error parsing unavailable time:', ut, e);
 			}
 		}
-		return false; // No overlap found
+		return false;
 	}
 
 	// --- SLOT GENERATION ---
@@ -182,43 +119,29 @@
 		time: string;
 		formatted: string;
 		datetime: Date;
+		isAvailable: boolean;
 	}
 
 	let selectedSlots: TimeSlot[] = [];
 	const timeZone = getLocalTimeZone();
 
-	// --- MAIN SLOT GENERATION LOGIC ---
 	$: if (value && service?.duration && !loadingUnavailable) {
-		console.log('Re-running slot generation logic...'); // Debug log
 		selectedSlots = [];
 		const day = getDayOfWeek(value);
-		console.log(`Checking day: ${day}`); // Debug log
 		const dayHours = safeWorkingHours.find((d) => d.dayOfWeek.toLowerCase() === day && !d.isClosed);
-		console.log(`Found dayHours for ${day}:`, dayHours); // Debug log
 
 		if (dayHours) {
-			const interval = 15; // 15-minute intervals
-			const serviceDuration = service.duration; // in minutes
-
+			const interval = 15;
+			const serviceDuration = service.duration;
 			const selectedDate = value.toDate(timeZone);
-			console.log(`Selected date for ${day}:`, selectedDate); // Debug log
-
-			// --- ADD DEBUG LOGS BEFORE PARSING ---
-			console.log(`Raw openTime string for ${day}:`, dayHours.openTime);
-			console.log(`Raw closeTime string for ${day}:`, dayHours.closeTime);
-
 			const openTime = parseBusinessTimeStringToDate(dayHours.openTime, selectedDate);
 			const closeTime = parseBusinessTimeStringToDate(dayHours.closeTime, selectedDate);
 
-			// --- CHECK IF PARSING SUCCEEDED ---
 			if (isNaN(openTime.getTime()) || isNaN(closeTime.getTime())) {
 				console.error(
-					`Failed to parse times for ${day}. Open: ${dayHours.openTime} (${openTime}), Close: ${dayHours.closeTime} (${closeTime})`
+					`Failed to parse times for ${day}. Open: ${dayHours.openTime}, Close: ${dayHours.closeTime}`
 				);
-				// selectedSlots remains empty
 			} else {
-				console.log(`Generating slots for ${day}: Open ${openTime}, Close ${closeTime}`);
-
 				const latestValidStart = new Date(closeTime.getTime() - serviceDuration * 60000);
 				let current = new Date(openTime);
 
@@ -231,41 +154,73 @@
 							Math.ceil(earliestToday.getTime() / intervalMs) * intervalMs
 						);
 						current = nextIntervalStart;
-						console.log('Adjusted start time for today:', current);
 					}
 				}
 
 				while (current <= latestValidStart) {
 					const slotEnd = new Date(current.getTime() + serviceDuration * 60000);
-
-					if (!isSlotUnavailable(current, slotEnd)) {
-						selectedSlots.push({
-							time: `${String(current.getHours()).padStart(2, '0')}:${String(current.getMinutes()).padStart(2, '0')}`,
-							formatted: current.toLocaleTimeString([], {
-								hour: '2-digit',
-								minute: '2-digit',
-								timeZone: timeZone
-							}),
-							datetime: new Date(current)
-						});
-					} else {
-						console.log('Skipping unavailable slot:', current);
-					}
+					const isAvail = !isSlotUnavailable(current, slotEnd);
+					selectedSlots.push({
+						time: `${String(current.getHours()).padStart(2, '0')}:${String(current.getMinutes()).padStart(2, '0')}`,
+						formatted: current.toLocaleTimeString([], {
+							hour: '2-digit',
+							minute: '2-digit',
+							timeZone: timeZone
+						}),
+						datetime: new Date(current),
+						isAvailable: isAvail
+					});
 					current = new Date(current.getTime() + interval * 60000);
 				}
-				console.log('Generated slots:', selectedSlots);
 			}
-		} else {
-			console.log(`No working hours found for ${day} or day is closed.`);
 		}
 	} else if (!value) {
 		selectedSlots = [];
 	}
 
-	// --- FETCH UNAVAILABLE TIMES ON DATE CHANGE ---
+	// --- FETCH UNAVAILABLE TIMES ---
 	$: if (value && !isDateDisabled(value)) {
 		fetchUnavailableTimes(value);
 		selectedTime = null;
+	}
+
+	async function fetchUnavailableTimes(date: DateValue) {
+		if (!serviceId) {
+			console.warn('fetchUnavailableTimes: serviceId is missing');
+			unavailableTimes = [];
+			loadingUnavailable = false;
+			errorMessage = 'No service selected. Please select a service to check availability.';
+			return;
+		}
+
+		const dateString = date.toString();
+		loadingUnavailable = true;
+
+		try {
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+			const response = await fetch(
+				`/api/unavailable-times?serviceId=${serviceId}&date=${dateString}`,
+				{ signal: controller.signal }
+			);
+			clearTimeout(timeoutId);
+
+			if (response.ok) {
+				const result = await response.json();
+				unavailableTimes = Array.isArray(result.times) ? result.times : [];
+				console.log('Unavailable times fetched:', unavailableTimes);
+			} else {
+				const errorText = await response.text();
+				console.error(`Failed to fetch unavailable times (${response.status}):`, errorText);
+				unavailableTimes = [];
+			}
+		} catch (err) {
+			console.error('Error fetching unavailable times:', err);
+			unavailableTimes = [];
+		} finally {
+			loadingUnavailable = false;
+		}
 	}
 
 	// --- CALENDAR LOGIC ---
@@ -275,7 +230,6 @@
 		return date.compare(minValue) < 0 || closedDays.has(dayName);
 	}
 
-	// --- FORMATTING HELPERS ---
 	function formatDuration(minutes: number): string {
 		const hours = Math.floor(minutes / 60);
 		const mins = minutes % 60;
@@ -293,9 +247,13 @@
 	}
 
 	// --- BOOKING LOGIC ---
-	function confirmBooking() {
-		if (!value || !selectedTime || !serviceId) {
-			console.warn('Cannot confirm booking: Missing date, time, or service.');
+	async function confirmBooking() {
+		if (!value || !selectedTime || !service?.id) {
+			const missing = [];
+			if (!value) missing.push('date');
+			if (!selectedTime) missing.push('time');
+			if (!service?.id) missing.push('service');
+			errorMessage = `Please select a ${missing.join(', ')}.`;
 			return;
 		}
 
@@ -303,22 +261,57 @@
 		const selectedSlot = selectedSlots.find((slot) => slot.formatted === selectedTime);
 
 		if (!selectedSlot) {
-			console.error('Selected time slot not found in generated slots.');
+			errorMessage = 'Selected time slot is invalid.';
 			return;
 		}
 
-		const bookingParams = new URLSearchParams({
-			date: selectedDate,
-			time: selectedSlot.time,
-			service: serviceId
-		});
+		if (isBooking) return;
+		isBooking = true;
 
-		goto(`/book/${publicId}/pay?${bookingParams.toString()}`);
+		try {
+			const response = await fetch('/api/book', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					service_id: service.id,
+					date: selectedDate,
+					time: selectedSlot.time,
+					duration: service?.duration || 30
+				})
+			});
+
+			if (response.ok) {
+				const result = await response.json();
+				console.log('Booking successful:', result);
+				errorMessage = null;
+				const bookingParams = new URLSearchParams({
+					date: selectedDate,
+					time: selectedSlot.time,
+					service: serviceId || '',
+					slotId: result.id
+				});
+
+				goto(`/book/${publicId}/pay?${bookingParams.toString()}`);
+			} else {
+				const errorText = await response.text();
+				console.error(`Failed to book slot (${response.status}):`, errorText);
+				errorMessage = 'Failed to book the slot. Please try again.';
+			}
+		} catch (err) {
+			console.error('Error booking slot:', err);
+			errorMessage = 'An error occurred while booking. Please try again.';
+		} finally {
+			isBooking = false;
+		}
 	}
 
 	function selectTime(slot: TimeSlot) {
-		selectedTime = slot.formatted;
-		console.log('Selected time:', selectedTime);
+		if (slot.isAvailable) {
+			selectedTime = slot.formatted;
+			console.log('Selected time:', selectedTime);
+		}
 	}
 </script>
 
@@ -443,18 +436,8 @@
 							<span class="text-sm text-gray-500">Checking availability...</span>
 						</div>
 					{:else if value && selectedSlots.length > 0}
-						<!-- Display slots only if a date is selected and slots were generated -->
 						{#each selectedSlots as slot (slot.time)}
-							<!-- Check availability again, just in case -->
-							{#if isSlotUnavailable(slot.datetime, new Date(slot.datetime.getTime() + service.duration * 60000))}
-								<button
-									disabled
-									class="cursor-not-allowed rounded-lg border border-gray-300 bg-gray-200 px-4 py-2 text-sm opacity-60"
-									aria-disabled="true"
-								>
-									{slot.formatted}
-								</button>
-							{:else}
+							{#if slot.isAvailable}
 								<button
 									on:click={() => selectTime(slot)}
 									class="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-sm transition duration-300 hover:bg-gray-100 {selectedTime ===
@@ -465,15 +448,21 @@
 								>
 									{slot.formatted}
 								</button>
+							{:else}
+								<button
+									disabled
+									class="cursor-not-allowed rounded-lg border border-gray-300 bg-gray-200 px-4 py-2 text-sm opacity-60"
+									aria-disabled="true"
+								>
+									{slot.formatted}
+								</button>
 							{/if}
 						{/each}
 					{:else if value && !loadingUnavailable}
-						<!-- Date selected, but no slots generated (e.g., closed, no valid times) -->
 						<div class="flex items-center justify-center py-8">
 							<span class="text-sm text-gray-500">No available slots for this date.</span>
 						</div>
 					{:else}
-						<!-- No date selected -->
 						<div class="flex items-center justify-center py-8">
 							<span class="text-sm text-gray-500">Please select a date first.</span>
 						</div>

@@ -98,3 +98,16 @@ export interface PaymentFormData {
     expiryDate: string;
     cvv: string;
 }
+
+export type SlotStatus = "pending" | "confirmed" | "cancelled" | "refunded";
+
+export interface SlotData {
+    id: string
+    service_id: string
+    user_id: string
+    open_time: string
+    close_time: string
+    created_at: string
+    updated_at: string
+    status: SlotStatus
+}

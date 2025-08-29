@@ -1,43 +1,46 @@
 import { PUBLIC_API_URL } from '$env/static/public';
 import type { Business, Service } from '$lib/types';
 import type { PageServerLoad } from './$types';
+import { error } from '@sveltejs/kit';
 
 const API_BASE = PUBLIC_API_URL;
 
 export const load: PageServerLoad = async ({ params, fetch }) => {
-
-    // Fetch business data by publicId (e.g. premium-barber-HTmV9hlV)
+    // Fetch business data by publicId
     const businessRes = await fetch(`${API_BASE}/business/${params.publicId}`);
-    if (!businessRes.ok) throw new Error('Failed to load business');
+    if (!businessRes.ok) throw error(404, 'Failed to load business');
     const businessData = await businessRes.json();
     const businessRaw = businessData.business;
 
-    // Use the internal UUID to fetch services
+    if (!businessRaw || typeof businessRaw.publicId !== 'string') {
+        throw error(502, 'Invalid business payload from upstream API');
+    }
+
+    // Fetch services
     const serviceRes = await fetch(`${API_BASE}/services/${params.publicId}`);
-    if (!serviceRes.ok) throw new Error('Failed to load services');
+    if (!serviceRes.ok) throw error(404, 'Failed to load services');
     const serviceData = await serviceRes.json();
 
-    // Normalize business - use objectName exactly as provided by backend
+    // Fetch working hours
+    const workingHoursRes = await fetch(`${API_BASE}/public-working-hour/${businessRaw.publicId}`);
+    if (!workingHoursRes.ok) throw error(404, 'Failed to load working hours');
+    const workingHoursData = await workingHoursRes.json();
+
+    // Normalize business
     const business: Business = {
         ...businessRaw,
         objectName: businessRaw.objectName || null
     };
 
-    // Normalize service image URLs
+    // Normalize services
     const services: Service[] = (serviceData.services ?? []).map((srv: Service) => ({
         ...srv,
         objectName: srv.objectName || null
     }));
 
-    const res = await fetch(`${PUBLIC_API_URL}/public-working-hour/${business.publicId}`);
-    if (!res.ok) {
-        throw new Error('Failed to load working hours');
-    }
-    const data = await res.json();
-
     return {
         business,
-        workingHours: data.workingHours,
+        workingHours: workingHoursData.workingHours,
         services
     };
 };
