@@ -1,18 +1,30 @@
 import { PUBLIC_API_URL } from "$env/static/public";
-import type { Service } from "$lib/types";
+import { error } from "@sveltejs/kit";
 import type { PageServerLoad } from "../$types";
 
 const API_BASE = PUBLIC_API_URL;
 
-export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
+// service = bed02412-023e - 4289 - be30 - abe48e711ef4
+
+export const load: PageServerLoad = async ({ params, fetch, cookies, url }) => {
+    const serviceIdRaw = url.searchParams.get('service')?.trim();
+    if (!serviceIdRaw) {
+        throw error(400, 'Missing "service" query parameter');
+    }
+    const serviceId = serviceIdRaw.replace(/\s+/g, '');
+
     // Fetch services
-    const serviceRes = await fetch(`${API_BASE}/services/${params.publicId}`);
-    if (!serviceRes.ok) throw new Error('Failed to load services');
-    const serviceData = await serviceRes.json();
-    const services: Service[] = (serviceData.service ?? []).map((srv: Service) => ({
-        ...srv,
-        objectName: srv.objectName || null
-    }));
+    const serviceRes = await fetch(`${API_BASE}/service/${encodeURIComponent(serviceId)}`);
+    const payload = await serviceRes.json().catch(() => null);
+    if (!serviceRes.ok) {
+        const message = payload?.error || `Failed to load service (${serviceRes.status})`;
+        throw error(serviceRes.status, message);
+    }
+    const { service } = payload ?? {};
+    if (!service) {
+        throw error(502, 'Service payload missing');
+    }
+
 
     // Fetch business
     const businessRes = await fetch(`${API_BASE}/business/${params.publicId}`);
@@ -43,5 +55,5 @@ export const load: PageServerLoad = async ({ params, fetch, cookies }) => {
         }
     }
 
-    return { services, schedule, businessRaw };
+    return { service, schedule, businessRaw };
 };

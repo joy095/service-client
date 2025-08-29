@@ -19,7 +19,7 @@
 			<p class="mt-4">No businesses found</p>
 		</div>
 	{:else}
-		<div class="grid xl:grid-cols-4 md:grid-cols-3 grid-cols-2">
+		<div class="grid xl:grid-cols-4 md:grid-cols-2 grid-cols-1">
 			{#each data.businesses as business (business.publicId)}
 				<PropertyCard {business} />
 			{/each}

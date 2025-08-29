@@ -1,31 +1,35 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 	import SecureImage from '$lib/components/SecureImage.svelte';
 	import formatDate from '$lib/dateFormat';
 	import type { Business, Service } from '$lib/types';
-	import { onMount } from 'svelte';
+
+	const selectedDate = $page.url.searchParams.get('date');
+	const selectedServiceId = $page.url.searchParams.get('service');
+	const slotId = $page.url.searchParams.get('slotId');
+
+	const publicId = $page.params.publicId;
+
+	function goBack() {
+		const searchParams = new URLSearchParams({
+			date: selectedDate || '',
+			service: selectedServiceId || '',
+			slotId: slotId || ''
+		});
+
+		goto(`/book/${publicId}?${searchParams.toString()}`);
+	}
 
 	export let data: {
-		services: Service[];
+		service: Service;
 		businessRaw: Business;
 	};
 
-	const { services, businessRaw } = data;
+	const { service, businessRaw } = data;
 
-	const selectedDate = $page.url.searchParams.get('date');
-
-	const selectedServiceId = $page.url.searchParams.get('service');
-	const service = selectedServiceId
-		? services.find((s) => s.id === selectedServiceId) || services[0]
-		: services[0];
-
-	// Mock data - in real app, this would come from API or session
-	const bookingData: BookingDetails = {
-		paymentMethods: ['VISA', 'Mastercard', 'AMEX', 'RuPay', 'UPI']
-	};
-
-	let selectedPaymentMethod: 'card' | 'upi_qr' | 'upi_link' | 'upi_id' = 'card';
+	let selectedPaymentMethod: 'upi_id' | 'card' | 'upi_qr' = 'upi_id';
 	let upiId = '';
 	let cardNumber = '';
 	let cardExpiry = '';
@@ -37,10 +41,9 @@
 	let showLink = false;
 
 	const paymentOptions = [
+		{ value: 'upi_id', label: 'Pay using UPI ID', image: '/img/upi.svg' },
 		{ value: 'card', label: 'Credit or debit card', image: '/img/visa.svg' },
-		{ value: 'upi_qr', label: 'Pay using UPI QR code', image: '/img/upi_qr.svg' },
-		{ value: 'upi_link', label: 'Pay using UPI Link', image: '/img/upi_link.svg' },
-		{ value: 'upi_id', label: 'Pay using UPI ID', image: '/img/upi.svg' }
+		{ value: 'upi_qr', label: 'Pay using UPI QR code', image: '/img/qr-code.svg' }
 	];
 
 	let isDropdownOpen = false;
@@ -52,6 +55,18 @@
 	function selectPayment(option) {
 		selectedPaymentMethod = option.value;
 		isDropdownOpen = false;
+	}
+
+	let upiError = '';
+
+	const upiRegex = /^[\w.-]{2,256}@[a-zA-Z]{2,64}$/;
+
+	function validateUPI() {
+		if (!upiRegex.test(upiId)) {
+			upiError = 'Invalid UPI ID';
+		} else {
+			upiError = '';
+		}
 	}
 
 	async function handlePayment() {
@@ -93,23 +108,6 @@
 			const data = await payResponse.json(); // Assume { qr_code: 'base64_string' }
 			qrCode = data.qr_code;
 			showQR = true;
-		} else if (selectedPaymentMethod === 'upi_link') {
-			const payResponse = await fetch('/pay/upi/intent', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ order_id })
-			});
-
-			if (!payResponse.ok) {
-				console.error('Failed to generate UPI link');
-				// TODO: Show user error message
-				return;
-			}
-
-			const data = await payResponse.json(); // Assume { intent_url: 'upi://...' }
-			upiLink = data.intent_url;
-			showLink = true;
-			// Alternatively, window.location.href = upiLink; to redirect to UPI app
 		} else if (selectedPaymentMethod === 'upi_id') {
 			if (!upiId) {
 				console.error('UPI ID is required');
@@ -164,14 +162,6 @@
 			// TODO: Show success message or redirect to confirmation page
 		}
 	}
-
-	onMount(() => {
-		// Optional: Load user data, booking info, etc.
-	});
-
-	type BookingDetails = {
-		paymentMethods: string[];
-	};
 </script>
 
 <!-- Page Content -->
@@ -209,7 +199,9 @@
 				<div class="space-y-4">
 					<div class="flex items-center justify-between">
 						<span class="text-sm font-medium text-gray-700">Dates</span>
-						<a href="#" class="text-sm text-blue-600 hover:underline">Edit</a>
+						<button on:click={goBack} class="cursor-pointer text-sm text-blue-600 hover:underline"
+							>Edit</button
+						>
 					</div>
 					<p class="text-gray-900">
 						{selectedDate}
@@ -371,9 +363,14 @@
 								id="upi_id_input"
 								type="text"
 								bind:value={upiId}
-								class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
-								placeholder="example@upi"
+								on:blur={validateUPI}
+								class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+								placeholder="john123@upi"
 							/>
+
+							{#if upiError}
+								<p class="mt-1 text-sm text-red-500">{upiError}</p>
+							{/if}
 						</div>
 					{/if}
 				</div>
@@ -432,7 +429,9 @@
 				<div class="mt-2 border-t pt-2">
 					<div class="flex justify-between">
 						<span class="font-semibold">Total (INR)</span>
-						<span class="font-semibold">₹{service?.price.toFixed(2) || 'N/A'}</span>
+						{#if service?.price}
+							<span class="font-semibold">₹{service?.price.toFixed(2)}</span>
+						{/if}
 					</div>
 				</div>
 			</div>

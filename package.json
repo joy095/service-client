@@ -41,6 +41,7 @@
 		"@types/pg": "^8.15.5",
 		"bits-ui": "^2.9.2",
 		"clsx": "^2.1.1",
+		"embla-carousel-svelte": "^8.6.0",
 		"eslint": "^9.32.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.11.0",
