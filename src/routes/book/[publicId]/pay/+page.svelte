@@ -9,12 +9,14 @@
 	const selectedDate = $page.url.searchParams.get('date');
 	const selectedServiceId = $page.url.searchParams.get('service');
 	const slotId = $page.url.searchParams.get('slotId');
+	const time = $page.url.searchParams.get('time');
 
 	const publicId = $page.params.publicId;
 
 	function goBack() {
 		const searchParams = new URLSearchParams({
 			date: selectedDate || '',
+			time: time || '',
 			service: selectedServiceId || '',
 			slotId: slotId || ''
 		});

@@ -26,6 +26,12 @@
 						<li class="mb-4">
 							<a href="/privacy" class="hover:underline">Privacy Policy</a>
 						</li>
+						<li class="mb-4">
+							<a href="/cancellationPolicy" class="hover:underline">Cancellation Policy</a>
+						</li>
+						<li class="mb-4">
+							<a href="/refund-policy" class="hover:underline">Refund Policy</a>
+						</li>
 					</ul>
 				</div>
 			</div>
