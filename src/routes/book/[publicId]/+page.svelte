@@ -32,7 +32,7 @@
 	let value: DateValue | undefined = dateFromUrl ? parseDateFromString(dateFromUrl) : undefined;
 	let minValue = today(tz).add({ days: 1 });
 	let maxValue = today(tz).add({ months: 3 });
-	let selectedTime: string | null = timeFromUrl ? decodeURIComponent(timeFromUrl) : null;
+	let selectedTime: string | null = null;
 	let showCalendar = !slotId;
 	let unavailableTimes: { open_time: string; close_time: string }[] = [];
 	let loadingUnavailable = false;
@@ -45,6 +45,35 @@
 	$: closedDays = new Set(
 		safeWorkingHours.filter((d) => d.isClosed).map((d) => d.dayOfWeek.toLowerCase())
 	);
+
+	// Initialize and validate time slot from URL
+	$: if (timeFromUrl && value && selectedSlots.length > 0 && !selectedTime) {
+		const decodedTime = decodeURIComponent(timeFromUrl); // e.g., "09:30" or "9:30 AM"
+		console.log('Decoded time from URL:', decodedTime);
+		const matchingSlot = selectedSlots.find(
+			(slot) => slot.time === decodedTime || slot.formatted === decodedTime
+		);
+		console.log('Matching slot from URL:', matchingSlot);
+		if (
+			matchingSlot &&
+			!isSlotUnavailable(
+				matchingSlot.datetime,
+				new Date(matchingSlot.datetime.getTime() + (service?.duration || 30) * 60000)
+			)
+		) {
+			selectedTime = matchingSlot.formatted; // Set to formatted time (e.g., "9:30 AM")
+			console.log('Time slot set from URL:', selectedTime);
+			showCalendar = false; // Close calendar if valid slot is set
+		} else {
+			selectedTime = null;
+			errorMessage =
+				'The time slot from the URL is invalid or unavailable. Please select a new time.';
+			showCalendar = true; // Show calendar to allow user to pick a new time
+		}
+	} else if (!timeFromUrl && !selectedTime) {
+		selectedTime = null;
+		showCalendar = true; // Show calendar if no time is provided
+	}
 
 	const dayNameMap: Record<number, string> = {
 		0: 'sunday',
@@ -67,14 +96,17 @@
 	}
 
 	function parseBusinessTimeStringToDate(timeStr: string, baseDate: Date): Date {
+		console.log('Parsing time string:', timeStr, 'Base date:', baseDate);
 		if (timeStr.includes('T')) {
 			const isoDate = new Date(timeStr);
+			console.log('Parsed ISO date:', isoDate);
 			if (isNaN(isoDate.getTime())) {
 				console.error(`Invalid ISO datetime: ${timeStr}`);
 				return new Date(NaN);
 			}
 			const result = new Date(baseDate);
 			result.setHours(isoDate.getHours(), isoDate.getMinutes(), isoDate.getSeconds(), 0);
+			console.log('Resulting date:', result);
 			return result;
 		}
 
@@ -142,9 +174,17 @@
 	const timeZone = getLocalTimeZone();
 
 	$: if (value && service?.duration && !loadingUnavailable) {
+		console.log(
+			'Generating slots for date:',
+			value.toString(),
+			'Service duration:',
+			service.duration
+		);
 		selectedSlots = [];
 		const day = getDayOfWeek(value);
+		console.log('Day of week:', day);
 		const dayHours = safeWorkingHours.find((d) => d.dayOfWeek.toLowerCase() === day && !d.isClosed);
+		console.log('Day hours:', dayHours);
 
 		if (dayHours) {
 			const interval = 15;
@@ -197,7 +237,6 @@
 	// --- FETCH UNAVAILABLE TIMES ---
 	$: if (value && !isDateDisabled(value)) {
 		fetchUnavailableTimes(value);
-		selectedTime = slotId && timeFromUrl ? decodeURIComponent(timeFromUrl) : null;
 	}
 
 	async function fetchUnavailableTimes(date: DateValue) {
@@ -218,7 +257,7 @@
 
 			const response = await fetch(
 				`/api/unavailable-times?serviceId=${serviceId}&date=${dateString}`,
-				{ signal: controller.signal, credentials: 'include' } // Include credentials for fetch
+				{ signal: controller.signal, credentials: 'include' }
 			);
 			clearTimeout(timeoutId);
 
@@ -278,9 +317,16 @@
 		const selectedSlot = selectedSlots.find((slot) => slot.formatted === selectedTime);
 
 		if (!selectedSlot) {
-			errorMessage = 'Selected time slot is invalid.';
+			errorMessage = 'Selected time slot is invalid or unavailable.';
 			return false;
 		}
+
+		console.log('Updating slot with:', {
+			service_id: service.id,
+			date: selectedDate,
+			time: selectedSlot.time,
+			duration: service?.duration || 30
+		});
 
 		try {
 			const response = await fetch(`${PUBLIC_API_URL}/schedule-slots/${slotId}`, {
@@ -288,11 +334,11 @@
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				credentials: 'include', // Include cookies (access_token) in the request
+				credentials: 'include', // Include cookies (access_token)
 				body: JSON.stringify({
 					service_id: service.id,
 					date: selectedDate,
-					time: selectedSlot.time,
+					time: selectedSlot.time, // Use HH:MM format (e.g., "10:00")
 					duration: service?.duration || 30
 				})
 			});
@@ -307,6 +353,7 @@
 				console.error(`Failed to update slot (${response.status}):`, errorText);
 				if (response.status === 401) {
 					errorMessage = 'Authentication failed. Please log in and try again.';
+					setTimeout(() => goto('/login'), 2000);
 				} else {
 					errorMessage = 'Failed to update the slot. Please try again.';
 				}
@@ -334,7 +381,7 @@
 		const selectedSlot = selectedSlots.find((slot) => slot.formatted === selectedTime);
 
 		if (!selectedSlot) {
-			errorMessage = 'Selected time slot is invalid.';
+			errorMessage = 'Selected time slot is invalid or unavailable.';
 			return;
 		}
 
@@ -345,6 +392,7 @@
 			let resultId: string;
 			if (slotId) {
 				// Update existing slot
+				console.log('Attempting to update slot with time:', selectedTime);
 				const updated = await updateSlot();
 				if (!updated) {
 					isBooking = false;
@@ -353,12 +401,13 @@
 				resultId = slotId;
 			} else {
 				// Create new booking
+				console.log('Creating new booking with time:', selectedTime);
 				const response = await fetch('/api/book', {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'
 					},
-					credentials: 'include', // Include cookies for booking request
+					credentials: 'include',
 					body: JSON.stringify({
 						service_id: service.id,
 						date: selectedDate,
@@ -372,6 +421,7 @@
 					console.error(`Failed to book slot (${response.status}):`, errorText);
 					if (response.status === 401) {
 						errorMessage = 'Authentication failed. Please log in and try again.';
+						setTimeout(() => goto('/login'), 2000);
 					} else {
 						errorMessage = 'Failed to book the slot. Please try again.';
 					}
@@ -385,12 +435,14 @@
 			}
 
 			errorMessage = null;
+			showCalendar = false; // Close the modal after successful update/booking
 			const bookingParams = new URLSearchParams({
 				date: selectedDate,
-				time: selectedSlot.time,
+				time: selectedSlot.time, // Use HH:MM for consistency with URL
 				service: serviceId || '',
 				slotId: resultId
 			});
+			console.log('Redirecting to payment with params:', bookingParams.toString());
 			goto(`/book/${publicId}/pay?${bookingParams.toString()}`);
 		} catch (err) {
 			console.error('Error processing request:', err);
@@ -402,7 +454,9 @@
 
 	function selectTime(slot: TimeSlot) {
 		selectedTime = slot.formatted;
-		console.log('Selected time:', selectedTime);
+		console.log('New time selected:', selectedTime);
+		// Optionally close the modal after selecting a time to streamline the flow
+		// showCalendar = false;
 	}
 </script>
 
@@ -538,30 +592,35 @@
 						</div>
 					{:else if value && selectedSlots.length > 0}
 						{#each selectedSlots as slot (slot.time)}
-							{#if isSlotUnavailable(slot.datetime, new Date(slot.datetime.getTime() + service.duration * 60000))}
-								<button
-									disabled
-									class="cursor-not-allowed rounded-lg border border-gray-300 bg-gray-200 px-4 py-2 text-sm opacity-60"
-									aria-disabled="true"
-								>
-									{slot.formatted}
-								</button>
-							{:else}
-								<button
-									on:click={() => selectTime(slot)}
-									class="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-sm transition duration-300 hover:bg-gray-100 {selectedTime ===
-									slot.formatted
-										? 'bg-primary border-primary hover:bg-primary text-white'
-										: ''}"
-									aria-pressed={selectedTime === slot.formatted}
-								>
-									{slot.formatted}
-								</button>
-							{/if}
+							<button
+								on:click={() => selectTime(slot)}
+								disabled={isSlotUnavailable(
+									slot.datetime,
+									new Date(slot.datetime.getTime() + service.duration * 60000)
+								)}
+								class="rounded-lg border border-gray-300 px-4 py-2 text-sm transition duration-300
+                           {isSlotUnavailable(
+									slot.datetime,
+									new Date(slot.datetime.getTime() + service.duration * 60000)
+								)
+									? 'cursor-not-allowed bg-gray-200 opacity-60'
+									: selectedTime === slot.formatted
+										? 'bg-primary border-primary text-white'
+										: 'cursor-pointer hover:bg-gray-100'}"
+								aria-pressed={selectedTime === slot.formatted}
+								aria-disabled={isSlotUnavailable(
+									slot.datetime,
+									new Date(slot.datetime.getTime() + service.duration * 60000)
+								)}
+							>
+								{slot.formatted}
+							</button>
 						{/each}
-					{:else if value && !loadingUnavailable}
+					{:else if value}
 						<div class="flex items-center justify-center py-8">
-							<span class="text-sm text-gray-500">No available slots for this date.</span>
+							<span class="text-sm text-red-500"
+								>No available slots for this date. Try another date.</span
+							>
 						</div>
 					{:else}
 						<div class="flex items-center justify-center py-8">
@@ -569,10 +628,12 @@
 						</div>
 					{/if}
 				</div>
-
 				{#if selectedTime}
 					<button
-						on:click={confirmBooking}
+						on:click={() => {
+							confirmBooking();
+							showCalendar = false;
+						}}
 						class="bg-primary hover:bg-accent hover:text-primary mt-4 w-full cursor-pointer rounded-lg py-2 text-sm font-medium text-white transition duration-300"
 						disabled={loadingUnavailable || isBooking}
 					>
@@ -585,7 +646,6 @@
 								: 'Confirm and Book'}
 					</button>
 				{/if}
-
 				{#if errorMessage}
 					<div class="mt-2 text-sm text-red-500">{errorMessage}</div>
 				{/if}
