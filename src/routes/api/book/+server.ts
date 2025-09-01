@@ -26,12 +26,6 @@ export const POST: RequestHandler = async ({ request, fetch, cookies }) => {
             return json({ error: 'Authentication required' }, { status: 401 });
         }
 
-        // const openTime = new Date(`${date}T${time}:00.000Z`);
-        // if (isNaN(openTime.getTime())) {
-        //     return json({ error: 'Invalid date/time' }, { status: 400 });
-        // }
-        // const closeTime = new Date(openTime.getTime() + duration * 60000);
-
         // Parse local date & time
         const localDateTime = parseDateTime(`${date}T${time}`);
 

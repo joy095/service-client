@@ -1,7 +1,12 @@
 export default function formatDate(dateStr: string, offsetDays = 0): string {
     if (!dateStr) return ''; // handle null gracefully
 
-    const date = new Date(dateStr);
+    // Remove the bracketed timezone part if present (e.g., [Asia/Calcutta])
+    const cleanStr = dateStr.replace(/\[.*\]$/, '');
+
+    const date = new Date(cleanStr);
+
+    if (isNaN(date.getTime())) return ''; // handle invalid date safely
 
     // subtract or add days
     date.setDate(date.getDate() + offsetDays);

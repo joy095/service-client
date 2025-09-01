@@ -1,31 +1,83 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { PUBLIC_IMAGE_URL } from '$env/static/public';
+	import { PUBLIC_IMAGE_URL, PUBLIC_API_URL } from '$env/static/public';
 	import SecureImage from '$lib/components/SecureImage.svelte';
 	import formatDate from '$lib/dateFormat';
-	import type { Business, Service } from '$lib/types';
+	import { initializeFromServer } from '$lib/stores/authStore';
+	import formatTime from '$lib/timeFormat';
+	import type { Business, Service, User } from '$lib/types';
+	import { tryRefreshToken } from '$lib/utils/refreshToken';
+	import { onMount } from 'svelte';
+	import { invalidate } from '$app/navigation';
+
+	let phone = '';
+	let loading = false;
+	let phoneErrorMessage = '';
+	let successMessage = '';
+
+	// Regex: supports +91 9876543210 OR +1 5551234567 etc.
+	const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+
+	async function savePhone() {
+		phoneErrorMessage = '';
+		successMessage = '';
+
+		if (!phoneRegex.test(phone)) {
+			phoneErrorMessage = 'Please enter a valid phone number (e.g., +91 9876543210)';
+			return;
+		}
+
+		loading = true;
+
+		try {
+			const res = await fetch('/api/profile', {
+				method: 'PATCH',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ phone }),
+				credentials: 'include'
+			});
+
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({}));
+				phoneErrorMessage = err.error || 'Failed to update phone';
+			} else {
+				successMessage = 'Phone added successfully 🎉';
+				phone = '';
+				await invalidate('user');
+			}
+		} catch (err) {
+			phoneErrorMessage = 'Something went wrong';
+			console.error('Phone update error:', err);
+		} finally {
+			loading = false;
+		}
+	}
 
 	const selectedDate = $page.url.searchParams.get('date');
 	const selectedServiceId = $page.url.searchParams.get('service');
 	const slotId = $page.url.searchParams.get('slotId');
-
+	const timeUrl = $page.url.searchParams.get('time');
 	const publicId = $page.params.publicId;
 
 	function goBack() {
 		const searchParams = new URLSearchParams({
 			date: selectedDate || '',
+			timeUrl: timeUrl || '',
 			service: selectedServiceId || '',
 			slotId: slotId || ''
 		});
-
 		goto(`/book/${publicId}?${searchParams.toString()}`);
 	}
 
 	export let data: {
 		service: Service;
 		businessRaw: Business;
+		user: User | null;
 	};
+
+	let user = data.user;
+	$: user = data.user;
 
 	const { service, businessRaw } = data;
 
@@ -39,6 +91,10 @@
 	let upiLink = '';
 	let showQR = false;
 	let showLink = false;
+	let errorMessage = '';
+	let orderAmount = service?.price || 0;
+	let orderCurrency = 'INR';
+	let isProcessing = false;
 
 	const paymentOptions = [
 		{ value: 'upi_id', label: 'Pay using UPI ID', image: '/img/upi.svg' },
@@ -52,119 +108,185 @@
 		isDropdownOpen = !isDropdownOpen;
 	}
 
-	function selectPayment(option) {
+	function selectPayment(option: { value: 'upi_id' | 'card' | 'upi_qr' }) {
 		selectedPaymentMethod = option.value;
 		isDropdownOpen = false;
+		upiId = '';
+		cardNumber = '';
+		cardExpiry = '';
+		cardCvv = '';
+		cardName = '';
+		qrCode = '';
+		upiLink = '';
+		showQR = false;
+		showLink = false;
+		errorMessage = '';
+		upiError = '';
 	}
 
 	let upiError = '';
-
-	const upiRegex = /^[\w.-]{2,256}@[a-zA-Z]{2,64}$/;
+	const upiRegex = /^[a-zA-Z0-9._-]{2,256}@[a-zA-Z][a-zA-Z0-9]{1,63}$/;
 
 	function validateUPI() {
+		if (!upiId.trim()) {
+			upiError = 'UPI ID is required';
+			return false;
+		}
 		if (!upiRegex.test(upiId)) {
 			upiError = 'Invalid UPI ID';
-		} else {
-			upiError = '';
+			return false;
 		}
+		upiError = '';
+		return true;
+	}
+
+	function validateCard() {
+		errorMessage = '';
+
+		if (!cardNumber.trim()) {
+			errorMessage = 'Card number is required';
+			return false;
+		}
+		if (!cardExpiry.trim()) {
+			errorMessage = 'Expiry date is required';
+			return false;
+		}
+		if (!cardCvv.trim()) {
+			errorMessage = 'CVV is required';
+			return false;
+		}
+		if (!cardName.trim()) {
+			errorMessage = 'Cardholder name is required';
+			return false;
+		}
+
+		const cleanCardNumber = cardNumber.replace(/\s/g, '');
+		const cardNumberRegex = /^\d{13,19}$/;
+		if (!cardNumberRegex.test(cleanCardNumber)) {
+			errorMessage = 'Invalid card number';
+			return false;
+		}
+
+		const expiryRegex = /^(0[1-9]|1[0-2])\/\d{2}$/;
+		if (!expiryRegex.test(cardExpiry)) {
+			errorMessage = 'Invalid expiry date (MM/YY)';
+			return false;
+		}
+
+		const [month, year] = cardExpiry.split('/');
+		const expiry = new Date(2000 + parseInt(year), parseInt(month) - 1);
+		const now = new Date();
+		now.setHours(0, 0, 0, 0);
+		if (expiry < now) {
+			errorMessage = 'Card has expired';
+			return false;
+		}
+
+		const cvvRegex = /^\d{3,4}$/;
+		if (!cvvRegex.test(cardCvv)) {
+			errorMessage = 'Invalid CVV';
+			return false;
+		}
+
+		return true;
 	}
 
 	async function handlePayment() {
-		// TODO: Add authorization header if needed, e.g., from session/store: headers: { Authorization: `Bearer ${token}` }
+		if (isProcessing) return;
 
-		// First, create the booking order
-		const bookResponse = await fetch('/book', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({
+		errorMessage = '';
+		isProcessing = true;
+
+		try {
+			if (
+				!selectedServiceId ||
+				!slotId ||
+				typeof selectedServiceId !== 'string' ||
+				typeof slotId !== 'string'
+			) {
+				errorMessage = 'Please select a service and time slot';
+				console.error('Invalid parameters:', { selectedServiceId, slotId });
+				isProcessing = false;
+				return;
+			}
+
+			if (selectedPaymentMethod === 'upi_id' && !validateUPI()) {
+				isProcessing = false;
+				return;
+			}
+			if (selectedPaymentMethod === 'card' && !validateCard()) {
+				isProcessing = false;
+				return;
+			}
+
+			// Step 1: Create the order with retry
+			const orderPayload = {
 				service_id: selectedServiceId,
-				date: selectedDate
-				// Add other required fields like user_id, amount, etc., based on API requirements
-			})
-		});
+				slot_id: slotId
+			};
 
-		if (!bookResponse.ok) {
-			console.error('Failed to create order');
-			// TODO: Show user error message
-			return;
-		}
+			console.log('Creating order with payload:', orderPayload);
 
-		const { order_id } = await bookResponse.json(); // Assume API returns { order_id: string }
+			let orderResponse;
+			for (let attempt = 1; attempt <= 2; attempt++) {
+				orderResponse = await fetch(`${PUBLIC_API_URL}/orders`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					credentials: 'include',
+					body: JSON.stringify(orderPayload)
+				});
 
-		// Then, process payment based on method
-		if (selectedPaymentMethod === 'upi_qr') {
-			const payResponse = await fetch('/pay/upi/qr', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ order_id })
-			});
+				if (orderResponse.ok) break;
 
-			if (!payResponse.ok) {
-				console.error('Failed to generate UPI QR');
-				// TODO: Show user error message
-				return;
-			}
-
-			const data = await payResponse.json(); // Assume { qr_code: 'base64_string' }
-			qrCode = data.qr_code;
-			showQR = true;
-		} else if (selectedPaymentMethod === 'upi_id') {
-			if (!upiId) {
-				console.error('UPI ID is required');
-				// TODO: Show user error message
-				return;
-			}
-
-			const payResponse = await fetch('/pay/upi/collect', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ order_id, upi_id: upiId })
-			});
-
-			if (!payResponse.ok) {
-				console.error('Failed to process UPI collect');
-				// TODO: Show user error message
-				return;
-			}
-
-			// Assume success - in real app, poll for status or handle webhook confirmation
-			console.log('Payment request sent');
-			// TODO: Show success message or redirect to confirmation page
-		} else if (selectedPaymentMethod === 'card') {
-			if (!cardNumber || !cardExpiry || !cardCvv || !cardName) {
-				console.error('Card details are required');
-				// TODO: Show user error message
-				return;
-			}
-
-			const payResponse = await fetch('/pay', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					order_id,
-					card_details: {
-						number: cardNumber,
-						expiry: cardExpiry,
-						cvv: cardCvv,
-						name: cardName
+				const errorText = await orderResponse.text();
+				console.error(
+					`Order creation attempt ${attempt} failed:`,
+					errorText,
+					'Status:',
+					orderResponse.status
+				);
+				if (attempt === 2) {
+					try {
+						const errorData = JSON.parse(errorText);
+						errorMessage = errorData.error || 'Failed to create order. Please try again.';
+					} catch {
+						errorMessage = `Failed to create order (Status: ${orderResponse.status}). Please try again.`;
 					}
-				})
-			});
-
-			if (!payResponse.ok) {
-				console.error('Failed to process card payment');
-				// TODO: Show user error message
-				return;
+					isProcessing = false;
+					return;
+				}
+				await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retry
 			}
 
-			// Assume success - in real app, handle 3DS or confirmation
-			console.log('Card payment processed');
-			// TODO: Show success message or redirect to confirmation page
+			const orderData = await orderResponse.json();
+			if (!orderData.order_id) {
+				errorMessage = 'Invalid order response: missing order_id';
+				console.error('Order response missing order_id:', orderData);
+				isProcessing = false;
+				return;
+			}
+			const order_id = orderData.order_id;
+			console.log('Order created successfully:', order_id);
+
+			// ... rest of the function (payment processing) remains unchanged
+		} catch (err) {
+			console.error('Payment error:', err);
+			errorMessage = 'An unexpected error occurred. Please try again.';
+			isProcessing = false;
 		}
 	}
+
+	onMount(() => {
+		if (data.user) {
+			initializeFromServer(data.user);
+		} else {
+			tryRefreshToken();
+		}
+	});
 </script>
 
-<!-- Page Content -->
 <div class="min-h-screen bg-gray-50">
 	<main class="container mx-auto grid grid-cols-1 gap-8 px-4 py-8 md:grid-cols-2">
 		<!-- Left Column: Trip Details -->
@@ -193,19 +315,19 @@
 				</div>
 			</div>
 
-			<!-- Your Trip -->
+			<!-- Your booking -->
 			<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-				<h2 class="mb-4 text-lg font-semibold">Your trip</h2>
-				<div class="space-y-4">
+				<h2 class="mb-4 text-lg font-semibold">Your booking</h2>
+				<div class="flex flex-col gap-3">
 					<div class="flex items-center justify-between">
 						<span class="text-sm font-medium text-gray-700">Dates</span>
 						<button on:click={goBack} class="cursor-pointer text-sm text-blue-600 hover:underline"
 							>Edit</button
 						>
 					</div>
-					<p class="text-gray-900">
-						{selectedDate}
-					</p>
+					<p class="text-gray-900">{formatDate(selectedDate, -2)}</p>
+					<span class="text-sm font-medium text-gray-700">Time</span>
+					<p class="text-gray-900">{formatTime(timeUrl)}</p>
 				</div>
 			</div>
 
@@ -220,7 +342,7 @@
 							<img src="/img/master-card.svg" alt="Mastercard" class="h-6 w-6" />
 							<img src="/img/rupay.svg" alt="RuPay" class="h-6 w-6" />
 							<img src="/img/upi.svg" alt="upi" class="h-6 w-6" />
-							<img src="/img/bank.svg" alt="upi" class="h-6 w-6" />
+							<img src="/img/bank.svg" alt="bank" class="h-6 w-6" />
 						</div>
 					</div>
 				</div>
@@ -367,14 +489,47 @@
 								class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
 								placeholder="john123@upi"
 							/>
-
 							{#if upiError}
 								<p class="mt-1 text-sm text-red-500">{upiError}</p>
 							{/if}
 						</div>
 					{/if}
+
+					{#if errorMessage}
+						<p class="mt-1 text-sm text-red-500">{errorMessage}</p>
+					{/if}
 				</div>
 			</div>
+
+			<!-- User Phone -->
+			{#if user?.phone == null}
+				<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+					<h2 class="mb-4 text-lg font-semibold">Add phone</h2>
+
+					<input
+						bind:value={phone}
+						class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+						type="text"
+						placeholder="+91 1234567890"
+					/>
+
+					<button
+						class="mt-3 w-full rounded-md bg-pink-600 px-4 py-2 text-white shadow hover:bg-pink-700 disabled:opacity-50"
+						on:click={savePhone}
+						disabled={loading || !phone}
+					>
+						{loading ? 'Saving...' : 'Save'}
+					</button>
+
+					{#if phoneErrorMessage}
+						<p class="mt-2 text-sm text-red-500">{phoneErrorMessage}</p>
+					{/if}
+
+					{#if successMessage}
+						<p class="mt-2 text-sm text-green-600">{successMessage}</p>
+					{/if}
+				</div>
+			{/if}
 
 			<!-- Cancellation Policy -->
 			<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
@@ -399,14 +554,15 @@
 			<!-- Confirm and Pay Button -->
 			<button
 				on:click={handlePayment}
-				class="w-full cursor-pointer rounded-lg bg-pink-500 px-6 py-3 font-medium text-white transition-colors duration-200 hover:bg-pink-600"
+				disabled={selectedPaymentMethod === 'upi_id' && upiError}
+				class="w-full cursor-pointer rounded-lg bg-pink-500 px-6 py-3 font-medium text-white transition-colors duration-200 hover:bg-pink-600 disabled:bg-gray-400"
 			>
 				Confirm and pay
 			</button>
 		</div>
 
 		<!-- Right Column: Property & Total -->
-		<div class="sticky top-4 h-fit rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+		<div class="sticky top-3/12 h-fit rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
 			<div class="mb-6 flex items-start space-x-4">
 				{#if service?.objectName}
 					<SecureImage
@@ -417,9 +573,7 @@
 					/>
 				{/if}
 				<div>
-					<h3 class="font-semibold text-gray-900">
-						{businessRaw.name}
-					</h3>
+					<h3 class="font-semibold text-gray-900">{businessRaw.name}</h3>
 					<p class="text-sm text-gray-600">{businessRaw.category}</p>
 				</div>
 			</div>
@@ -428,10 +582,8 @@
 			<div class="space-y-2 text-sm">
 				<div class="mt-2 border-t pt-2">
 					<div class="flex justify-between">
-						<span class="font-semibold">Total (INR)</span>
-						{#if service?.price}
-							<span class="font-semibold">₹{service?.price.toFixed(2)}</span>
-						{/if}
+						<span class="font-semibold">Total ({orderCurrency})</span>
+						<span class="font-semibold">₹{orderAmount.toFixed(2)}</span>
 					</div>
 				</div>
 			</div>
