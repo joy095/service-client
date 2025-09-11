@@ -168,6 +168,7 @@
 		time: string;
 		formatted: string;
 		datetime: Date;
+		unavailable: boolean;
 	}
 
 	let selectedSlots: TimeSlot[] = [];
@@ -215,17 +216,21 @@
 
 				while (current <= latestValidStart) {
 					const slotEnd = new Date(current.getTime() + serviceDuration * 60000);
-					if (!isSlotUnavailable(current, slotEnd)) {
-						selectedSlots.push({
-							time: `${String(current.getHours()).padStart(2, '0')}:${String(current.getMinutes()).padStart(2, '0')}`,
-							formatted: current.toLocaleTimeString([], {
-								hour: '2-digit',
-								minute: '2-digit',
-								timeZone: timeZone
-							}),
-							datetime: new Date(current)
-						});
-					}
+					const isUnavailable = isSlotUnavailable(current, slotEnd);
+
+					selectedSlots.push({
+						time: `${String(current.getHours()).padStart(2, '0')}:${String(
+							current.getMinutes()
+						).padStart(2, '0')}`,
+						formatted: current.toLocaleTimeString([], {
+							hour: '2-digit',
+							minute: '2-digit',
+							timeZone: timeZone
+						}),
+						datetime: new Date(current),
+						unavailable: isUnavailable
+					});
+
 					current = new Date(current.getTime() + interval * 60000);
 				}
 			}
@@ -235,13 +240,44 @@
 	}
 
 	// --- FETCH UNAVAILABLE TIMES ---
-	$: if (value && !isDateDisabled(value)) {
-		fetchUnavailableTimes(value);
+	// --- FETCH UNAVAILABLE TIMES ---
+	$: {
+		console.log('🔄 Reactive block triggered', {
+			value: value?.toString(),
+			hasValue: !!value,
+			serviceId,
+			hasServiceId: !!serviceId
+		});
+
+		if (value && serviceId) {
+			const isDisabled = isDateDisabled(value);
+			console.log('📅 Date disabled check:', {
+				date: value.toString(),
+				isDisabled,
+				minValue: minValue.toString(),
+				maxValue: maxValue.toString()
+			});
+
+			if (!isDisabled) {
+				console.log('🚀 Calling fetchUnavailableTimes');
+				fetchUnavailableTimes(value);
+			} else {
+				console.log('🚫 Date is disabled, skipping fetch');
+			}
+		} else {
+			console.log('⚠️ Skipping fetch - missing value or serviceId');
+		}
 	}
 
 	async function fetchUnavailableTimes(date: DateValue) {
+		console.log('🔍 fetchUnavailableTimes called with:', {
+			date: date.toString(),
+			serviceId,
+			hasServiceId: !!serviceId
+		});
+
 		if (!serviceId) {
-			console.warn('fetchUnavailableTimes: serviceId is missing');
+			console.warn('❌ fetchUnavailableTimes: serviceId is missing');
 			unavailableTimes = [];
 			loadingUnavailable = false;
 			errorMessage = 'No service selected. Please select a service to check availability.';
@@ -250,31 +286,74 @@
 
 		const dateString = date.toString();
 		loadingUnavailable = true;
+		console.log('📡 Fetching unavailable times for:', {
+			serviceId,
+			dateString
+		});
 
 		try {
 			const controller = new AbortController();
-			const timeoutId = setTimeout(() => controller.abort(), 5000);
+			const timeoutId = setTimeout(() => {
+				controller.abort();
+				console.error('⏰ Request timeout for unavailable times');
+			}, 10000);
 
-			const response = await fetch(
-				`/api/unavailable-times?serviceId=${serviceId}&date=${dateString}`,
-				{ signal: controller.signal, credentials: 'include' }
-			);
+			const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+			const apiUrl = `${baseUrl}/api/unavailable-times?serviceId=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(dateString)}`;
+
+			console.log('🌐 Making request to:', apiUrl);
+
+			const response = await fetch(apiUrl, {
+				signal: controller.signal,
+				credentials: 'include',
+				headers: {
+					Accept: 'application/json'
+				}
+			});
 			clearTimeout(timeoutId);
 
-			if (response.ok) {
-				const result = await response.json();
-				unavailableTimes = Array.isArray(result.times) ? result.times : [];
-				console.log('Unavailable times fetched:', unavailableTimes);
-			} else {
+			console.log('📥 Response received:', {
+				status: response.status,
+				statusText: response.statusText,
+				ok: response.ok
+			});
+
+			if (!response.ok) {
 				const errorText = await response.text();
-				console.error(`Failed to fetch unavailable times (${response.status}):`, errorText);
+				console.error(`❌ HTTP Error (${response.status}):`, errorText);
+				errorMessage = `Failed to fetch availability (${response.status})`;
+				unavailableTimes = [];
+				return;
+			}
+
+			const contentType = response.headers.get('content-type');
+			console.log('📄 Content-Type:', contentType);
+
+			if (contentType && contentType.includes('application/json')) {
+				const result = await response.json();
+				console.log('📋 Full response:', result);
+
+				// ✅ Access the times array correctly
+				unavailableTimes = Array.isArray(result.times) ? result.times : [];
+				console.log('✅ Unavailable times set:', unavailableTimes);
+			} else {
+				console.error('❌ Invalid content type:', contentType);
+				errorMessage = 'Invalid response format';
 				unavailableTimes = [];
 			}
-		} catch (err) {
-			console.error('Error fetching unavailable times:', err);
+		} catch (err: any) {
+			console.error('💥 Error in fetchUnavailableTimes:', err);
+			if (err.name === 'AbortError') {
+				console.error('⏰ Request aborted: Timeout fetching unavailable times');
+				errorMessage = 'Request timeout. Please try again.';
+			} else {
+				console.error('🚨 Error fetching unavailable times:', err);
+				errorMessage = 'Failed to fetch availability. Please try again.';
+			}
 			unavailableTimes = [];
 		} finally {
 			loadingUnavailable = false;
+			console.log('🏁 Finished fetching unavailable times');
 		}
 	}
 
@@ -588,43 +667,41 @@
 				<div class="flex max-h-[19.3rem] flex-col gap-2 overflow-auto">
 					{#if loadingUnavailable}
 						<div class="flex items-center justify-center py-8">
-							<span class="text-sm text-gray-500">Checking availability...</span>
+							<div class="flex items-center gap-2">
+								<div
+									class="border-primary h-4 w-4 animate-spin rounded-full border-2 border-t-transparent"
+								></div>
+								<span class="text-sm text-gray-500">Checking availability...</span>
+							</div>
 						</div>
 					{:else if value && selectedSlots.length > 0}
 						{#each selectedSlots as slot (slot.time)}
 							<button
 								on:click={() => selectTime(slot)}
-								disabled={isSlotUnavailable(
-									slot.datetime,
-									new Date(slot.datetime.getTime() + service.duration * 60000)
-								)}
-								class="rounded-lg border border-gray-300 px-4 py-2 text-sm transition duration-300
-                           {isSlotUnavailable(
-									slot.datetime,
-									new Date(slot.datetime.getTime() + service.duration * 60000)
-								)
-									? 'cursor-not-allowed bg-gray-200 opacity-60'
+								disabled={slot.unavailable}
+								class="relative rounded-lg border px-4 py-2 text-sm transition-all duration-200
+			{slot.unavailable
+									? 'cursor-not-allowed border-red-200 bg-red-50 text-red-400 line-through opacity-70'
 									: selectedTime === slot.formatted
-										? 'bg-primary border-primary text-white'
-										: 'cursor-pointer hover:bg-gray-100'}"
-								aria-pressed={selectedTime === slot.formatted}
-								aria-disabled={isSlotUnavailable(
-									slot.datetime,
-									new Date(slot.datetime.getTime() + service.duration * 60000)
-								)}
+										? 'border-primary bg-primary text-white shadow-md'
+										: 'cursor-pointer border-gray-300 bg-white hover:bg-gray-50 hover:shadow-sm'}"
 							>
 								{slot.formatted}
+								{#if slot.unavailable}
+									<span class="absolute top-1/2 right-2 -translate-y-1/2 text-xs"> 🔒 </span>
+								{/if}
 							</button>
 						{/each}
 					{:else if value}
-						<div class="flex items-center justify-center py-8">
-							<span class="text-sm text-red-500"
-								>No available slots for this date. Try another date.</span
-							>
+						<div class="flex flex-col items-center justify-center py-8 text-center">
+							<div class="mb-2 text-2xl">📅</div>
+							<span class="text-sm font-medium text-red-500">No available slots for this date</span>
+							<span class="mt-1 text-xs text-gray-500">Try selecting another date</span>
 						</div>
 					{:else}
-						<div class="flex items-center justify-center py-8">
-							<span class="text-sm text-gray-500">Please select a date first.</span>
+						<div class="flex flex-col items-center justify-center py-8 text-center">
+							<div class="mb-2 text-2xl">👈</div>
+							<span class="text-sm text-gray-500">Please select a date first</span>
 						</div>
 					{/if}
 				</div>
@@ -634,7 +711,8 @@
 							confirmBooking();
 							showCalendar = false;
 						}}
-						class="bg-primary hover:bg-accent hover:text-primary mt-4 w-full cursor-pointer rounded-lg py-2 text-sm font-medium text-white transition duration-300"
+						class="bg-primary hover:bg-accent hover:text-primary focus:ring-primary focus:ring-opacity-50 mt-4 w-full cursor-pointer rounded-lg py-2 text-sm font-medium text-white shadow-md transition
+							duration-300 hover:shadow-lg focus:ring-2 focus:outline-none"
 						disabled={loadingUnavailable || isBooking}
 					>
 						{isBooking
@@ -647,7 +725,12 @@
 					</button>
 				{/if}
 				{#if errorMessage}
-					<div class="mt-2 text-sm text-red-500">{errorMessage}</div>
+					<div class="mt-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+						<div class="flex items-start gap-2">
+							<span class="text-lg">⚠️</span>
+							<span>{errorMessage}</span>
+						</div>
+					</div>
 				{/if}
 			</div>
 		</div>
@@ -682,6 +765,40 @@
 
 	.hover\:text-primary:hover {
 		color: #000000;
+	}
+
+	/* Enhanced unavailable slot styling */
+	.line-through {
+		text-decoration: line-through;
+	}
+
+	/* Loading spinner */
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	.animate-spin {
+		animation: spin 1s linear infinite;
+	}
+
+	/* Focus styles */
+	.focus\:outline-none:focus {
+		outline: none;
+	}
+
+	.focus\:ring-2:focus {
+		--tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width)
+			var(--tw-ring-offset-color);
+		--tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width))
+			var(--tw-ring-color);
+		box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+	}
+
+	.focus\:ring-primary:focus {
+		--tw-ring-opacity: 1;
+		--tw-ring-color: rgba(0, 0, 0, var(--tw-ring-opacity));
 	}
 
 	@media (max-width: 768px) {
