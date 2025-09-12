@@ -56,7 +56,6 @@
 
 	const selectedDate = $page.url.searchParams.get('date');
 	const selectedServiceId = $page.url.searchParams.get('service');
-	const slotId = $page.url.searchParams.get('slotId');
 	const timeUrl = $page.url.searchParams.get('time');
 	const publicId = $page.params.publicId;
 
@@ -64,8 +63,7 @@
 		const searchParams = new URLSearchParams({
 			date: selectedDate || '',
 			timeUrl: timeUrl || '',
-			service: selectedServiceId || '',
-			slotId: slotId || ''
+			service: selectedServiceId || ''
 		});
 		goto(`/book/${publicId}?${searchParams.toString()}`);
 	}
@@ -198,18 +196,6 @@
 		isProcessing = true;
 
 		try {
-			if (
-				!selectedServiceId ||
-				!slotId ||
-				typeof selectedServiceId !== 'string' ||
-				typeof slotId !== 'string'
-			) {
-				errorMessage = 'Please select a service and time slot';
-				console.error('Invalid parameters:', { selectedServiceId, slotId });
-				isProcessing = false;
-				return;
-			}
-
 			if (selectedPaymentMethod === 'upi_id' && !validateUPI()) {
 				isProcessing = false;
 				return;
@@ -219,61 +205,66 @@
 				return;
 			}
 
-			// Step 1: Create the order with retry
-			const orderPayload = {
-				service_id: selectedServiceId,
-				slot_id: slotId
+			// Format the datetime properly for the API
+			const formatDateForAPI = (dateStr, timeStr) => {
+				if (!dateStr || !timeStr) return null;
+				// Assuming timeStr is in format "09:00", convert to "09:00:00Z"
+				const formattedTime =
+					timeStr.includes(':') && timeStr.split(':').length === 2 ? `${timeStr}:00Z` : timeStr;
+				return `${dateStr}T${formattedTime}`;
 			};
 
-			console.log('Creating order with payload:', orderPayload);
+			const startTime = formatDateForAPI(selectedDate, timeUrl);
 
-			let orderResponse;
-			for (let attempt = 1; attempt <= 2; attempt++) {
-				orderResponse = await fetch(`${PUBLIC_API_URL}/orders`, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					credentials: 'include',
-					body: JSON.stringify(orderPayload)
-				});
+			// Prepare the complete payload with all required fields
+			const paymentPayload: Record<string, any> = {
+				currency: orderCurrency,
+				service_id: selectedServiceId,
+				start_time: startTime,
+				payment_method: selectedPaymentMethod
+			};
 
-				if (orderResponse.ok) break;
-
-				const errorText = await orderResponse.text();
-				console.error(
-					`Order creation attempt ${attempt} failed:`,
-					errorText,
-					'Status:',
-					orderResponse.status
-				);
-				if (attempt === 2) {
-					try {
-						const errorData = JSON.parse(errorText);
-						errorMessage = errorData.error || 'Failed to create order. Please try again.';
-					} catch {
-						errorMessage = `Failed to create order (Status: ${orderResponse.status}). Please try again.`;
-					}
-					isProcessing = false;
-					return;
-				}
-				await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retry
+			if (selectedPaymentMethod === 'upi_id' && upiId) {
+				paymentPayload.upi_id = upiId;
 			}
 
-			const orderData = await orderResponse.json();
-			if (!orderData.order_id) {
-				errorMessage = 'Invalid order response: missing order_id';
-				console.error('Order response missing order_id:', orderData);
+			console.log('Sending payment request:', paymentPayload);
+
+			// Use your server endpoint
+			const paymentRes = await fetch('/api/payment', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify(paymentPayload)
+			});
+
+			const paymentData = await paymentRes.json();
+			console.log('Payment response:', paymentData);
+
+			if (!paymentRes.ok) {
+				errorMessage = paymentData.message || paymentData.error || 'Payment failed';
 				isProcessing = false;
 				return;
 			}
-			const order_id = orderData.order_id;
-			console.log('Order created successfully:', order_id);
 
-			// ... rest of the function (payment processing) remains unchanged
+			// Handle payment success
+			if (paymentData.status === 'success') {
+				// show success page / redirect
+				goto(`/booking/${paymentData.order_id}?success=1`);
+			} else if (paymentData.qr_code) {
+				// show QR code modal
+				qrCode = paymentData.qr_code;
+				showQR = true;
+			} else if (paymentData.upi_link) {
+				upiLink = paymentData.upi_link;
+				showLink = true;
+			} else {
+				errorMessage = 'Unexpected payment response';
+			}
 		} catch (err) {
 			console.error('Payment error:', err);
 			errorMessage = 'An unexpected error occurred. Please try again.';
+		} finally {
 			isProcessing = false;
 		}
 	}

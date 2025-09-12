@@ -23,7 +23,6 @@
 	const { workingHours, business, services } = data;
 	const publicId = $page.params.publicId;
 	const serviceId = $page.url.searchParams.get('service');
-	const slotId = $page.url.searchParams.get('slotId');
 	const dateFromUrl = $page.url.searchParams.get('date');
 	const timeFromUrl = $page.url.searchParams.get('time');
 	const service = serviceId ? services.find((s) => s.id === serviceId) || services[0] : services[0];
@@ -33,7 +32,7 @@
 	let minValue = today(tz).add({ days: 1 });
 	let maxValue = today(tz).add({ months: 3 });
 	let selectedTime: string | null = null;
-	let showCalendar = !slotId;
+	let showCalendar = false;
 	let unavailableTimes: { open_time: string; close_time: string }[] = [];
 	let loadingUnavailable = false;
 	let errorMessage: string | null = null;
@@ -380,71 +379,6 @@
 		return dateValue.toString();
 	}
 
-	// --- SLOT UPDATE LOGIC ---
-	async function updateSlot() {
-		if (!slotId || !value || !selectedTime || !service?.id) {
-			const missing = [];
-			if (!slotId) missing.push('slot ID');
-			if (!value) missing.push('date');
-			if (!selectedTime) missing.push('time');
-			if (!service?.id) missing.push('service');
-			errorMessage = `Please provide ${missing.join(', ')}.`;
-			return false;
-		}
-
-		const selectedDate = formatDateForURL(value);
-		const selectedSlot = selectedSlots.find((slot) => slot.formatted === selectedTime);
-
-		if (!selectedSlot) {
-			errorMessage = 'Selected time slot is invalid or unavailable.';
-			return false;
-		}
-
-		console.log('Updating slot with:', {
-			service_id: service.id,
-			date: selectedDate,
-			time: selectedSlot.time,
-			duration: service?.duration || 30
-		});
-
-		try {
-			const response = await fetch(`${PUBLIC_API_URL}/schedule-slots/${slotId}`, {
-				method: 'PATCH',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				credentials: 'include', // Include cookies (access_token)
-				body: JSON.stringify({
-					service_id: service.id,
-					date: selectedDate,
-					time: selectedSlot.time, // Use HH:MM format (e.g., "10:00")
-					duration: service?.duration || 30
-				})
-			});
-
-			if (response.ok) {
-				const result = await response.json();
-				console.log('Slot updated successfully:', result);
-				errorMessage = null;
-				return true;
-			} else {
-				const errorText = await response.text();
-				console.error(`Failed to update slot (${response.status}):`, errorText);
-				if (response.status === 401) {
-					errorMessage = 'Authentication failed. Please log in and try again.';
-					setTimeout(() => goto('/login'), 2000);
-				} else {
-					errorMessage = 'Failed to update the slot. Please try again.';
-				}
-				return false;
-			}
-		} catch (err) {
-			console.error('Error updating slot:', err);
-			errorMessage = 'An error occurred while updating the slot. Please try again.';
-			return false;
-		}
-	}
-
 	// --- BOOKING LOGIC ---
 	async function confirmBooking() {
 		if (!value || !selectedTime || !service?.id) {
@@ -468,58 +402,12 @@
 		isBooking = true;
 
 		try {
-			let resultId: string;
-			if (slotId) {
-				// Update existing slot
-				console.log('Attempting to update slot with time:', selectedTime);
-				const updated = await updateSlot();
-				if (!updated) {
-					isBooking = false;
-					return;
-				}
-				resultId = slotId;
-			} else {
-				// Create new booking
-				console.log('Creating new booking with time:', selectedTime);
-				const response = await fetch('/api/book', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					credentials: 'include',
-					body: JSON.stringify({
-						service_id: service.id,
-						date: selectedDate,
-						time: selectedSlot.time,
-						duration: service?.duration || 30
-					})
-				});
-
-				if (!response.ok) {
-					const errorText = await response.text();
-					console.error(`Failed to book slot (${response.status}):`, errorText);
-					if (response.status === 401) {
-						errorMessage = 'Authentication failed. Please log in and try again.';
-						setTimeout(() => goto('/login'), 2000);
-					} else {
-						errorMessage = 'Failed to book the slot. Please try again.';
-					}
-					isBooking = false;
-					return;
-				}
-
-				const result = await response.json();
-				console.log('Booking successful:', result);
-				resultId = result.id;
-			}
-
 			errorMessage = null;
 			showCalendar = false; // Close the modal after successful update/booking
 			const bookingParams = new URLSearchParams({
 				date: selectedDate,
 				time: selectedSlot.time, // Use HH:MM for consistency with URL
-				service: serviceId || '',
-				slotId: resultId
+				service: serviceId || ''
 			});
 			console.log('Redirecting to payment with params:', bookingParams.toString());
 			goto(`/book/${publicId}/pay?${bookingParams.toString()}`);
@@ -620,13 +508,9 @@
 					{loadingUnavailable
 						? 'Loading...'
 						: isBooking
-							? slotId
-								? 'Updating...'
-								: 'Booking...'
+							? 'Booking...'
 							: selectedTime
-								? slotId
-									? 'Update Slot'
-									: 'Book Now'
+								? 'Book Now'
 								: 'Check Availability'}
 				</button>
 			</div>
@@ -715,13 +599,7 @@
 							duration-300 hover:shadow-lg focus:ring-2 focus:outline-none"
 						disabled={loadingUnavailable || isBooking}
 					>
-						{isBooking
-							? slotId
-								? 'Updating...'
-								: 'Booking...'
-							: slotId
-								? 'Confirm Update'
-								: 'Confirm and Book'}
+						{isBooking ? 'Booking...' : 'Confirm and Book'}
 					</button>
 				{/if}
 				{#if errorMessage}
