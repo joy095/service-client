@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import { PUBLIC_IMAGE_URL, PUBLIC_API_URL } from '$env/static/public';
+	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 	import SecureImage from '$lib/components/SecureImage.svelte';
 	import formatDate from '$lib/dateFormat';
 	import { initializeFromServer } from '$lib/stores/authStore';
@@ -205,10 +205,9 @@
 				return;
 			}
 
-			// Format the datetime properly for the API
-			const formatDateForAPI = (dateStr, timeStr) => {
+			// Format datetime properly
+			const formatDateForAPI = (dateStr: string | null, timeStr: string | null) => {
 				if (!dateStr || !timeStr) return null;
-				// Assuming timeStr is in format "09:00", convert to "09:00:00Z"
 				const formattedTime =
 					timeStr.includes(':') && timeStr.split(':').length === 2 ? `${timeStr}:00Z` : timeStr;
 				return `${dateStr}T${formattedTime}`;
@@ -216,7 +215,7 @@
 
 			const startTime = formatDateForAPI(selectedDate, timeUrl);
 
-			// Prepare the complete payload with all required fields
+			// Prepare payload
 			const paymentPayload: Record<string, any> = {
 				currency: orderCurrency,
 				service_id: selectedServiceId,
@@ -230,7 +229,6 @@
 
 			console.log('Sending payment request:', paymentPayload);
 
-			// Use your server endpoint
 			const paymentRes = await fetch('/api/payment', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -247,20 +245,34 @@
 				return;
 			}
 
-			// Handle payment success
-			if (paymentData.status === 'success') {
-				// show success page / redirect
-				goto(`/booking/${paymentData.order_id}?success=1`);
-			} else if (paymentData.qr_code) {
-				// show QR code modal
-				qrCode = paymentData.qr_code;
-				showQR = true;
-			} else if (paymentData.upi_link) {
-				upiLink = paymentData.upi_link;
-				showLink = true;
-			} else {
-				errorMessage = 'Unexpected payment response';
+			// If immediate success (paid)
+			if (paymentData.status === 'paid') {
+				goto(`/book/success?order_id=${paymentData.order_id}`);
+				return;
 			}
+
+			// If payment is pending
+			if (paymentData.status === 'pending') {
+				if (paymentData.qr_code) {
+					qrCode = paymentData.qr_code;
+					showQR = true;
+					return;
+				}
+				if (paymentData.upi_link) {
+					upiLink = paymentData.upi_link;
+					showLink = true;
+					return;
+				}
+
+				// fallback: redirect after 10s if no QR/UPI
+				setTimeout(() => {
+					goto(`/book/success?order_id=${paymentData.order_id}`);
+				}, 10000);
+				return;
+			}
+
+			// Anything else → unexpected
+			errorMessage = 'Unexpected payment response';
 		} catch (err) {
 			console.error('Payment error:', err);
 			errorMessage = 'An unexpected error occurred. Please try again.';
