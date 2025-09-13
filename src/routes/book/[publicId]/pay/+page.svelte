@@ -10,6 +10,12 @@
 	import { tryRefreshToken } from '$lib/utils/refreshToken';
 	import { onMount } from 'svelte';
 	import { invalidate } from '$app/navigation';
+	import {
+		getLocalTimeZone,
+		parseDate,
+		parseTime,
+		toCalendarDateTime
+	} from '@internationalized/date';
 
 	let phone = '';
 	let loading = false;
@@ -206,12 +212,35 @@
 			}
 
 			// Format datetime properly
-			const formatDateForAPI = (dateStr: string | null, timeStr: string | null) => {
+			function formatDateForAPI(dateStr: string | null, timeStr: string | null) {
 				if (!dateStr || !timeStr) return null;
-				const formattedTime =
-					timeStr.includes(':') && timeStr.split(':').length === 2 ? `${timeStr}:00Z` : timeStr;
-				return `${dateStr}T${formattedTime}`;
-			};
+
+				// Parse date (YYYY-MM-DD) and time (HH:mm)
+				const date = parseDate(dateStr); // CalendarDate
+				const time = parseTime(timeStr); // Time
+
+				// Merge into CalendarDateTime
+				const dateTime = toCalendarDateTime(date, time);
+
+				// Get user's local timezone
+				const tz = getLocalTimeZone();
+
+				// Convert to JS Date in local timezone
+				const jsDate = dateTime.toDate(tz);
+
+				// Return full ISO string with correct offset
+				// Example: "2025-09-30T09:00:00+05:30"
+				const tzOffsetMinutes = jsDate.getTimezoneOffset();
+				const offsetSign = tzOffsetMinutes > 0 ? '-' : '+';
+				const offsetHours = String(Math.floor(Math.abs(tzOffsetMinutes) / 60)).padStart(2, '0');
+				const offsetMins = String(Math.abs(tzOffsetMinutes) % 60).padStart(2, '0');
+
+				return `${jsDate.getFullYear()}-${String(jsDate.getMonth() + 1).padStart(2, '0')}-${String(
+					jsDate.getDate()
+				).padStart(2, '0')}T${String(jsDate.getHours()).padStart(2, '0')}:${String(
+					jsDate.getMinutes()
+				).padStart(2, '0')}:00${offsetSign}${offsetHours}:${offsetMins}`;
+			}
 
 			const startTime = formatDateForAPI(selectedDate, timeUrl);
 
@@ -436,7 +465,7 @@
 									id="card_number"
 									type="text"
 									bind:value={cardNumber}
-									class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+									class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
 									placeholder="1234 5678 9012 3456"
 								/>
 							</div>
@@ -449,7 +478,7 @@
 										id="card_expiry"
 										type="text"
 										bind:value={cardExpiry}
-										class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+										class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
 										placeholder="MM/YY"
 									/>
 								</div>
@@ -459,7 +488,7 @@
 										id="card_cvv"
 										type="text"
 										bind:value={cardCvv}
-										class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+										class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
 										placeholder="123"
 									/>
 								</div>
@@ -472,7 +501,7 @@
 									id="card_name"
 									type="text"
 									bind:value={cardName}
-									class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+									class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
 									placeholder="John Doe"
 								/>
 							</div>
@@ -557,10 +586,27 @@
 			<!-- Confirm and Pay Button -->
 			<button
 				on:click={handlePayment}
-				disabled={selectedPaymentMethod === 'upi_id' && upiError}
-				class="w-full cursor-pointer rounded-lg bg-pink-500 px-6 py-3 font-medium text-white transition-colors duration-200 hover:bg-pink-600 disabled:bg-gray-400"
+				disabled={isProcessing || (selectedPaymentMethod === 'upi_id' && upiError)}
+				class="flex w-full items-center justify-center gap-2 rounded-lg px-6 py-3 font-medium text-white transition-colors duration-200
+		{isProcessing ? 'cursor-not-allowed bg-gray-400' : 'cursor-pointer bg-pink-500 hover:bg-pink-600'}"
 			>
-				Confirm and pay
+				{#if isProcessing}
+					<!-- Spinner -->
+					<svg
+						class="h-5 w-5 animate-spin text-white"
+						xmlns="http://www.w3.org/2000/svg"
+						fill="none"
+						viewBox="0 0 24 24"
+					>
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
+						></circle>
+						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+						></path>
+					</svg>
+					<span>Processing...</span>
+				{:else}
+					<span>Confirm and pay</span>
+				{/if}
 			</button>
 		</div>
 
