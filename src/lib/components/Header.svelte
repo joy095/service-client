@@ -63,6 +63,10 @@
 			<a href="/" class="logo text-xl font-bold">PremiumApp</a>
 		{/if}
 
+		{#if isOnDashboard}
+			<a href="/dashboard/orders" class="text-sm font-semibold active:underline">Orders</a>
+		{/if}
+
 		<div class="flex items-center gap-2">
 			{#if data.businessData?.businesses?.length > 0}
 				{#if showSwitchLink}

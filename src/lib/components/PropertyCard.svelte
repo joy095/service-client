@@ -10,16 +10,6 @@
 	} from '$lib/components/ui/carousel';
 	import type { CarouselAPI } from './ui/carousel/context';
 
-	interface Business {
-		name: string;
-		category: string;
-		city: string;
-		state: string;
-		country: string;
-		publicId: string;
-		images: { position: number; objectName: string }[];
-	}
-
 	let api = $state<CarouselAPI>();
 
 	const count = $derived(api ? api.scrollSnapList().length : 0);

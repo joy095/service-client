@@ -6,12 +6,9 @@ export async function GET({ url, fetch, params }) {
     console.log('🚀 API Route hit:', { path, params, url: url.toString() });
 
     if (path === 'unavailable-times' || path === 'unavailable-times/') {
-        console.log('🎯 Hit unavailable-times endpoint');
 
         const serviceId = url.searchParams.get('serviceId');
         const date = url.searchParams.get('date');
-
-        console.log('📥 Request params:', { serviceId, date });
 
         if (!serviceId || !date) {
             console.log('❌ Missing required params:', { serviceId: !!serviceId, date: !!date });
@@ -23,18 +20,10 @@ export async function GET({ url, fetch, params }) {
             const safeDate = encodeURIComponent(date);
             const apiUrl = `${PUBLIC_API_URL}/public/services/${safeServiceId}/unavailable-times?date=${safeDate}`;
 
-            console.log('🌐 Calling backend API:', apiUrl);
-
             const response = await fetch(apiUrl, {
                 headers: {
                     'Accept': 'application/json'
                 }
-            });
-
-            console.log('📥 Backend API response:', {
-                status: response.status,
-                statusText: response.statusText,
-                ok: response.ok
             });
 
             if (response.ok) {
@@ -44,10 +33,8 @@ export async function GET({ url, fetch, params }) {
                 }
 
                 const contentType = response.headers.get('content-type') ?? '';
-                console.log('📄 Content-Type:', contentType);
 
                 if (!contentType.includes('application/json')) {
-                    console.log('❌ Invalid content type, returning empty times');
                     return json({ times: [] });
                 }
 
@@ -61,7 +48,6 @@ export async function GET({ url, fetch, params }) {
                 }
 
                 const times = Array.isArray((result as any)?.times) ? (result as any).times : [];
-                console.log('✅ GET unavailable-times:', { times });
                 return json({ times });
 
             } else {

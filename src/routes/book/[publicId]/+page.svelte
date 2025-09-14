@@ -460,7 +460,7 @@
 			>
 				{#if business?.images?.[0]?.objectName}
 					<SecureImage
-						src="{PUBLIC_IMAGE_URL}/{business.images[0].objectName}"
+						src="{business.images[0].objectName}"
 						alt="Provider"
 						height={180}
 						width={220}
