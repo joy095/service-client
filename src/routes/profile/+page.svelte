@@ -67,7 +67,7 @@
 
 {#if user}
 	<div class="mx-auto max-w-3xl px-6 py-12">
-		<div class="flex flex-col items-center space-y-6 text-center">
+		<div class="flex flex-col items-start space-y-6">
 			<div
 				class="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-xl font-bold text-white shadow-lg"
 			>
@@ -87,6 +87,11 @@
 			>
 				{isEditing ? 'Cancel' : 'Edit Profile'}
 			</button>
+
+			<a
+				class="rounded-full bg-pink-600 px-6 py-2 font-medium text-white shadow-md transition hover:bg-pink-700"
+				href="/orders">View orders</a
+			>
 		</div>
 
 		{#if isEditing}
