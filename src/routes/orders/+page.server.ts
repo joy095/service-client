@@ -9,7 +9,6 @@ type Booking = {
     amount: number;
     status: 'pending' | 'paid';
     expectedDelivery: string | null;
-    qty: number;
 };
 
 export const load: PageServerLoad = async ({ cookies }) => {
