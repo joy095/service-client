@@ -3,7 +3,6 @@
 	import { get } from 'svelte/store';
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import Icon from '@iconify/svelte';
 	import Search from './Search.svelte';
@@ -45,10 +44,6 @@
 	$: isOnDashboard = pathname.startsWith('/dashboard');
 
 	$: showSwitchLink = $isAuthenticated && $hasBusiness;
-
-	function switchView(href: string) {
-		goto(href);
-	}
 </script>
 
 <nav class="navbar">
@@ -64,7 +59,7 @@
 		{/if}
 
 		{#if isOnDashboard}
-			<a href="/dashboard/orders" class="text-sm font-semibold active:underline">Orders</a>
+			<a href="/dashboard/orders" class="text-base font-medium hover:underline underline-offset-4">Orders</a>
 		{/if}
 
 		<div class="flex items-center gap-2">
@@ -136,9 +131,13 @@
 		</div>
 	</div>
 
-	<div class="flex justify-center">
-		<Search />
-	</div>
+	{#if isOnDashboard}
+		<div></div>
+	{:else}
+		<div class="flex justify-center">
+			<Search />
+		</div>
+	{/if}
 </nav>
 
 {#if $isFormOpen}
