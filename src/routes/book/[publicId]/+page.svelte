@@ -240,33 +240,33 @@
 
 	// --- FETCH UNAVAILABLE TIMES ---
 	// --- FETCH UNAVAILABLE TIMES ---
-	$: {
-		console.log('🔄 Reactive block triggered', {
-			value: value?.toString(),
-			hasValue: !!value,
-			serviceId,
-			hasServiceId: !!serviceId
-		});
+	// $: {
+	// 	console.log('🔄 Reactive block triggered', {
+	// 		value: value?.toString(),
+	// 		hasValue: !!value,
+	// 		serviceId,
+	// 		hasServiceId: !!serviceId
+	// 	});
 
-		if (value && serviceId) {
-			const isDisabled = isDateDisabled(value);
-			console.log('📅 Date disabled check:', {
-				date: value.toString(),
-				isDisabled,
-				minValue: minValue.toString(),
-				maxValue: maxValue.toString()
-			});
+	// 	if (value && serviceId) {
+	// 		const isDisabled = isDateDisabled(value);
+	// 		console.log('📅 Date disabled check:', {
+	// 			date: value.toString(),
+	// 			isDisabled,
+	// 			minValue: minValue.toString(),
+	// 			maxValue: maxValue.toString()
+	// 		});
 
-			if (!isDisabled) {
-				console.log('🚀 Calling fetchUnavailableTimes');
-				fetchUnavailableTimes(value);
-			} else {
-				console.log('🚫 Date is disabled, skipping fetch');
-			}
-		} else {
-			console.log('⚠️ Skipping fetch - missing value or serviceId');
-		}
-	}
+	// 		if (!isDisabled) {
+	// 			console.log('🚀 Calling fetchUnavailableTimes');
+	// 			fetchUnavailableTimes(value);
+	// 		} else {
+	// 			console.log('🚫 Date is disabled, skipping fetch');
+	// 		}
+	// 	} else {
+	// 		console.log('⚠️ Skipping fetch - missing value or serviceId');
+	// 	}
+	// }
 
 	async function fetchUnavailableTimes(date: DateValue) {
 		console.log('🔍 fetchUnavailableTimes called with:', {
@@ -460,7 +460,7 @@
 			>
 				{#if business?.images?.[0]?.objectName}
 					<SecureImage
-						src="{business.images[0].objectName}"
+						src="{PUBLIC_IMAGE_URL}/{business.images[0].objectName}"
 						alt="Provider"
 						height={180}
 						width={220}
