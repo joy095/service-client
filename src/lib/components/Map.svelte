@@ -138,14 +138,12 @@
 	});
 </script>
 
-<section class="container mx-auto">
-	{#if error}
-		<div class="text-red-600">{error}</div>
-	{/if}
+{#if error}
+	<div class="text-red-600">{error}</div>
+{/if}
 
-	<div
-		class="{className} className h-full w-full"
-		bind:this={mapContainer}
-		style="height: 500px; width: 100%;"
-	></div>
-</section>
+<div
+	class="{className} className"
+	bind:this={mapContainer}
+	style="height: 500px; width: 100%;"
+></div>

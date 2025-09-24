@@ -198,12 +198,12 @@
 	}
 </script>
 
-<div class="container">
+<div class="container mt-10">
 	<!-- Add New Service Button -->
 	<div class="mb-6 flex justify-end">
 		<button
 			on:click={openCreateModal}
-			class="rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-2.5 font-semibold text-white shadow-md transition-all duration-300 hover:from-indigo-700 hover:to-purple-700 active:scale-95"
+			class="cursor-pointer rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-2.5 font-semibold text-white shadow-md transition-all duration-300 hover:from-indigo-700 hover:to-purple-700 active:scale-95"
 		>
 			<svg class="mr-2 inline-block h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -215,50 +215,52 @@
 	<!-- Modal -->
 	{#if showModal}
 		<div
-			class="bg-opacity-70 fixed inset-0 z-50 flex items-center justify-center bg-black backdrop-blur-sm"
+			class="bg-opacity-70 fixed inset-0 z-50 flex items-center justify-center bg-black p-4 backdrop-blur-sm"
 			transition:fade={{ duration: 300, easing: cubicInOut }}
 		>
 			<div
-				class="w-full max-w-lg rounded-2xl border border-gray-200 bg-white bg-gradient-to-br from-white to-indigo-50 p-8 shadow-2xl"
+				class="w-full max-w-md rounded-2xl border border-gray-200 bg-white bg-gradient-to-br from-white to-indigo-50 p-6 shadow-2xl"
 				transition:scale={{ duration: 300, easing: cubicInOut, start: 0.95 }}
 			>
-				<h2 class="mb-6 text-3xl font-bold tracking-tight text-gray-900">
-					{modalMode === 'create' ? 'Create New Service' : 'Update Service'}
-				</h2>
+				<!-- Header with close button -->
+				<div class="mb-4 flex items-center justify-between">
+					<h2 class="text-2xl font-bold tracking-tight text-gray-900">
+						{modalMode === 'create' ? 'Create New Service' : 'Update Service'}
+					</h2>
+					<button
+						on:click={() => {
+							showModal = false;
+							resetForm();
+						}}
+						class="rounded-full p-1 text-gray-500 hover:bg-gray-100"
+						aria-label="Close"
+					>
+						<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M6 18L18 6M6 6l12 12"
+							/>
+						</svg>
+					</button>
+				</div>
 
 				<!-- Step Indicator -->
-				<div class="mb-8 flex justify-between">
+				<div class="mb-6 flex justify-between">
 					{#each [1, 2, 3] as step}
 						<div class="group relative flex flex-col items-center">
 							<div
-								class="flex h-10 w-10 items-center justify-center rounded-full font-semibold text-white transition-all duration-300 {currentStep >=
+								class="flex h-8 w-8 items-center justify-center rounded-full font-semibold text-white transition-all duration-300 {currentStep >=
 								step
 									? 'bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg'
 									: 'bg-gray-300'}"
 							>
 								{step}
 							</div>
-							<span class="mt-2 text-sm text-gray-700">
+							<span class="mt-1 text-xs text-gray-700">
 								{step === 1 ? 'Details' : step === 2 ? 'Pricing' : 'Image'}
 							</span>
-							<!-- Tooltip -->
-							<div
-								class="absolute -top-10 hidden rounded bg-gray-800 px-2 py-1 text-xs text-white group-hover:block"
-							>
-								Step {step}: {step === 1
-									? 'Basic Details'
-									: step === 2
-										? 'Pricing & Duration'
-										: 'Image Upload'}
-							</div>
-							{#if step < 3}
-								<div
-									class="absolute top-5 left-1/2 h-1 w-full max-w-[calc(50%+1rem)] flex-1 bg-gray-200 {currentStep >
-									step
-										? 'bg-gradient-to-r from-indigo-600 to-purple-600'
-										: ''}"
-								></div>
-							{/if}
 						</div>
 					{/each}
 				</div>
@@ -291,7 +293,7 @@
 					action={modalMode === 'create' ? '?/create' : '?/update'}
 					method="POST"
 					enctype="multipart/form-data"
-					class="space-y-6"
+					class="space-y-4"
 				>
 					<!-- Hidden fields for service ID when updating -->
 					{#if modalMode === 'update'}
@@ -338,7 +340,7 @@
 								id="description"
 								name="description"
 								bind:value={formData.description}
-								rows="4"
+								rows="3"
 								on:input={handleInput}
 								class="peer w-full rounded-lg border border-gray-300 bg-white p-3 pt-6 transition-all duration-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
 								placeholder=" "
@@ -421,7 +423,7 @@
 								<img
 									src={imagePreview}
 									alt="Service preview"
-									class="h-48 w-full rounded-lg border border-gray-200 object-cover shadow-sm"
+									class="h-40 w-full rounded-lg border border-gray-200 object-cover shadow-sm"
 								/>
 							</div>
 						{/if}
@@ -440,7 +442,7 @@
 					{/if}
 
 					<!-- Navigation Buttons -->
-					<div class="mt-8 flex justify-between space-x-3">
+					<div class="mt-6 flex justify-between space-x-3">
 						{#if currentStep === 1}
 							<button
 								type="button"
@@ -448,7 +450,7 @@
 									showModal = false;
 									resetForm();
 								}}
-								class="rounded-lg border border-gray-300 px-5 py-2 text-gray-700 transition-all duration-200 hover:bg-gray-100 active:scale-95"
+								class="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-all duration-200 hover:bg-gray-100 active:scale-95"
 								disabled={isSubmitting}
 							>
 								Cancel
@@ -456,7 +458,7 @@
 							<button
 								type="button"
 								on:click={nextStep}
-								class="rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-2 font-semibold text-white transition-all duration-200 hover:from-indigo-700 hover:to-purple-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+								class="cursor-pointer rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2 font-semibold text-white transition-all duration-200 hover:from-indigo-700 hover:to-purple-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
 								disabled={!isStepValid}
 							>
 								Next
@@ -465,7 +467,7 @@
 							<button
 								type="button"
 								on:click={prevStep}
-								class="rounded-lg border border-gray-300 px-5 py-2 text-gray-700 transition-all duration-200 hover:bg-gray-100 active:scale-95"
+								class="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-all duration-200 hover:bg-gray-100 active:scale-95"
 								disabled={isSubmitting}
 							>
 								Back
@@ -473,7 +475,7 @@
 							<button
 								type="button"
 								on:click={nextStep}
-								class="rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-2 font-semibold text-white transition-all duration-200 hover:from-indigo-700 hover:to-purple-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+								class="cursor-pointer rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2 font-semibold text-white transition-all duration-200 hover:from-indigo-700 hover:to-purple-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
 								disabled={!isStepValid}
 							>
 								Next
@@ -482,14 +484,14 @@
 							<button
 								type="button"
 								on:click={prevStep}
-								class="rounded-lg border border-gray-300 px-5 py-2 text-gray-700 transition-all duration-200 hover:bg-gray-100 active:scale-95"
+								class="cursor-pointer rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-all duration-200 hover:bg-gray-100 active:scale-95"
 								disabled={isSubmitting}
 							>
 								Back
 							</button>
 							<button
 								type="submit"
-								class="rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-5 py-2 font-semibold text-white transition-all duration-200 hover:from-indigo-700 hover:to-purple-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+								class="cursor-pointer rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-2 font-semibold text-white transition-all duration-200 hover:from-indigo-700 hover:to-purple-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
 								disabled={isSubmitting}
 							>
 								{#if isSubmitting}

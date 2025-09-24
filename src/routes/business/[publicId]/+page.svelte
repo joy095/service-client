@@ -7,8 +7,7 @@
 	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 	import Gallery from '$lib/components/Gallery.svelte';
 	import { isAuthenticated } from '$lib/stores/authStore';
-
-	// import Map from '$lib/components/Map.svelte';
+	import Map from '$lib/components/Map.svelte';
 
 	export let data;
 	const { business, services } = data;
@@ -57,7 +56,7 @@
 		<div class="services-grid">
 			{#each services as service (service.id)}
 				<div
-					class="service-card"
+					class="service-card group"
 					in:slide={{ duration: 600, delay: Number(service.id) * 100, easing: cubicOut }}
 				>
 					<div class="service-image-wrapper">
@@ -66,10 +65,9 @@
 							alt={service.name}
 							width={450}
 							height={320}
-							quality={90}
-							className="h-[18rem] w-full object-cover rounded-t-3xl"
+							quality={95}
+							className="h-[20rem] w-full object-cover rounded-2xl transition-transform duration-700 group-hover:scale-105"
 						/>
-
 						<div class="service-overlay">
 							{#if $isAuthenticated}
 								<a href="/book/{business.publicId}?service={service.id}" class="cta-button"
@@ -81,7 +79,7 @@
 						</div>
 					</div>
 					<div class="service-info">
-						<h3>{service.name}</h3>
+						<h3 class="service-title">{service.name}</h3>
 						<p class="description">{service.description}</p>
 						<div class="meta">
 							<span class="price">₹{service.price}</span>
@@ -101,46 +99,34 @@
 
 	<!-- Map -->
 	{#if business.latitude && business.longitude !== 0}
-		<div class="map-container mt-16">
-			<iframe
-				src={`https://maps.google.com/maps?q=${business.latitude},${business.longitude} (${encodeURIComponent(business.name)})&z=16&output=embed`}
-				class="h-[32rem] w-full rounded-3xl shadow-lg"
-				style="border:0;"
-				loading="lazy"
-				referrerpolicy="no-referrer-when-downgrade"
+		<div class="mt-16">
+			<Map
+				className="mt-10 overflow-hidden shadow-xl rounded-3xl !z-0 h-[32rem]"
+				storeLat={business.latitude}
+				storeLng={business.longitude}
+				businessName={business.name}
+				zoom={15}
 			/>
 		</div>
 	{/if}
 </div>
 
 <style>
-	:root {
-		--primary-color: #1a3c5e; /* Navy blue for elegance */
-		--accent-color: #d4a017; /* Gold for premium feel */
-		--text-color: #333333;
-		--background-color: #f9fafb;
+	:global(:root) {
+		--primary-color: #2d3748;
+		--accent-color: #e53e3e;
 		--card-background: #ffffff;
-		--shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-		--transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
-		--font-family: 'Inter', system-ui, -apple-system, sans-serif;
-	}
-
-	.container {
-		font-family: var(--font-family);
-		background: var(--background-color);
-	}
-
-	.business-header h1 {
-		color: var(--primary-color);
-		letter-spacing: -0.025em;
-	}
-
-	.business-header p {
-		color: var(--text-color);
+		--text-color: #4a5568;
+		--shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+		--transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+		--gradient-start: #4facfe;
+		--gradient-end: #00f2fe;
 	}
 
 	.services-section {
-		margin-top: 4rem;
+		padding: 3rem 1.5rem;
+		max-width: 1440px;
+		margin: 0 auto;
 	}
 
 	.section-title {
@@ -151,15 +137,20 @@
 		text-align: center;
 		letter-spacing: -0.03em;
 		position: relative;
+		background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
 	}
 
 	.section-title::after {
 		content: '';
 		display: block;
-		width: 60px;
-		height: 3px;
-		background: var(--accent-color);
+		width: 80px;
+		height: 4px;
+		background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
 		margin: 1rem auto 0;
+		border-radius: 2px;
 	}
 
 	.services-grid {
@@ -170,36 +161,35 @@
 
 	.service-card {
 		background: var(--card-background);
-		border-radius: 32px;
+		border-radius: 24px;
 		overflow: hidden;
 		box-shadow: var(--shadow);
 		transition: var(--transition);
 		position: relative;
 		border: 1px solid rgba(0, 0, 0, 0.03);
+		background: linear-gradient(145deg, #ffffff, #f9fafb);
 	}
 
 	.service-card:hover {
 		transform: translateY(-12px);
-		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
 	}
 
 	.service-image-wrapper {
 		position: relative;
 		overflow: hidden;
-	}
-
-	.service-image-wrapper img {
-		transition: var(--transition);
-	}
-
-	.service-card:hover .service-image-wrapper img {
-		transform: scale(1.05);
+		border-radius: 24px 24px 0 0;
 	}
 
 	.service-overlay {
 		position: absolute;
 		inset: 0;
-		background: linear-gradient(rgba(26, 60, 94, 0.4), rgba(212, 160, 23, 0.3));
+		background: linear-gradient(
+			to top,
+			rgba(0, 0, 0, 0.8) 0%,
+			rgba(0, 0, 0, 0.3) 50%,
+			rgba(0, 0, 0, 0.1) 100%
+		);
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -213,7 +203,7 @@
 
 	.cta-button {
 		padding: 1rem 2.5rem;
-		background: var(--accent-color);
+		background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
 		color: white;
 		border: none;
 		border-radius: 50px;
@@ -221,13 +211,31 @@
 		font-weight: 700;
 		cursor: pointer;
 		transition: var(--transition);
-		box-shadow: 0 4px 12px rgba(212, 160, 23, 0.3);
+		box-shadow: 0 4px 20px rgba(79, 172, 254, 0.4);
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.cta-button::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: -100%;
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+		transition: 0.5s;
+	}
+
+	.cta-button:hover::before {
+		left: 100%;
 	}
 
 	.cta-button:hover {
-		background: #b38b14;
-		transform: translateY(-2px);
-		box-shadow: 0 6px 16px rgba(212, 160, 23, 0.4);
+		transform: translateY(-3px);
+		box-shadow: 0 6px 25px rgba(79, 172, 254, 0.6);
 	}
 
 	.service-info {
@@ -237,17 +245,23 @@
 		gap: 1rem;
 	}
 
-	.service-info h3 {
+	.service-title {
 		font-size: 1.75rem;
 		font-weight: 700;
 		color: var(--primary-color);
-		margin: 0;
+		margin: 0 0 0.5rem;
+		transition: var(--transition);
+	}
+
+	.service-card:hover .service-title {
+		color: var(--gradient-start);
 	}
 
 	.description {
 		color: #4b5563;
 		font-size: 1.05rem;
 		line-height: 1.7;
+		margin: 0;
 	}
 
 	.meta {
@@ -257,17 +271,22 @@
 		font-weight: 600;
 		color: var(--text-color);
 		margin-top: auto;
+		padding-top: 1rem;
+		border-top: 1px solid rgba(0, 0, 0, 0.05);
 	}
 
 	.price {
 		color: var(--accent-color);
 		font-weight: 700;
+		font-size: 1.25rem;
 	}
 
-	.map-container {
-		border-radius: 32px;
-		overflow: hidden;
-		box-shadow: var(--shadow);
+	.duration {
+		color: #718096;
+		background: rgba(237, 242, 247, 0.8);
+		padding: 0.25rem 0.75rem;
+		border-radius: 50px;
+		font-weight: 500;
 	}
 
 	@media (max-width: 768px) {
@@ -283,5 +302,23 @@
 		.business-header h1 {
 			font-size: 3rem;
 		}
+
+		.service-info {
+			padding: 1.5rem;
+		}
+	}
+
+	/* Enhanced gallery styling */
+	.svelte-gallery {
+		border-radius: 24px;
+		overflow: hidden;
+		box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+	}
+
+	/* Map styling */
+	.map-container {
+		border-radius: 24px;
+		overflow: hidden;
+		box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
 	}
 </style>
