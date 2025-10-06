@@ -46,7 +46,7 @@
 						<CarouselItem class="h-56 w-full">
 							<a href={`/business/${encodeURIComponent(business.publicId)}`}>
 								<SecureImage
-									src="{PUBLIC_IMAGE_URL}/{img.objectName}"
+									src={img.objectName}
 									alt={`${business.name} image ${img.position}`}
 									width={600}
 									height={400}

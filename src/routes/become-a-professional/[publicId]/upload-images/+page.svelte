@@ -350,7 +350,7 @@
 								<SecureImage
 									src={preview.file
 										? preview.src
-										: `${PUBLIC_IMAGE_URL}/${preview.src.replace(/^\/+/, '')}`}
+										: `${preview.src.replace(/^\/+/, '')}`}
 									alt={preview.name}
 									className={`w-full ${index === 0 ? 'h-[25rem]' : 'h-[15rem]'} ${objectFits[index] || 'object-cover'}`}
 									on:load={(e) => handleLoad(e, index)}

@@ -11,6 +11,14 @@ declare global {
 				R2_BUCKET: R2Bucket;
 			};
 		}
+		interface Locals {
+			tokenData: {
+				user: User | null;
+				businessData: Business | null;
+				isAuthenticated: boolean;
+			};
+		}
+
 		// interface PageData {}
 		// interface PageState {}
 		interface Platform {

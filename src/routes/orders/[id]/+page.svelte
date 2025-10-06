@@ -62,7 +62,7 @@
 			<div class="flex items-center space-x-4">
 				{#if booking.objectName}
 					<SecureImage
-						src="{PUBLIC_IMAGE_URL}/{booking.objectName}"
+						src={booking.objectName}
 						alt={booking.serviceName || 'Service'}
 						className="h-20 w-20 rounded object-cover"
 						height={150}

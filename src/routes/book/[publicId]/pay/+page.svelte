@@ -615,7 +615,7 @@
 			<div class="mb-6 flex items-start space-x-4">
 				{#if service?.objectName}
 					<SecureImage
-						src="{PUBLIC_IMAGE_URL}/{service.objectName}"
+						src={service.objectName}
 						alt={service?.name}
 						height={120}
 						className="h-20 w-20 rounded object-cover"

@@ -61,7 +61,7 @@
 				>
 					<div class="service-image-wrapper">
 						<SecureImage
-							src="{PUBLIC_IMAGE_URL}/{service.objectName}"
+							src={service.objectName}
 							alt={service.name}
 							width={450}
 							height={320}

@@ -154,13 +154,13 @@
 			event.detail;
 		formData.latitude = latitude.toString();
 		formData.longitude = longitude.toString();
-		formData.address = address || 'Not provided';
+		formData.address = address || '';
 		formData.road = road || '';
 		formData.house_number = house_number || '';
-		formData.city = city || 'Not provided';
-		formData.state = state || 'Not provided';
-		formData.country = country || 'Not provided';
-		formData.postalCode = postalCode || 'Not provided';
+		formData.city = city || '';
+		formData.state = state || '';
+		formData.country = country || '';
+		formData.postalCode = postalCode || '';
 		errors.location = '';
 		errors.city = '';
 		errors.state = '';

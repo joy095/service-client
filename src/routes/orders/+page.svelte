@@ -14,7 +14,7 @@
 			serviceName: apiBooking.serviceName ?? 'Unknown Service',
 			amount: apiBooking.amount,
 			status: apiBooking.status === 'pending' ? 'Pending' : 'Paid',
-			expectedDelivery: apiBooking.expectedDelivery ?? '23rd March 2025',
+			dateOfBook: apiBooking.dateOfBook ?? '23rd March 2025',
 		};
 	}
 </script>
