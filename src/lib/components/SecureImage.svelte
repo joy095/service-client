@@ -87,6 +87,7 @@
 
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { PUBLIC_IMAGEKIT_URL_ENDPOINT } from '$env/static/public';
 
 	// --- Removed format prop as it's now hardcoded to 'auto' for best support ---
 	// export let format: 'webp' | 'avif' = 'avif'; // Removed
@@ -105,7 +106,7 @@
 	export let className = '';
 	export let fallback = '/image-placeholder.svg';
 
-	const IMAGEKIT_URL_ENDPOINT = import.meta.env.VITE_IMAGEKIT_URL_ENDPOINT;
+	const IMAGEKIT_URL_ENDPOINT = PUBLIC_IMAGEKIT_URL_ENDPOINT;
 	// e.g. https://ik.imagekit.io/eagkqm3v2
 
 	let isLoading = true;

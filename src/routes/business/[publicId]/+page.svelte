@@ -4,10 +4,10 @@
 	import { cubicOut } from 'svelte/easing';
 	import type { Image } from '$lib/types/index.js';
 	import SecureImage from '$lib/components/SecureImage.svelte';
-	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 	import Gallery from '$lib/components/Gallery.svelte';
 	import { isAuthenticated } from '$lib/stores/authStore';
 	import Map from '$lib/components/Map.svelte';
+	import { PUBLIC_BASE_URL, PUBLIC_IMAGEKIT_URL_ENDPOINT } from '$env/static/public';
 
 	export let data;
 	const { business, services } = data;
@@ -29,6 +29,31 @@
 				index
 			})) || [];
 </script>
+
+<svelte:head>
+	<title>{business.name}</title>
+	<meta name="description" content={business.about} />
+
+	<meta property="og:title" content={business.name} />
+	<meta property="og:description" content={business.about} />
+	<meta property="og:url" content={PUBLIC_BASE_URL + '/business/' + business.publicId} />
+	<meta
+		property="og:image"
+		content={PUBLIC_IMAGEKIT_URL_ENDPOINT + '/' + business.images[0].objectName}
+	/>
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content={business.name} />
+
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content={business.name} />
+	<meta name="twitter:description" content={business.about} />
+	<meta
+		name="twitter:image"
+		content={PUBLIC_IMAGEKIT_URL_ENDPOINT + '/' + business.images[0].objectName}
+	/>
+	<!-- <meta name="twitter:site" content={meta.twitterHandle} />
+	<meta name="twitter:creator" content={meta.twitterHandle} /> -->
+</svelte:head>
 
 <div class="container mx-auto mt-12 px-4 md:px-8 lg:px-12">
 	{#if images.length === 0}
