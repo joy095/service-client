@@ -553,7 +553,7 @@
 				>
 					{#if service.objectName}
 						<SecureImage
-							src="{PUBLIC_IMAGE_URL}/{service.objectName}"
+							src={service.objectName}
 							alt={service.name}
 							on:error={(e) => {
 								const target = e.currentTarget as HTMLImageElement;

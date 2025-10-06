@@ -107,7 +107,7 @@
 				>
 					{#if isMounted && mainImage}
 						<SecureImage
-							src="{PUBLIC_IMAGE_URL}/{mainImage}"
+							src={mainImage}
 							alt={images.find((img) => img.url === mainImage)?.alt || 'Main property image'}
 							fallback={fallbackImage}
 							className="h-full w-full object-cover"
@@ -131,7 +131,7 @@
 								tabindex="0"
 							>
 								<SecureImage
-									src="{PUBLIC_IMAGE_URL}/{image.url}"
+									src={image.url}
 									alt={image.alt}
 									fallback={fallbackImage}
 									className={`h-full w-full object-cover ${mainImage !== image.url ? 'opacity-50' : ''}`}
@@ -172,7 +172,7 @@
 				<!-- Carousel Image -->
 				<div class="flex h-full w-full items-center justify-center">
 					<SecureImage
-						src="{PUBLIC_IMAGE_URL}/{images[currentCarouselIndex].url}"
+						src={images[currentCarouselIndex].url}
 						alt={images[currentCarouselIndex].alt}
 						fallback={fallbackImage}
 						className="max-h-full max-w-full object-contain"

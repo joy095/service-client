@@ -85,7 +85,7 @@
 			{#if business.isServiceBusiness}
 				<a href="/dashboard/{business.publicId}" class="block">
 					<SecureImage
-						src="{PUBLIC_IMAGE_URL}/{business.images[0].objectName}"
+						src={business.images[0].objectName}
 						alt={business.name}
 						on:error={(e) => ((e.currentTarget as HTMLImageElement).src = '/image-placeholder.svg')}
 						className="h-[25rem] w-full rounded-lg object-cover"
@@ -95,7 +95,7 @@
 				</a>
 			{:else}
 				<SecureImage
-					src="{PUBLIC_IMAGE_URL}/{business.images[0].objectName}"
+					src={business.images[0].objectName}
 					alt={business.name}
 					height={400}
 					width={450}

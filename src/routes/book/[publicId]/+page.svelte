@@ -434,7 +434,7 @@
 		<div class="service-card col-span-2 overflow-hidden rounded-2xl bg-white shadow-xl">
 			{#if service?.objectName}
 				<SecureImage
-					src="{PUBLIC_IMAGE_URL}/{service.objectName}"
+					src={service.objectName}
 					alt={service?.name}
 					height={400}
 					className="w-full h-72 object-cover"
@@ -460,7 +460,7 @@
 			>
 				{#if business?.images?.[0]?.objectName}
 					<SecureImage
-						src="{PUBLIC_IMAGE_URL}/{business.images[0].objectName}"
+						src={business.images[0].objectName}
 						alt="Provider"
 						height={180}
 						width={220}

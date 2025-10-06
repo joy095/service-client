@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 	import SecureImage from './SecureImage.svelte';
 
 	export let booking: {
@@ -9,7 +10,7 @@
 		size?: string;
 		amount: number;
 		status: string;
-		expectedDelivery: string;
+		dateOfBook: string;
 	};
 
 	// Helper function for status styling
@@ -67,7 +68,7 @@
 				</div>
 			</div>
 
-			<!-- Price / Status / Delivery -->
+			<!-- Price / Status -->
 			<div class="grid grid-cols-5 gap-4">
 				<div class="col-span-5 flex items-center sm:col-span-1">
 					<div class="flex gap-3 sm:block">
@@ -93,11 +94,9 @@
 
 				<div class="col-span-5 flex items-center sm:col-span-2">
 					<div class="flex gap-3 sm:block">
-						<p class="text-sm leading-6 font-medium whitespace-nowrap text-black">
-							Expected Delivery
-						</p>
+						<p class="text-sm leading-6 font-medium whitespace-nowrap text-black">Booking date</p>
 						<p class="text-base leading-7 font-medium whitespace-nowrap text-emerald-500 sm:mt-3">
-							{booking.expectedDelivery}
+							{booking.dateOfBook}
 						</p>
 					</div>
 				</div>
