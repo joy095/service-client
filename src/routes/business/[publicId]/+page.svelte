@@ -6,7 +6,7 @@
 	import SecureImage from '$lib/components/SecureImage.svelte';
 	import Gallery from '$lib/components/Gallery.svelte';
 	import { isAuthenticated } from '$lib/stores/authStore';
-	import Map from '$lib/components/Map.svelte';
+	// import Map from '$lib/components/Map.svelte';
 	import { PUBLIC_BASE_URL, PUBLIC_IMAGEKIT_URL_ENDPOINT } from '$env/static/public';
 
 	export let data;
@@ -125,13 +125,20 @@
 	<!-- Map -->
 	{#if business.latitude && business.longitude !== 0}
 		<div class="mt-16">
-			<Map
+			<iframe
+				src={`https://maps.google.com/maps?q=${business.latitude},${business.longitude} (${encodeURIComponent(business.name)})&z=16&output=embed`}
+				class="h-[32rem] w-full rounded-3xl shadow-lg"
+				style="border:0;"
+				loading="lazy"
+				referrerpolicy="no-referrer-when-downgrade"
+			/>
+			<!-- <Map
 				className="mt-10 overflow-hidden shadow-xl rounded-3xl !z-0 h-[32rem]"
 				storeLat={business.latitude}
 				storeLng={business.longitude}
 				businessName={business.name}
 				zoom={15}
-			/>
+			/> -->
 		</div>
 	{/if}
 </div>
