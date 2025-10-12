@@ -11,5 +11,10 @@ export default defineConfig({
 			emitFile: true,
 			filename: 'stats.html'
 		})
-	]
+	],
+	preview: {
+		host: '0.0.0.0',
+		port: process.env.PORT || 4173,
+		allowedHosts: ['*']
+	}
 });
