@@ -80,12 +80,12 @@
 		if (orderId && orderId.trim().length > 0) {
 			checkStatus(orderId);
 
-			// Poll every 2s if still pending
+			// Poll every 5s if still pending
 			pollInterval = setInterval(() => {
 				if (!isSuccess && !isError) {
 					checkStatus(orderId);
 				}
-			}, 2000);
+			}, 5000);
 		} else {
 			status = 'missing order_id';
 			isError = true;
