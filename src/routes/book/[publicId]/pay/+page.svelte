@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import SecureImage from '$lib/components/SecureImage.svelte';
 	import formatDate from '$lib/dateFormat';
 	import { initializeFromServer } from '$lib/stores/authStore';
 	import formatTime from '$lib/timeFormat';
@@ -16,12 +15,32 @@
 		toCalendarDateTime
 	} from '@internationalized/date';
 
+	// Lazy load components
+	let SecureImage;
+	let LoadingSpinner;
+
+	onMount(async () => {
+		// Load components
+		const [SecureImageModule, LoadingSpinnerModule] = await Promise.all([
+			import('$lib/components/SecureImage.svelte'),
+			import('$lib/components/LoadingSpinner.svelte')
+		]);
+		SecureImage = SecureImageModule.default;
+		LoadingSpinner = LoadingSpinnerModule.default;
+
+		// Initialize auth
+		if (data.user) {
+			initializeFromServer(data.user);
+		} else {
+			tryRefreshToken();
+		}
+	});
+
 	let phone = '';
 	let loading = false;
 	let phoneErrorMessage = '';
 	let successMessage = '';
 
-	// Regex: supports +91 9876543210 OR +1 5551234567 etc.
 	const phoneRegex = /^\+?[1-9]\d{1,14}$/;
 
 	async function savePhone() {
@@ -210,25 +229,15 @@
 				return;
 			}
 
-			// Format datetime properly
 			function formatDateForAPI(dateStr: string | null, timeStr: string | null) {
 				if (!dateStr || !timeStr) return null;
 
-				// Parse date (YYYY-MM-DD) and time (HH:mm)
-				const date = parseDate(dateStr); // CalendarDate
-				const time = parseTime(timeStr); // Time
-
-				// Merge into CalendarDateTime
+				const date = parseDate(dateStr);
+				const time = parseTime(timeStr);
 				const dateTime = toCalendarDateTime(date, time);
-
-				// Get user's local timezone
 				const tz = getLocalTimeZone();
-
-				// Convert to JS Date in local timezone
 				const jsDate = dateTime.toDate(tz);
 
-				// Return full ISO string with correct offset
-				// Example: "2025-09-30T09:00:00+05:30"
 				const tzOffsetMinutes = jsDate.getTimezoneOffset();
 				const offsetSign = tzOffsetMinutes > 0 ? '-' : '+';
 				const offsetHours = String(Math.floor(Math.abs(tzOffsetMinutes) / 60)).padStart(2, '0');
@@ -243,7 +252,6 @@
 
 			const startTime = formatDateForAPI(selectedDate, timeUrl);
 
-			// Prepare payload
 			const paymentPayload: Record<string, any> = {
 				currency: orderCurrency,
 				service_id: selectedServiceId,
@@ -273,13 +281,11 @@
 				return;
 			}
 
-			// If immediate success (paid)
 			if (paymentData.status === 'paid') {
 				goto(`/book/success?order_id=${paymentData.order_id}`);
 				return;
 			}
 
-			// If payment is pending
 			if (paymentData.status === 'pending') {
 				if (paymentData.qr_code) {
 					qrCode = paymentData.qr_code;
@@ -292,14 +298,12 @@
 					return;
 				}
 
-				// fallback: redirect after 10s if no QR/UPI
 				setTimeout(() => {
 					goto(`/book/success?order_id=${paymentData.order_id}`);
 				}, 10000);
 				return;
 			}
 
-			// Anything else → unexpected
 			errorMessage = 'Unexpected payment response';
 		} catch (err) {
 			console.error('Payment error:', err);
@@ -308,335 +312,350 @@
 			isProcessing = false;
 		}
 	}
-
-	onMount(() => {
-		if (data.user) {
-			initializeFromServer(data.user);
-		} else {
-			tryRefreshToken();
-		}
-	});
 </script>
 
 <div class="min-h-screen bg-gray-50">
-	<main class="container mx-auto grid grid-cols-1 gap-8 px-4 py-8 md:grid-cols-2">
-		<!-- Left Column: Trip Details -->
-		<div class="space-y-6">
-			<!-- Rare Find Banner -->
-			<div class="flex items-start justify-between rounded-lg border border-gray-200 bg-white p-4">
-				<div>
-					<p class="font-medium text-gray-900">This is a rare find.</p>
-					<p class="text-sm text-gray-600">Shreyash's place is usually booked.</p>
-				</div>
-				<div class="text-pink-500">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						class="h-6 w-6"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-						/>
-					</svg>
-				</div>
-			</div>
-
-			<!-- Your booking -->
-			<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-				<h2 class="mb-4 text-lg font-semibold">Your booking</h2>
-				<div class="flex flex-col gap-3">
-					<div class="flex items-center justify-between">
-						<span class="text-sm font-medium text-gray-700">Dates</span>
-						<button on:click={goBack} class="cursor-pointer text-sm text-blue-600 hover:underline"
-							>Edit</button
+	{#if !SecureImage}
+		<div class="flex h-64 items-center justify-center">
+			{#if LoadingSpinner}
+				<svelte:component this={LoadingSpinner} />
+			{:else}
+				<div class="h-12 w-12 animate-spin rounded-full border-b-2 border-pink-500"></div>
+			{/if}
+		</div>
+	{:else}
+		<main class="container mx-auto grid grid-cols-1 gap-8 px-4 py-8 md:grid-cols-2">
+			<!-- Left Column: Trip Details -->
+			<div class="space-y-6">
+				<!-- Rare Find Banner -->
+				<div
+					class="flex items-start justify-between rounded-lg border border-gray-200 bg-white p-4"
+				>
+					<div>
+						<p class="font-medium text-gray-900">This is a rare find.</p>
+						<p class="text-sm text-gray-600">Shreyash's place is usually booked.</p>
+					</div>
+					<div class="text-pink-500">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							class="h-6 w-6"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
 						>
-					</div>
-					<p class="text-gray-900">{formatDate(selectedDate, -2)}</p>
-					<span class="text-sm font-medium text-gray-700">Time</span>
-					<p class="text-gray-900">{formatTime(timeUrl)}</p>
-				</div>
-			</div>
-
-			<!-- Payment Method -->
-			<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-				<h2 class="mb-4 text-lg font-semibold">Pay with</h2>
-				<div class="flex justify-between">
-					<div></div>
-					<div class="mb-4 flex items-center justify-between">
-						<div class="flex items-center gap-2">
-							<img src="/img/visa.svg" alt="Visa Card" class="h-6 w-6" />
-							<img src="/img/master-card.svg" alt="Mastercard" class="h-6 w-6" />
-							<img src="/img/rupay.svg" alt="RuPay" class="h-6 w-6" />
-							<img src="/img/upi.svg" alt="upi" class="h-6 w-6" />
-							<img src="/img/bank.svg" alt="bank" class="h-6 w-6" />
-						</div>
-					</div>
-				</div>
-
-				<div class="space-y-4">
-					<div class="relative">
-						<button
-							type="button"
-							on:click={toggleDropdown}
-							class="relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pr-10 pl-3 text-left text-gray-900 shadow-sm focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:outline-none sm:text-sm"
-							aria-haspopup="listbox"
-							aria-expanded={isDropdownOpen}
-							aria-labelledby="payment-method"
-						>
-							<span class="flex items-center">
-								<img
-									src={paymentOptions.find((o) => o.value === selectedPaymentMethod)?.image}
-									alt=""
-									class="mr-2 h-5 w-5"
-								/>
-								<span>{paymentOptions.find((o) => o.value === selectedPaymentMethod)?.label}</span>
-							</span>
-							<span
-								class="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2"
-							>
-								<svg
-									class="h-5 w-5 text-gray-400"
-									xmlns="http://www.w3.org/2000/svg"
-									viewBox="0 0 20 20"
-									fill="currentColor"
-									aria-hidden="true"
-								>
-									<path
-										fill-rule="evenodd"
-										d="M6.293 7.293a1 1 0 011.414 0L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-										clip-rule="evenodd"
-									/>
-								</svg>
-							</span>
-						</button>
-
-						{#if isDropdownOpen}
-							<ul
-								class="ring-opacity-5 absolute z-10 mt-1 w-full rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black focus:outline-none sm:text-sm"
-								role="listbox"
-								aria-activedescendant={selectedPaymentMethod}
-							>
-								{#each paymentOptions as option}
-									<li
-										class="relative cursor-default py-2 pr-9 pl-3 text-gray-900 select-none hover:bg-pink-100"
-										role="option"
-										on:click={() => selectPayment(option)}
-									>
-										<div class="flex items-center">
-											<img src={option.image} alt="" class="mr-2 h-5 w-5" />
-											<span class="font-normal">{option.label}</span>
-										</div>
-										{#if option.value === selectedPaymentMethod}
-											<span class="absolute inset-y-0 right-0 flex items-center pr-4 text-pink-600">
-												<svg
-													class="h-5 w-5"
-													xmlns="http://www.w3.org/2000/svg"
-													viewBox="0 0 20 20"
-													fill="currentColor"
-													aria-hidden="true"
-												>
-													<path
-														fill-rule="evenodd"
-														d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-														clip-rule="evenodd"
-													/>
-												</svg>
-											</span>
-										{/if}
-									</li>
-								{/each}
-							</ul>
-						{/if}
-					</div>
-
-					{#if selectedPaymentMethod === 'card'}
-						<div class="mt-4 space-y-4">
-							<div>
-								<label for="card_number" class="block text-sm font-medium text-gray-700"
-									>Card Number</label
-								>
-								<input
-									id="card_number"
-									type="text"
-									bind:value={cardNumber}
-									class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
-									placeholder="1234 5678 9012 3456"
-								/>
-							</div>
-							<div class="grid grid-cols-2 gap-4">
-								<div>
-									<label for="card_expiry" class="block text-sm font-medium text-gray-700"
-										>Expiry Date</label
-									>
-									<input
-										id="card_expiry"
-										type="text"
-										bind:value={cardExpiry}
-										class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
-										placeholder="MM/YY"
-									/>
-								</div>
-								<div>
-									<label for="card_cvv" class="block text-sm font-medium text-gray-700">CVV</label>
-									<input
-										id="card_cvv"
-										type="text"
-										bind:value={cardCvv}
-										class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
-										placeholder="123"
-									/>
-								</div>
-							</div>
-							<div>
-								<label for="card_name" class="block text-sm font-medium text-gray-700"
-									>Cardholder Name</label
-								>
-								<input
-									id="card_name"
-									type="text"
-									bind:value={cardName}
-									class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
-									placeholder="John Doe"
-								/>
-							</div>
-						</div>
-					{/if}
-
-					{#if selectedPaymentMethod === 'upi_id'}
-						<div class="mt-4">
-							<label for="upi_id_input" class="block text-sm font-medium text-gray-700"
-								>Your UPI ID</label
-							>
-							<input
-								id="upi_id_input"
-								type="text"
-								bind:value={upiId}
-								on:blur={validateUPI}
-								class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
-								placeholder="john123@upi"
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
 							/>
-							{#if upiError}
-								<p class="mt-1 text-sm text-red-500">{upiError}</p>
+						</svg>
+					</div>
+				</div>
+
+				<!-- Your booking -->
+				<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+					<h2 class="mb-4 text-lg font-semibold">Your booking</h2>
+					<div class="flex flex-col gap-3">
+						<div class="flex items-center justify-between">
+							<span class="text-sm font-medium text-gray-700">Dates</span>
+							<button on:click={goBack} class="cursor-pointer text-sm text-blue-600 hover:underline"
+								>Edit</button
+							>
+						</div>
+						<p class="text-gray-900">{formatDate(selectedDate, -2)}</p>
+						<span class="text-sm font-medium text-gray-700">Time</span>
+						<p class="text-gray-900">{formatTime(timeUrl)}</p>
+					</div>
+				</div>
+
+				<!-- Payment Method -->
+				<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+					<h2 class="mb-4 text-lg font-semibold">Pay with</h2>
+					<div class="flex justify-between">
+						<div></div>
+						<div class="mb-4 flex items-center justify-between">
+							<div class="flex items-center gap-2">
+								<img src="/img/visa.svg" alt="Visa Card" class="h-6 w-6" />
+								<img src="/img/master-card.svg" alt="Mastercard" class="h-6 w-6" />
+								<img src="/img/rupay.svg" alt="RuPay" class="h-6 w-6" />
+								<img src="/img/upi.svg" alt="upi" class="h-6 w-6" />
+								<img src="/img/bank.svg" alt="bank" class="h-6 w-6" />
+							</div>
+						</div>
+					</div>
+
+					<div class="space-y-4">
+						<div class="relative">
+							<button
+								type="button"
+								on:click={toggleDropdown}
+								class="relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pr-10 pl-3 text-left text-gray-900 shadow-sm focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:outline-none sm:text-sm"
+								aria-haspopup="listbox"
+								aria-expanded={isDropdownOpen}
+								aria-labelledby="payment-method"
+							>
+								<span class="flex items-center">
+									<img
+										src={paymentOptions.find((o) => o.value === selectedPaymentMethod)?.image}
+										alt=""
+										class="mr-2 h-5 w-5"
+									/>
+									<span>{paymentOptions.find((o) => o.value === selectedPaymentMethod)?.label}</span
+									>
+								</span>
+								<span
+									class="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2"
+								>
+									<svg
+										class="h-5 w-5 text-gray-400"
+										xmlns="http://www.w3.org/2000/svg"
+										viewBox="0 0 20 20"
+										fill="currentColor"
+										aria-hidden="true"
+									>
+										<path
+											fill-rule="evenodd"
+											d="M6.293 7.293a1 1 0 011.414 0L10 9.586l2.293-2.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+											clip-rule="evenodd"
+										/>
+									</svg>
+								</span>
+							</button>
+
+							{#if isDropdownOpen}
+								<ul
+									class="ring-opacity-5 absolute z-10 mt-1 w-full rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black focus:outline-none sm:text-sm"
+									role="listbox"
+									aria-activedescendant={selectedPaymentMethod}
+								>
+									{#each paymentOptions as option}
+										<li
+											class="relative cursor-default py-2 pr-9 pl-3 text-gray-900 select-none hover:bg-pink-100"
+											role="option"
+											on:click={() => selectPayment(option)}
+										>
+											<div class="flex items-center">
+												<img src={option.image} alt="" class="mr-2 h-5 w-5" />
+												<span class="font-normal">{option.label}</span>
+											</div>
+											{#if option.value === selectedPaymentMethod}
+												<span
+													class="absolute inset-y-0 right-0 flex items-center pr-4 text-pink-600"
+												>
+													<svg
+														class="h-5 w-5"
+														xmlns="http://www.w3.org/2000/svg"
+														viewBox="0 0 20 20"
+														fill="currentColor"
+														aria-hidden="true"
+													>
+														<path
+															fill-rule="evenodd"
+															d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+															clip-rule="evenodd"
+														/>
+													</svg>
+												</span>
+											{/if}
+										</li>
+									{/each}
+								</ul>
 							{/if}
 						</div>
-					{/if}
 
-					{#if errorMessage}
-						<p class="mt-1 text-sm text-red-500">{errorMessage}</p>
-					{/if}
+						{#if selectedPaymentMethod === 'card'}
+							<div class="mt-4 space-y-4">
+								<div>
+									<label for="card_number" class="block text-sm font-medium text-gray-700"
+										>Card Number</label
+									>
+									<input
+										id="card_number"
+										type="text"
+										bind:value={cardNumber}
+										class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+										placeholder="1234 5678 9012 3456"
+									/>
+								</div>
+								<div class="grid grid-cols-2 gap-4">
+									<div>
+										<label for="card_expiry" class="block text-sm font-medium text-gray-700"
+											>Expiry Date</label
+										>
+										<input
+											id="card_expiry"
+											type="text"
+											bind:value={cardExpiry}
+											class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+											placeholder="MM/YY"
+										/>
+									</div>
+									<div>
+										<label for="card_cvv" class="block text-sm font-medium text-gray-700">CVV</label
+										>
+										<input
+											id="card_cvv"
+											type="text"
+											bind:value={cardCvv}
+											class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+											placeholder="123"
+										/>
+									</div>
+								</div>
+								<div>
+									<label for="card_name" class="block text-sm font-medium text-gray-700"
+										>Cardholder Name</label
+									>
+									<input
+										id="card_name"
+										type="text"
+										bind:value={cardName}
+										class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+										placeholder="John Doe"
+									/>
+								</div>
+							</div>
+						{/if}
+
+						{#if selectedPaymentMethod === 'upi_id'}
+							<div class="mt-4">
+								<label for="upi_id_input" class="block text-sm font-medium text-gray-700"
+									>Your UPI ID</label
+								>
+								<input
+									id="upi_id_input"
+									type="text"
+									bind:value={upiId}
+									on:blur={validateUPI}
+									class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+									placeholder="john123@upi"
+								/>
+								{#if upiError}
+									<p class="mt-1 text-sm text-red-500">{upiError}</p>
+								{/if}
+							</div>
+						{/if}
+
+						{#if errorMessage}
+							<p class="mt-1 text-sm text-red-500">{errorMessage}</p>
+						{/if}
+					</div>
 				</div>
-			</div>
 
-			<!-- User Phone -->
-			{#if user?.phone == null}
+				<!-- User Phone -->
+				{#if user?.phone == null}
+					<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+						<h2 class="mb-4 text-lg font-semibold">Add phone</h2>
+
+						<input
+							bind:value={phone}
+							class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+							type="text"
+							placeholder="+91 1234567890"
+						/>
+
+						<button
+							class="mt-3 w-full rounded-md bg-pink-600 px-4 py-2 text-white shadow hover:bg-pink-700 disabled:opacity-50"
+							on:click={savePhone}
+							disabled={loading || !phone}
+						>
+							{loading ? 'Saving...' : 'Save'}
+						</button>
+
+						{#if phoneErrorMessage}
+							<p class="mt-2 text-sm text-red-500">{phoneErrorMessage}</p>
+						{/if}
+
+						{#if successMessage}
+							<p class="mt-2 text-sm text-green-600">{successMessage}</p>
+						{/if}
+					</div>
+				{/if}
+
+				<!-- Cancellation Policy -->
 				<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-					<h2 class="mb-4 text-lg font-semibold">Add phone</h2>
-
-					<input
-						bind:value={phone}
-						class="mt-1 block w-full rounded-md border-gray-300 p-2 shadow-sm focus:border-pink-500 focus:ring-pink-500"
-						type="text"
-						placeholder="+91 1234567890"
-					/>
-
-					<button
-						class="mt-3 w-full rounded-md bg-pink-600 px-4 py-2 text-white shadow hover:bg-pink-700 disabled:opacity-50"
-						on:click={savePhone}
-						disabled={loading || !phone}
-					>
-						{loading ? 'Saving...' : 'Save'}
-					</button>
-
-					{#if phoneErrorMessage}
-						<p class="mt-2 text-sm text-red-500">{phoneErrorMessage}</p>
-					{/if}
-
-					{#if successMessage}
-						<p class="mt-2 text-sm text-green-600">{successMessage}</p>
-					{/if}
+					<h2 class="mb-4 text-lg font-semibold">Cancellation policy</h2>
+					<p class="text-sm text-gray-800">
+						Free cancellation before 1:00pm on {formatDate(selectedDate, -2)}. After that, the
+						reservation is non-refundable
+					</p>
+					<a href="/cancellationPolicy" class="text-sm text-blue-600 hover:underline">Learn more</a>
 				</div>
-			{/if}
 
-			<!-- Cancellation Policy -->
-			<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-				<h2 class="mb-4 text-lg font-semibold">Cancellation policy</h2>
-				<p class="text-sm text-gray-800">
-					Free cancellation before 1:00pm on {formatDate(selectedDate, -2)}. After that, the
-					reservation is non-refundable
-				</p>
-				<a href="/cancellationPolicy" class="text-sm text-blue-600 hover:underline">Learn more</a>
-			</div>
+				<!-- Terms Agreement -->
+				<div class="mt-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+					<p class="text-xs leading-relaxed text-gray-600">
+						By selecting the button below, I agree to the
+						<a href="/refund-policy" class="text-blue-600 hover:underline"
+							>our booking and Refund Policy</a
+						>
+					</p>
+				</div>
 
-			<!-- Terms Agreement -->
-			<div class="mt-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-				<p class="text-xs leading-relaxed text-gray-600">
-					By selecting the button below, I agree to the
-					<a href="/refund-policy" class="text-blue-600 hover:underline"
-						>our booking and Refund Policy</a
-					>
-				</p>
-			</div>
-
-			<!-- Confirm and Pay Button -->
-			<button
-				on:click={handlePayment}
-				disabled={isProcessing || (selectedPaymentMethod === 'upi_id' && upiError)}
-				class="flex w-full items-center justify-center gap-2 rounded-lg px-6 py-3 font-medium text-white transition-colors duration-200
+				<!-- Confirm and Pay Button -->
+				<button
+					on:click={handlePayment}
+					disabled={isProcessing || (selectedPaymentMethod === 'upi_id' && upiError)}
+					class="flex w-full items-center justify-center gap-2 rounded-lg px-6 py-3 font-medium text-white transition-colors duration-200
 		{isProcessing ? 'cursor-not-allowed bg-gray-400' : 'cursor-pointer bg-pink-500 hover:bg-pink-600'}"
-			>
-				{#if isProcessing}
-					<!-- Spinner -->
-					<svg
-						class="h-5 w-5 animate-spin text-white"
-						xmlns="http://www.w3.org/2000/svg"
-						fill="none"
-						viewBox="0 0 24 24"
-					>
-						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"
-						></circle>
-						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-						></path>
-					</svg>
-					<span>Processing...</span>
-				{:else}
-					<span>Confirm and pay</span>
-				{/if}
-			</button>
-		</div>
-
-		<!-- Right Column: Property & Total -->
-		<div class="sticky top-3/12 h-fit rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-			<div class="mb-6 flex items-start space-x-4">
-				{#if service?.objectName}
-					<SecureImage
-						src={service.objectName}
-						alt={service?.name}
-						height={120}
-						className="h-20 w-20 rounded object-cover"
-					/>
-				{/if}
-				<div>
-					<h3 class="font-semibold text-gray-900">{businessRaw.name}</h3>
-					<p class="text-sm text-gray-600">{businessRaw.category}</p>
-				</div>
+				>
+					{#if isProcessing}
+						<!-- Spinner -->
+						<svg
+							class="h-5 w-5 animate-spin text-white"
+							xmlns="http://www.w3.org/2000/svg"
+							fill="none"
+							viewBox="0 0 24 24"
+						>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+							></path>
+						</svg>
+						<span>Processing...</span>
+					{:else}
+						<span>Confirm and pay</span>
+					{/if}
+				</button>
 			</div>
 
-			<h2 class="mb-4 text-lg font-semibold">Your total</h2>
-			<div class="space-y-2 text-sm">
-				<div class="mt-2 border-t pt-2">
-					<div class="flex justify-between">
-						<span class="font-semibold">Total ({orderCurrency})</span>
-						<span class="font-semibold">₹{orderAmount.toFixed(2)}</span>
+			<!-- Right Column: Property & Total -->
+			<div class="sticky top-3/12 h-fit rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+				<div class="mb-6 flex items-start space-x-4">
+					{#if service?.objectName}
+						<svelte:component
+							this={SecureImage}
+							src={service.objectName}
+							alt={service?.name}
+							height={120}
+							className="h-20 w-20 rounded object-cover"
+						/>
+					{/if}
+					<div>
+						<h3 class="font-semibold text-gray-900">{businessRaw.name}</h3>
+						<p class="text-sm text-gray-600">{businessRaw.category}</p>
+					</div>
+				</div>
+
+				<h2 class="mb-4 text-lg font-semibold">Your total</h2>
+				<div class="space-y-2 text-sm">
+					<div class="mt-2 border-t pt-2">
+						<div class="flex justify-between">
+							<span class="font-semibold">Total ({orderCurrency})</span>
+							<span class="font-semibold">₹{orderAmount.toFixed(2)}</span>
+						</div>
 					</div>
 				</div>
 			</div>
-		</div>
-	</main>
+		</main>
+	{/if}
 </div>
 
 {#if showQR}

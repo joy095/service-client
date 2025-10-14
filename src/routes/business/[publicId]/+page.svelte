@@ -4,36 +4,81 @@
 	import { cubicOut } from 'svelte/easing';
 	import type { Image } from '$lib/types/index.js';
 	import SecureImage from '$lib/components/SecureImage.svelte';
-	import Gallery from '$lib/components/Gallery.svelte';
 	import { isAuthenticated } from '$lib/stores/authStore';
-	// import Map from '$lib/components/Map.svelte';
 	import { PUBLIC_BASE_URL, PUBLIC_IMAGEKIT_URL_ENDPOINT } from '$env/static/public';
 
 	export let data;
 	const { business, services } = data;
 
-	let isVisible = false;
+	// Lazy-loaded components
+	import { SvelteComponent } from 'svelte';
+	let GalleryComponent: typeof SvelteComponent | null = null;
 
-	onMount(() => {
-		isVisible = true;
-		return () => (isVisible = false);
-	});
+	// Visibility flags
+	let galleryVisible = false;
+	let servicesVisible = false;
+	let mapVisible = false;
+
+	// Section refs
+	let galleryContainer: HTMLDivElement | null = null;
+	let servicesContainer: HTMLDivElement | null = null;
+	let mapContainer: HTMLDivElement | null = null;
 
 	const images: Image[] =
 		business.images
-			?.filter((img) => img?.objectName) // Only valid images
+			?.filter((img) => img?.objectName)
 			.map((img, index) => ({
-				id: img.imageId?.toString() || crypto.randomUUID(), // Fallback ID
-				url: img.objectName.trim(), // Trim whitespace
+				id: img.imageId?.toString() || crypto.randomUUID(),
+				url: img.objectName.trim(),
 				alt: `${business.name} - Gallery image ${index + 1}`,
 				index
 			})) || [];
+
+	onMount(() => {
+		const observers: IntersectionObserver[] = [];
+
+		// Helper to create observer
+		const createObserver = (element: HTMLElement | null, callback: () => void) => {
+			if (!element) return;
+			const observer = new IntersectionObserver(
+				(entries) => {
+					if (entries[0].isIntersecting) {
+						callback();
+						observer.disconnect();
+					}
+				},
+				{ threshold: 0.25 }
+			);
+			observer.observe(element);
+			observers.push(observer);
+		};
+
+		// Lazy load gallery
+		createObserver(galleryContainer, async () => {
+			if (!GalleryComponent) {
+				const mod = await import('$lib/components/Gallery.svelte');
+				GalleryComponent = mod.default as unknown as typeof import('$lib/components/Gallery.svelte');
+			}
+			galleryVisible = true;
+		});
+
+		// Lazy load services
+		createObserver(servicesContainer, () => {
+			servicesVisible = true;
+		});
+
+		// Lazy load map
+		createObserver(mapContainer, () => {
+			mapVisible = true;
+		});
+
+		return () => observers.forEach((obs) => obs.disconnect());
+	});
 </script>
 
 <svelte:head>
 	<title>{business.name}</title>
 	<meta name="description" content={business.about} />
-
 	<meta property="og:title" content={business.name} />
 	<meta property="og:description" content={business.about} />
 	<meta property="og:url" content={PUBLIC_BASE_URL + '/business/' + business.publicId} />
@@ -43,7 +88,6 @@
 	/>
 	<meta property="og:type" content="website" />
 	<meta property="og:site_name" content={business.name} />
-
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:title" content={business.name} />
 	<meta name="twitter:description" content={business.about} />
@@ -51,23 +95,29 @@
 		name="twitter:image"
 		content={PUBLIC_IMAGEKIT_URL_ENDPOINT + '/' + business.images[0].objectName}
 	/>
-	<!-- <meta name="twitter:site" content={meta.twitterHandle} />
-	<meta name="twitter:creator" content={meta.twitterHandle} /> -->
 </svelte:head>
 
 <div class="container mx-auto mt-12 px-4 md:px-8 lg:px-12">
-	{#if images.length === 0}
-		<div class="flex justify-center">
-			<img
-				src="https://archive.org/details/placeholder-image"
-				alt="No images available"
-				class="max-w-md rounded-3xl opacity-50"
-			/>
-		</div>
-	{:else}
-		<Gallery {images} />
-	{/if}
+	<!-- Lazy Gallery -->
+	<div bind:this={galleryContainer} class="min-h-[20rem]">
+		{#if images.length === 0}
+			<div class="flex justify-center">
+				<img
+					src="https://archive.org/details/placeholder-image"
+					alt="No images available"
+					class="max-w-md rounded-3xl opacity-50"
+				/>
+			</div>
+		{:else if galleryVisible && GalleryComponent}
+			<svelte:component this={GalleryComponent} {images} />
+		{:else}
+			<div class="flex h-[20rem] animate-pulse items-center justify-center text-gray-400">
+				Loading gallery...
+			</div>
+		{/if}
+	</div>
 
+	<!-- Business Info -->
 	<div class="business-header mt-8 text-center">
 		<h1 class="text-primary text-4xl font-bold md:text-5xl">{business.name}</h1>
 		<p class="text-accent mt-2 text-xl">{business.category}</p>
@@ -75,70 +125,81 @@
 		<p class="mx-auto mt-4 max-w-3xl text-base leading-relaxed text-gray-700">{business.about}</p>
 	</div>
 
-	<!-- Services -->
-	<section class="services-section mt-16" in:fade={{ duration: 800, delay: 400, easing: cubicOut }}>
-		<h2 class="section-title">Our Premium Services</h2>
-		<div class="services-grid">
-			{#each services as service (service.id)}
-				<div
-					class="service-card group"
-					in:slide={{ duration: 600, delay: Number(service.id) * 100, easing: cubicOut }}
-				>
-					<div class="service-image-wrapper">
-						<SecureImage
-							src={service.objectName}
-							alt={service.name}
-							width={450}
-							height={320}
-							quality={95}
-							className="h-[20rem] w-full object-cover rounded-2xl transition-transform duration-700 group-hover:scale-105"
-						/>
-						<div class="service-overlay">
-							{#if $isAuthenticated}
-								<a href="/book/{business.publicId}?service={service.id}" class="cta-button"
-									>Book Now</a
-								>
-							{:else}
-								<a href="/login" class="cta-button">Book Now</a>
-							{/if}
-						</div>
-					</div>
-					<div class="service-info">
-						<h3 class="service-title">{service.name}</h3>
-						<p class="description">{service.description}</p>
-						<div class="meta">
-							<span class="price">₹{service.price}</span>
-							<span class="duration">
-								{#if service.duration >= 60}
-									{Math.floor(service.duration / 60)}h {service.duration % 60}m
+	<!-- Lazy Services -->
+	<section
+		bind:this={servicesContainer}
+		class="services-section mt-16 min-h-[20rem]"
+		in:fade={{ duration: 800, delay: 200, easing: cubicOut }}
+	>
+		{#if servicesVisible}
+			<h2 class="section-title mb-8 text-center">Our Premium Services</h2>
+			<div class="services-grid">
+				{#each services as service (service.id)}
+					<div
+						class="service-card group"
+						in:slide={{ duration: 600, delay: Number(service.id) * 100, easing: cubicOut }}
+					>
+						<div class="service-image-wrapper">
+							<SecureImage
+								src={service.objectName}
+								alt={service.name}
+								width={450}
+								height={320}
+								quality={95}
+								className="h-[20rem] w-full object-cover rounded-2xl transition-transform duration-700 group-hover:scale-105"
+							/>
+							<div class="service-overlay">
+								{#if $isAuthenticated}
+									<a href="/book/{business.publicId}?service={service.id}" class="cta-button"
+										>Book Now</a
+									>
 								{:else}
-									{service.duration}m
+									<a href="/login" class="cta-button">Book Now</a>
 								{/if}
-							</span>
+							</div>
+						</div>
+						<div class="service-info">
+							<h3 class="service-title">{service.name}</h3>
+							<p class="description">{service.description}</p>
+							<div class="meta">
+								<span class="price">₹{service.price}</span>
+								<span class="duration">
+									{#if service.duration >= 60}
+										{Math.floor(service.duration / 60)}h {service.duration % 60}m
+									{:else}
+										{service.duration}m
+									{/if}
+								</span>
+							</div>
 						</div>
 					</div>
-				</div>
-			{/each}
-		</div>
+				{/each}
+			</div>
+		{:else}
+			<div class="flex h-[20rem] animate-pulse items-center justify-center text-gray-400">
+				Loading services...
+			</div>
+		{/if}
 	</section>
 
-	<!-- Map -->
+	<!-- Lazy Map -->
 	{#if business.latitude && business.longitude !== 0}
-		<div class="mt-16">
-			<iframe
-				src={`https://maps.google.com/maps?q=${business.latitude},${business.longitude} (${encodeURIComponent(business.name)})&z=16&output=embed`}
-				class="h-[32rem] w-full rounded-3xl shadow-lg"
-				style="border:0;"
-				loading="lazy"
-				referrerpolicy="no-referrer-when-downgrade"
-			/>
-			<!-- <Map
-				className="mt-10 overflow-hidden shadow-xl rounded-3xl !z-0 h-[32rem]"
-				storeLat={business.latitude}
-				storeLng={business.longitude}
-				businessName={business.name}
-				zoom={15}
-			/> -->
+		<div bind:this={mapContainer} class="mt-16 min-h-[32rem]">
+			{#if mapVisible}
+				<iframe
+					src={`https://maps.google.com/maps?q=${business.latitude},${business.longitude} (${encodeURIComponent(
+						business.name
+					)})&z=16&output=embed`}
+					class="h-[32rem] w-full rounded-3xl shadow-lg"
+					style="border:0;"
+					loading="lazy"
+					referrerpolicy="no-referrer-when-downgrade"
+				/>
+			{:else}
+				<div class="flex h-[32rem] animate-pulse items-center justify-center text-gray-400">
+					Loading map...
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 	import SecureImage from '$lib/components/SecureImage.svelte';
 
 	export let data;
@@ -96,19 +95,4 @@
 			<span>{formatCurrency(booking.amount)}</span>
 		</div>
 	</div>
-
-	<!-- Action Buttons -->
-	<!-- <div class="mt-6 flex space-x-3">
-		<button
-			class="flex-1 rounded-lg bg-blue-600 py-3 text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-			disabled={booking.status !== 'pending'}
-		>
-			{booking.status === 'pending' ? 'Manage Booking' : 'View Details'}
-		</button>
-		<button
-			class="rounded-lg border border-gray-300 px-6 py-3 text-gray-700 transition-colors hover:bg-gray-50"
-		>
-			Contact Business
-		</button>
-	</div> -->
 </div>

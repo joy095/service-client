@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { PUBLIC_IMAGE_URL } from '$env/static/public';
+	import formatDate from '$lib/dateFormat';
 	import SecureImage from './SecureImage.svelte';
 
 	export let booking: {
@@ -10,7 +10,7 @@
 		size?: string;
 		amount: number;
 		status: string;
-		dateOfBook: string;
+		createdAt: string;
 	};
 
 	// Helper function for status styling
@@ -96,7 +96,7 @@
 					<div class="flex gap-3 sm:block">
 						<p class="text-sm leading-6 font-medium whitespace-nowrap text-black">Booking date</p>
 						<p class="text-base leading-7 font-medium whitespace-nowrap text-emerald-500 sm:mt-3">
-							{booking.dateOfBook}
+							{formatDate(booking.createdAt)}
 						</p>
 					</div>
 				</div>
