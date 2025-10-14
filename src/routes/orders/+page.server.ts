@@ -1,6 +1,7 @@
 // src/routes/bookings/+page.server.ts
 import type { PageServerLoad } from './$types';
 import { PUBLIC_API_URL } from '$env/static/public';
+import type { Time } from '@internationalized/date';
 
 type Booking = {
     id: string;
@@ -8,7 +9,7 @@ type Booking = {
     serviceName: string;
     amount: number;
     status: 'pending' | 'paid';
-    expectedDelivery: string | null;
+    createdAt: Time | string;
 };
 
 export const load: PageServerLoad = async ({ cookies }) => {

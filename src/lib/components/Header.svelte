@@ -4,13 +4,18 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import { page } from '$app/stores';
-	import Icon from '@iconify/svelte';
+	import { Icon } from 'svelte-icons-pack';
 	import Search from './Search.svelte';
 	import Form from './Form.svelte';
 	import { logout } from '$lib/auth/logout';
 	import { isAuthenticated } from '$lib/stores/authStore';
 	import { hasBusiness } from '$lib/stores/businessStore';
 	import type { Business, User } from '$lib/types';
+
+	import { CgProfile } from 'svelte-icons-pack/cg';
+	import { IoSettingsOutline, IoHelpCircleOutline } from 'svelte-icons-pack/io';
+	import { AiOutlineMenu } from 'svelte-icons-pack/ai';
+	import { HiOutlineShoppingBag } from 'svelte-icons-pack/hi';
 
 	export let data: {
 		user: User | null;
@@ -59,7 +64,9 @@
 		{/if}
 
 		{#if isOnDashboard}
-			<a href="/dashboard/orders" class="text-base font-medium hover:underline underline-offset-4">Orders</a>
+			<a href="/dashboard/orders" class="text-base font-medium underline-offset-4 hover:underline"
+				>Orders</a
+			>
 		{/if}
 
 		<div class="flex items-center gap-2">
@@ -103,12 +110,12 @@
 					aria-controls="main-menu"
 					aria-label="Open menu"
 				>
-					<Icon class="h-5 w-5 text-black" icon="material-symbols:menu-rounded" />
+					<Icon className="h-4 w-4 text-black" src={AiOutlineMenu} />
 				</button>
 
 				<div class:toggled={isMenuOpen} id="menu-container">
 					<a class="divide flex items-center gap-2" href="/">
-						<Icon icon="material-symbols:help-outline-rounded" width="24" height="24" />
+						<Icon className="h-6 w-6 text-black" src={IoHelpCircleOutline} />
 						Help center
 					</a>
 
@@ -117,10 +124,18 @@
 					{#if $isAuthenticated}
 						<div class="divide flex flex-col">
 							<a href="/profile" class="flex items-center gap-2">
-								<Icon icon="mdi:account-circle" width="24" height="24" />
+								<Icon className="h-5 w-5 text-black" src={CgProfile} />
+
 								Profile
 							</a>
-							<a href="/settings">Account settings</a>
+							<a href="/settings" class="flex items-center gap-2">
+								<Icon className="h-5 w-5 text-black" src={IoSettingsOutline} />
+								Account settings</a
+							>
+							<a href="/orders" class="flex items-center gap-2">
+								<Icon className="h-5 w-5 text-black" src={HiOutlineShoppingBag} />
+								Booking</a
+							>
 						</div>
 						<button on:click={logout}>Logout</button>
 					{:else}

@@ -5,8 +5,11 @@
 	let isSuccess = false;
 	let isError = false;
 	let pollInterval: number | null = null;
+	let requestCount = 0;
 
-	// Helper: make status text user-friendly
+	const MAX_REQUESTS = 24;
+	const MAX_DURATION_MS = 2 * 60 * 1000; // 2 minutes
+
 	function prettyStatus(status: string): string {
 		switch (status.toLowerCase()) {
 			case 'paid':
@@ -23,11 +26,23 @@
 	}
 
 	async function checkStatus(orderId: string) {
+		requestCount++;
+
+		if (requestCount > MAX_REQUESTS) {
+			status = 'failed';
+			isError = true;
+			stopPolling();
+			redirectHome();
+			return;
+		}
+
 		try {
 			const res = await fetch(`/api/payment-status?order_id=${encodeURIComponent(orderId)}`);
 			if (!res.ok) {
 				status = `failed to fetch status (${res.status})`;
 				isError = true;
+				stopPolling();
+				redirectHome();
 				return;
 			}
 
@@ -37,59 +52,69 @@
 			if (['success', 'paid', 'completed'].includes(status.toLowerCase())) {
 				isSuccess = true;
 				isError = false;
-
-				// Stop polling
-				if (pollInterval) {
-					clearInterval(pollInterval);
-					pollInterval = null;
-				}
-
-				// Auto-redirect after 5s
-				setTimeout(() => {
-					window.location.href = '/';
-				}, 5000);
+				stopPolling();
+				setTimeout(redirectHome, 5000);
 			} else if (status.toLowerCase() === 'pending') {
-				// keep polling
 				isSuccess = false;
 				isError = false;
 			} else {
 				isError = true;
-
-				// Stop polling
-				if (pollInterval) {
-					clearInterval(pollInterval);
-					pollInterval = null;
-				}
+				stopPolling();
+				setTimeout(redirectHome, 5000);
 			}
 		} catch {
 			status = 'network error';
 			isError = true;
-
-			// Stop polling
-			if (pollInterval) {
-				clearInterval(pollInterval);
-				pollInterval = null;
-			}
+			stopPolling();
+			setTimeout(redirectHome, 5000);
 		}
+	}
+
+	function stopPolling() {
+		if (pollInterval) {
+			clearInterval(pollInterval);
+			pollInterval = null;
+		}
+	}
+
+	function redirectHome() {
+		window.location.href = '/';
 	}
 
 	onMount(() => {
 		const url = new URL(window.location.href);
 		const orderId = url.searchParams.get('order_id');
 
-		if (orderId && orderId.trim().length > 0) {
-			checkStatus(orderId);
-
-			// Poll every 5s if still pending
-			pollInterval = setInterval(() => {
-				if (!isSuccess && !isError) {
-					checkStatus(orderId);
-				}
-			}, 5000);
-		} else {
+		if (!orderId || orderId.trim().length === 0) {
 			status = 'missing order_id';
 			isError = true;
+			return;
 		}
+
+		checkStatus(orderId);
+
+		// Stop after 2 minutes regardless of result
+		const timeout = setTimeout(() => {
+			if (!isSuccess) {
+				status = 'failed';
+				isError = true;
+				stopPolling();
+				redirectHome();
+			}
+		}, MAX_DURATION_MS);
+
+		// Poll every 5s
+		pollInterval = setInterval(() => {
+			if (!isSuccess && !isError) {
+				checkStatus(orderId);
+			}
+		}, 5000);
+
+		// Cleanup on unmount
+		return () => {
+			stopPolling();
+			clearTimeout(timeout);
+		};
 	});
 </script>
 
@@ -101,13 +126,12 @@
 	>
 		<div class="mb-6">
 			{#if isSuccess}
-				<!-- ✅ Success icon -->
+				<!-- ✅ Success -->
 				<svg
 					class="mx-auto h-20 w-20 text-green-500"
 					fill="none"
 					stroke="currentColor"
 					viewBox="0 0 24 24"
-					xmlns="http://www.w3.org/2000/svg"
 				>
 					<path
 						stroke-linecap="round"
@@ -117,13 +141,12 @@
 					/>
 				</svg>
 			{:else if isError}
-				<!-- ❌ Error icon -->
+				<!-- ❌ Error -->
 				<svg
 					class="mx-auto h-20 w-20 text-red-500"
 					fill="none"
 					stroke="currentColor"
 					viewBox="0 0 24 24"
-					xmlns="http://www.w3.org/2000/svg"
 				>
 					<path
 						stroke-linecap="round"
@@ -133,13 +156,12 @@
 					/>
 				</svg>
 			{:else}
-				<!-- ⏳ Loading icon -->
+				<!-- ⏳ Loading -->
 				<svg
 					class="mx-auto h-20 w-20 animate-spin text-yellow-500"
 					fill="none"
 					stroke="currentColor"
 					viewBox="0 0 24 24"
-					xmlns="http://www.w3.org/2000/svg"
 				>
 					<circle cx="12" cy="12" r="10" stroke-width="4" class="opacity-25" />
 					<path
@@ -168,7 +190,7 @@
 				<br />
 				<span class="text-sm text-gray-500">(Redirecting to home in 5 seconds...)</span>
 			{:else if isError}
-				⚠️ Something went wrong with your payment. Please try again or contact support.
+				⚠️ Something went wrong with your payment. Redirecting shortly...
 			{:else}
 				⏳ Checking payment status, please wait...
 			{/if}

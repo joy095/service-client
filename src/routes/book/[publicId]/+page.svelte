@@ -1,6 +1,9 @@
 <script lang="ts">
-	import SecureImage from '$lib/components/SecureImage.svelte';
-	import Calendar from '$lib/components/ui/calendar/calendar.svelte';
+	// Lazy load components
+	import { onMount, type ComponentType } from 'svelte';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
+	import { PUBLIC_IMAGE_URL, PUBLIC_API_URL } from '$env/static/public';
 	import {
 		getLocalTimeZone,
 		today,
@@ -8,10 +11,21 @@
 		type DateValue
 	} from '@internationalized/date';
 	import type { WorkingHour, Service, Business } from '$lib/types/index.js';
-	import { PUBLIC_IMAGE_URL, PUBLIC_API_URL } from '$env/static/public';
-	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
 	import Icon from '@iconify/svelte';
+
+	// --- LAZY LOADED COMPONENTS ---
+	let SecureImage: ComponentType | null = null;
+	let Calendar: ComponentType | null = null;
+
+	// Load components when needed
+	onMount(async () => {
+		const [imageModule, calendarModule] = await Promise.all([
+			import('$lib/components/SecureImage.svelte'),
+			import('$lib/components/ui/calendar/calendar.svelte')
+		]);
+		SecureImage = imageModule.default;
+		Calendar = calendarModule.default;
+	});
 
 	// --- DATA FROM SERVER ---
 	export let data: {
@@ -47,7 +61,7 @@
 
 	// Initialize and validate time slot from URL
 	$: if (timeFromUrl && value && selectedSlots.length > 0 && !selectedTime) {
-		const decodedTime = decodeURIComponent(timeFromUrl); // e.g., "09:30" or "9:30 AM"
+		const decodedTime = decodeURIComponent(timeFromUrl);
 		console.log('Decoded time from URL:', decodedTime);
 		const matchingSlot = selectedSlots.find(
 			(slot) => slot.time === decodedTime || slot.formatted === decodedTime
@@ -60,18 +74,18 @@
 				new Date(matchingSlot.datetime.getTime() + (service?.duration || 30) * 60000)
 			)
 		) {
-			selectedTime = matchingSlot.formatted; // Set to formatted time (e.g., "9:30 AM")
+			selectedTime = matchingSlot.formatted;
 			console.log('Time slot set from URL:', selectedTime);
-			showCalendar = false; // Close calendar if valid slot is set
+			showCalendar = false;
 		} else {
 			selectedTime = null;
 			errorMessage =
 				'The time slot from the URL is invalid or unavailable. Please select a new time.';
-			showCalendar = true; // Show calendar to allow user to pick a new time
+			showCalendar = true;
 		}
 	} else if (!timeFromUrl && !selectedTime) {
 		selectedTime = null;
-		showCalendar = true; // Show calendar if no time is provided
+		showCalendar = true;
 	}
 
 	const dayNameMap: Record<number, string> = {
@@ -239,35 +253,6 @@
 	}
 
 	// --- FETCH UNAVAILABLE TIMES ---
-	// --- FETCH UNAVAILABLE TIMES ---
-	// $: {
-	// 	console.log('🔄 Reactive block triggered', {
-	// 		value: value?.toString(),
-	// 		hasValue: !!value,
-	// 		serviceId,
-	// 		hasServiceId: !!serviceId
-	// 	});
-
-	// 	if (value && serviceId) {
-	// 		const isDisabled = isDateDisabled(value);
-	// 		console.log('📅 Date disabled check:', {
-	// 			date: value.toString(),
-	// 			isDisabled,
-	// 			minValue: minValue.toString(),
-	// 			maxValue: maxValue.toString()
-	// 		});
-
-	// 		if (!isDisabled) {
-	// 			console.log('🚀 Calling fetchUnavailableTimes');
-	// 			fetchUnavailableTimes(value);
-	// 		} else {
-	// 			console.log('🚫 Date is disabled, skipping fetch');
-	// 		}
-	// 	} else {
-	// 		console.log('⚠️ Skipping fetch - missing value or serviceId');
-	// 	}
-	// }
-
 	async function fetchUnavailableTimes(date: DateValue) {
 		console.log('🔍 fetchUnavailableTimes called with:', {
 			date: date.toString(),
@@ -332,7 +317,6 @@
 				const result = await response.json();
 				console.log('📋 Full response:', result);
 
-				// ✅ Access the times array correctly
 				unavailableTimes = Array.isArray(result.times) ? result.times : [];
 				console.log('✅ Unavailable times set:', unavailableTimes);
 			} else {
@@ -403,10 +387,10 @@
 
 		try {
 			errorMessage = null;
-			showCalendar = false; // Close the modal after successful update/booking
+			showCalendar = false;
 			const bookingParams = new URLSearchParams({
 				date: selectedDate,
-				time: selectedSlot.time, // Use HH:MM for consistency with URL
+				time: selectedSlot.time,
 				service: serviceId || ''
 			});
 			console.log('Redirecting to payment with params:', bookingParams.toString());
@@ -422,8 +406,6 @@
 	function selectTime(slot: TimeSlot) {
 		selectedTime = slot.formatted;
 		console.log('New time selected:', selectedTime);
-		// Optionally close the modal after selecting a time to streamline the flow
-		// showCalendar = false;
 	}
 </script>
 
@@ -432,8 +414,9 @@
 	<div class="page-wrapper grid grid-cols-1 gap-8 md:grid-cols-3">
 		<!-- Service Details -->
 		<div class="service-card col-span-2 overflow-hidden rounded-2xl bg-white shadow-xl">
-			{#if service?.objectName}
-				<SecureImage
+			{#if service?.objectName && SecureImage}
+				<svelte:component
+					this={SecureImage}
 					src={service.objectName}
 					alt={service?.name}
 					height={400}
@@ -458,8 +441,9 @@
 			<div
 				class="barber-card flex flex-col items-center rounded-2xl bg-white p-6 text-center shadow-xl"
 			>
-				{#if business?.images?.[0]?.objectName}
-					<SecureImage
+				{#if business?.images?.[0]?.objectName && SecureImage}
+					<svelte:component
+						this={SecureImage}
 						src={business.images[0].objectName}
 						alt="Provider"
 						height={180}
@@ -542,7 +526,16 @@
 			<!-- Calendar -->
 			<div class="dates">
 				<h3 class="mb-4 text-2xl font-bold">Select Date</h3>
-				<Calendar type="single" bind:value {minValue} {maxValue} {isDateDisabled} />
+				{#if Calendar}
+					<svelte:component
+						this={Calendar}
+						type="single"
+						bind:value
+						{minValue}
+						{maxValue}
+						{isDateDisabled}
+					/>
+				{/if}
 			</div>
 
 			<!-- Time Slots -->

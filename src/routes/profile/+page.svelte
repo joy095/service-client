@@ -78,6 +78,7 @@
 					{user.firstName}
 					{user.lastName}
 				</h1>
+				<p class="mt-1 text-gray-500">{user.email || 'No email number added'}</p>
 				<p class="mt-1 text-gray-500">{user.phone || 'No phone number added'}</p>
 			</div>
 

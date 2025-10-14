@@ -1,5 +1,8 @@
 <script lang="ts">
-	import PropertyCard from '$lib/components/PropertyCard.svelte';
+	let lazyPropertyCard: Promise<typeof import('$lib/components/PropertyCard.svelte')>;
+
+	lazyPropertyCard = import('$lib/components/PropertyCard.svelte');
+
 	import type { PageData } from './$types';
 
 	export let data: PageData;
@@ -41,11 +44,13 @@
 			<p class="mt-4">No businesses found</p>
 		</div>
 	{:else}
-		<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
-			{#each businesses as business (business.publicId)}
-				<PropertyCard {business} />
-			{/each}
-		</div>
+		{#await lazyPropertyCard then { default: LazyPropertyCard }}
+			<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
+				{#each businesses as business (business.publicId)}
+					<LazyPropertyCard {business} />
+				{/each}
+			</div>
+		{/await}
 	{/if}
 </div>
 
