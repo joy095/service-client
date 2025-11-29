@@ -11,7 +11,7 @@
 	const { business, services } = data;
 
 	// Lazy-loaded components
-	import { SvelteComponent } from 'svelte';
+	import type { SvelteComponent } from 'svelte';
 	let GalleryComponent: typeof SvelteComponent | null = null;
 
 	// Visibility flags
@@ -57,7 +57,8 @@
 		createObserver(galleryContainer, async () => {
 			if (!GalleryComponent) {
 				const mod = await import('$lib/components/Gallery.svelte');
-				GalleryComponent = mod.default as unknown as typeof import('$lib/components/Gallery.svelte');
+				GalleryComponent =
+					mod.default as unknown as typeof import('$lib/components/Gallery.svelte');
 			}
 			galleryVisible = true;
 		});

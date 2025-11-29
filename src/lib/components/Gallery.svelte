@@ -3,7 +3,6 @@
 	import { onMount } from 'svelte';
 	import SecureImage from './SecureImage.svelte';
 	import type { Image } from '$lib/types';
-	import { PUBLIC_IMAGE_URL } from '$env/static/public';
 
 	// Define props for dynamic configuration
 	export let images: Image[] = []; // Array of Image objects

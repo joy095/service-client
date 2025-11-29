@@ -24,30 +24,31 @@
 
 	let isMenuOpen = false;
 	let menuRef: HTMLDivElement | null = null;
+	let menuButtonRef: HTMLButtonElement | null = null;
 
 	function handleClickOutside(event: MouseEvent) {
 		const target = event.target as Node;
-		if (isMenuOpen && menuRef && !menuRef.contains(target)) {
+		if (
+			isMenuOpen &&
+			menuRef &&
+			!menuRef.contains(target) &&
+			menuButtonRef &&
+			!menuButtonRef.contains(target)
+		) {
 			isMenuOpen = false;
 		}
 	}
 
 	onMount(() => {
-		if (browser) {
-			document.addEventListener('click', handleClickOutside);
-		}
+		if (browser) document.addEventListener('click', handleClickOutside);
 	});
 
 	onDestroy(() => {
-		if (browser) {
-			document.removeEventListener('click', handleClickOutside);
-		}
+		if (browser) document.removeEventListener('click', handleClickOutside);
 	});
 
 	$: pathname = $page.url.pathname;
-
 	$: isOnDashboard = pathname.startsWith('/dashboard');
-
 	$: showSwitchLink = $isAuthenticated && $hasBusiness;
 </script>
 
@@ -64,45 +65,33 @@
 		{/if}
 
 		{#if isOnDashboard}
-			<a href="/dashboard/orders" class="text-base font-medium underline-offset-4 hover:underline"
-				>Orders</a
-			>
+			<a href="/dashboard/orders" class="text-base font-medium underline-offset-4 hover:underline">
+				Orders
+			</a>
 		{/if}
 
 		<div class="flex items-center gap-2">
-			{#if data.businessData?.businesses?.length > 0}
-				{#if showSwitchLink}
-					{#if isOnDashboard}
-						<a
-							href="/"
-							class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
-						>
-							Switch to App
-						</a>
-					{:else}
-						<a
-							href="/dashboard"
-							class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
-						>
-							Switch to Dashboard
-						</a>
-					{/if}
-				{/if}
+			{#if data.businessData?.businesses?.length > 0 && showSwitchLink}
+				<a
+					href={isOnDashboard ? '/' : '/dashboard'}
+					class="rounded-full px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100"
+				>
+					{isOnDashboard ? 'Switch to App' : 'Switch to Dashboard'}
+				</a>
 			{/if}
 
-			{#if $isAuthenticated}
-				{#if data.user}
-					<a
-						href="/profile"
-						class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 font-bold text-gray-700"
-					>
-						{data.user.firstName?.charAt(0).toUpperCase()}
-					</a>
-				{/if}
+			{#if $isAuthenticated && data.user}
+				<a
+					href="/profile"
+					class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 font-bold text-gray-700"
+				>
+					{data.user.firstName?.charAt(0).toUpperCase()}
+				</a>
 			{/if}
 
 			<div class="relative" bind:this={menuRef}>
 				<button
+					bind:this={menuButtonRef}
 					class="hand-burger flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-[#EBEBEB] hover:bg-[#e7e7e7]"
 					on:click={() => (isMenuOpen = !isMenuOpen)}
 					aria-haspopup="menu"
@@ -113,8 +102,8 @@
 					<Icon className="h-4 w-4 text-black" src={AiOutlineMenu} />
 				</button>
 
-				<div class:toggled={isMenuOpen} id="menu-container">
-					<a class="divide flex items-center gap-2" href="/">
+				<div id="menu-container" class:is-open={isMenuOpen}>
+					<a class="divide flex items-center gap-2" href="/help">
 						<Icon className="h-6 w-6 text-black" src={IoHelpCircleOutline} />
 						Help center
 					</a>
@@ -125,30 +114,27 @@
 						<div class="divide flex flex-col">
 							<a href="/profile" class="flex items-center gap-2">
 								<Icon className="h-5 w-5 text-black" src={CgProfile} />
-
 								Profile
 							</a>
 							<a href="/settings" class="flex items-center gap-2">
 								<Icon className="h-5 w-5 text-black" src={IoSettingsOutline} />
-								Account settings</a
-							>
+								Account settings
+							</a>
 							<a href="/orders" class="flex items-center gap-2">
 								<Icon className="h-5 w-5 text-black" src={HiOutlineShoppingBag} />
-								Booking</a
-							>
+								Booking
+							</a>
 						</div>
 						<button on:click={logout}>Logout</button>
 					{:else}
-						<button on:click={() => isFormOpen.set(!get(isFormOpen))}> Log in or sign up </button>
+						<button on:click={() => isFormOpen.set(!get(isFormOpen))}>Log in or sign up</button>
 					{/if}
 				</div>
 			</div>
 		</div>
 	</div>
 
-	{#if isOnDashboard}
-		<div></div>
-	{:else}
+	{#if !isOnDashboard}
 		<div class="flex justify-center">
 			<Search />
 		</div>
@@ -161,7 +147,7 @@
 
 <style>
 	.navbar {
-		background: linear-gradient(90deg, #ffffff 0%, #ffffff 100%);
+		background: white;
 		padding: 1rem 2rem;
 		box-shadow: 0 2px 5px rgba(207, 207, 207, 0.2);
 		position: sticky;
@@ -192,37 +178,44 @@
 	}
 
 	#menu-container {
-		opacity: 0;
 		position: absolute;
 		top: 3rem;
 		right: 0;
-		height: 0;
 		width: 0;
+		opacity: 0;
+		height: 0;
 		overflow: hidden;
-		padding: 0.5rem 0;
-		background: #ffffff;
+		background: white;
 		box-shadow: 0 3px 5px rgb(231, 231, 231);
 		border-radius: 10px;
 		z-index: 1;
-
 		display: flex;
 		flex-direction: column;
 		gap: 0.8rem;
+		padding: 0;
+	}
+
+	#menu-container.is-open {
+		width: 12rem;
+		height: auto;
+		opacity: 1;
+		padding: 0.5rem 0;
 	}
 
 	.divide {
 		position: relative;
-		&::after {
-			position: absolute;
-			content: '';
-			left: 0;
-			right: 0;
-			bottom: -8px;
-			width: 85%;
-			margin: 0 auto;
-			height: 1px;
-			background: hsl(0 0% 90%);
-		}
+	}
+
+	.divide::after {
+		content: '';
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: -8px;
+		width: 85%;
+		margin: 0 auto;
+		height: 1px;
+		background: hsl(0 0% 90%);
 	}
 
 	#menu-container button,
@@ -234,19 +227,12 @@
 		cursor: pointer;
 		transition: background-color 0.3s ease;
 		width: 100%;
-		align-self: self-start;
 		text-align: left;
-		position: relative;
 		font-size: 0.9rem;
-
-		&:hover {
-			background-color: #f0f0f0;
-		}
 	}
 
-	#menu-container.toggled {
-		opacity: 1;
-		height: auto;
-		width: 12rem;
+	#menu-container button:hover,
+	#menu-container a:hover {
+		background-color: #f0f0f0;
 	}
 </style>
