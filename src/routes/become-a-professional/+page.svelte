@@ -4,7 +4,7 @@
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import type { ActionData } from './$types';
-	import MapPicker from '$lib/components/MapPicker.svelte';
+	import { onMount, type ComponentType } from 'svelte';
 
 	export let form: ActionData;
 
@@ -173,6 +173,16 @@
 		mapError = event.detail;
 		errors.location = event.detail;
 	}
+
+	let MapPicker: ComponentType | null = null;
+	let loading = true;
+
+	onMount(async () => {
+		// Dynamically import MapPicker only when the component mounts
+		const module = await import('$lib/components/MapPicker.svelte');
+		MapPicker = module.default;
+		loading = false;
+	});
 </script>
 
 <div class="min-h-screen bg-gray-50 px-4 py-12">
@@ -299,13 +309,18 @@
 					>
 						<h2 class="mb-6 text-xl font-semibold text-gray-900">Set Your Location</h2>
 
-						<MapPicker
-							initialLat={parseFloat(formData.latitude) || undefined}
-							initialLng={parseFloat(formData.longitude) || undefined}
-							error={errors.location || mapError}
-							on:locationSelected={handleLocationSelected}
-							on:locationError={handleLocationError}
-						/>
+						{#if loading}
+							<p class="text-sm text-gray-500">Loading map...</p>
+						{:else if MapPicker}
+							<svelte:component
+								this={MapPicker}
+								initialLat={parseFloat(formData.latitude) || undefined}
+								initialLng={parseFloat(formData.longitude) || undefined}
+								error={errors.location || mapError}
+								on:locationSelected={handleLocationSelected}
+								on:locationError={handleLocationError}
+							/>
+						{/if}
 
 						{#if errors.location}
 							<p class="mt-2 text-center text-xs text-red-500">{errors.location}</p>
